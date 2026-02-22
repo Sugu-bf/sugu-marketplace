@@ -1,0 +1,218 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════
+   SUGU Design Tokens — Single source of truth
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  /* ── Brand palette ── */
+  --color-primary: #F15412;
+  --color-primary-light: #FF7A45;
+  --color-primary-dark: #D4450B;
+  --color-primary-50: #FFF4EE;
+  --color-primary-100: #FFE5D6;
+  --color-primary-200: #FFC7A8;
+  --color-primary-500: #F15412;
+  --color-primary-600: #D94A0F;
+  --color-primary-700: #B83D0C;
+  --color-primary-900: #7A280A;
+
+  /* ── Accent (CTA yellow) ── */
+  --color-accent: #F5C451;
+  --color-accent-dark: #E8B33A;
+
+  /* ── Neutrals ── */
+  --color-background: #FFFFFF;
+  --color-foreground: #171717;
+  --color-muted: #F5F5F5;
+  --color-muted-foreground: #737373;
+  --color-border: #E5E5E5;
+  --color-border-light: #F0F0F0;
+
+  /* ── Semantic ── */
+  --color-success: #22C55E;
+  --color-warning: #FACC15;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+
+  /* ── Radius ── */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+  /* ── Container ── */
+  --container-max: 1400px;
+  --container-px: 1rem;
+  --container-px-lg: 2rem;
+}
+
+/* ── Tailwind v4 @theme — expose tokens to tw utilities ── */
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-primary-50: var(--color-primary-50);
+  --color-primary-100: var(--color-primary-100);
+  --color-primary-200: var(--color-primary-200);
+  --color-primary-500: var(--color-primary-500);
+  --color-primary-600: var(--color-primary-600);
+  --color-primary-700: var(--color-primary-700);
+  --color-primary-900: var(--color-primary-900);
+  --color-accent: var(--color-accent);
+  --color-accent-dark: var(--color-accent-dark);
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-muted: var(--color-muted);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-border: var(--color-border);
+  --color-border-light: var(--color-border-light);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ═══════════════════════════════════════════════════
+   Base Styles
+   ═══════════════════════════════════════════════════ */
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  overflow-x: hidden;
+}
+
+/* Focus ring — accessible & on-brand */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(241, 84, 18, 0.15);
+  color: #F15412;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ═══════════════════════════════════════════════════
+   Utility Classes
+   ═══════════════════════════════════════════════════ */
+
+/* Scrollbar Hide */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Container (custom) */
+@utility container-sugu {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-px);
+  @media (min-width: 1024px) {
+    padding-inline: var(--container-px-lg);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   Keyframe Animations
+   ═══════════════════════════════════════════════════ */
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideRight {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(241, 84, 18, 0.3); }
+  50%      { box-shadow: 0 0 0 8px rgba(241, 84, 18, 0); }
+}
+
+@keyframes slideInFromLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes bounceIn {
+  0%   { opacity: 0; transform: scale(0.3); }
+  50%  { opacity: 1; transform: scale(1.05); }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* ── Animation utilities ── */
+.animate-fade-slide-up    { animation: fadeSlideUp    0.6s ease-out both; }
+.animate-fade-slide-right { animation: fadeSlideRight 0.6s ease-out both; }
+.animate-fade-slide-down  { animation: fadeSlideDown  0.4s ease-out both; }
+.animate-scale-in         { animation: scaleIn        0.5s ease-out both; }
+.animate-float            { animation: float          3s   ease-in-out infinite; }
+.animate-pulse-glow       { animation: pulseGlow      2s   ease-in-out infinite; }
+.page-enter               { animation: fadeSlideUp    0.5s ease-out both; }
+
+/* ═══════════════════════════════════════════════════
+   Skeleton / Shimmer
+   ═══════════════════════════════════════════════════ */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e5e7eb;
+  border-radius: var(--radius-md);
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
