@@ -2,51 +2,67 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button, Input } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { AssuranceBadge } from "@/components/ui/assurance-badge";
-import { Lock, Smartphone, Truck, RotateCcw, ShieldCheck, Tag, X } from "lucide-react";
+import { Lock, Smartphone, Truck, RotateCcw, Tag, X, Loader2 } from "lucide-react";
 import { formatPrice } from "@/lib/constants";
-import type { CartItem } from "@/features/cart";
+import type { CartTotalsUI } from "@/features/cart";
 
 interface OrderSummaryProps {
-  items: CartItem[];
+  /** Totals from the backend — source of truth */
+  totals: CartTotalsUI;
+  /** Currently applied coupon code (if any) */
+  couponCode: string | null;
+  /** Apply a coupon code. Returns error string or null on success. */
+  onApplyCoupon: (code: string) => Promise<string | null>;
+  /** Remove the applied coupon */
+  onRemoveCoupon: () => void;
+  /** Start checkout flow */
+  onCheckout: () => void;
+  /** Start mobile money payment */
+  onMobileMoneyPayment: () => void;
+  /** Loading states */
+  isApplyingCoupon: boolean;
+  isCheckingOut: boolean;
+  /** Success message from coupon operations */
+  couponMessage: string | null;
 }
 
 /**
  * Order summary card — displays subtotal, discounts, shipping, coupon, and CTA.
  * Client component — handles coupon interaction.
+ *
+ * ALL totals come from the backend. The front does NOT compute prices.
  */
-function OrderSummary({ items }: OrderSummaryProps) {
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+function OrderSummary({
+  totals,
+  couponCode,
+  onApplyCoupon,
+  onRemoveCoupon,
+  onCheckout,
+  onMobileMoneyPayment,
+  isApplyingCoupon,
+  isCheckingOut,
+  couponMessage,
+}: OrderSummaryProps) {
+  const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
 
-  // Calculations
-  const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
-  const subtotal = items.reduce((acc, i) => acc + i.price * i.quantity, 0);
-  const originalTotal = items.reduce(
-    (acc, i) => acc + (i.originalPrice ?? i.price) * i.quantity,
-    0
-  );
-  const discount = originalTotal - subtotal;
-  const shipping = 0; // free shipping
-  const total = subtotal - shipping;
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim() || isApplyingCoupon) return;
+    setCouponError(null);
 
-  const handleApplyCoupon = () => {
-    if (!couponCode.trim()) return;
-    // Mock validation — in production, this would call the API
-    if (couponCode.toUpperCase() === "SUGU10") {
-      setAppliedCoupon(couponCode.toUpperCase());
-      setCouponError(null);
-      setCouponCode("");
+    const errorMsg = await onApplyCoupon(couponInput.trim());
+    if (errorMsg) {
+      setCouponError(errorMsg);
     } else {
-      setCouponError("Code promo invalide");
+      setCouponInput("");
     }
   };
 
   const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
     setCouponError(null);
+    onRemoveCoupon();
   };
 
   return (
@@ -58,52 +74,57 @@ function OrderSummary({ items }: OrderSummaryProps) {
         {/* Title */}
         <h2 className="text-lg font-bold text-foreground">Résumé de la commande</h2>
 
-        {/* Summary rows */}
+        {/* Summary rows — ALL from backend */}
         <div className="space-y-3 text-sm">
           <SummaryRow
-            label={`Sous-total (${itemCount} article${itemCount > 1 ? "s" : ""})`}
-            value={formatPrice(subtotal)}
+            label={`Sous-total (${totals.itemCount} article${totals.itemCount > 1 ? "s" : ""})`}
+            value={formatPrice(totals.subtotal)}
           />
-          {discount > 0 && (
+          {totals.discount > 0 && (
             <SummaryRow
               label="Réduction"
-              value={`-${formatPrice(discount)}`}
+              value={`-${formatPrice(totals.discount)}`}
               valueClassName="text-green-600"
             />
           )}
           <SummaryRow
             label="Livraison"
-            value="Gratuite"
-            valueClassName="text-green-600 font-semibold"
-            icon={<Truck size={14} className="text-green-600" />}
+            value={totals.shippingFree ? "Gratuite" : formatPrice(totals.shipping)}
+            valueClassName={totals.shippingFree ? "text-green-600 font-semibold" : undefined}
+            icon={totals.shippingFree ? <Truck size={14} className="text-green-600" /> : undefined}
           />
         </div>
 
         {/* Divider */}
         <div className="border-t border-dashed border-border" />
 
-        {/* Total */}
+        {/* Total — from backend */}
         <div className="flex items-center justify-between">
           <span className="text-base font-bold text-foreground">Total</span>
           <span className="text-xl font-bold text-primary sm:text-2xl">
-            {formatPrice(total)}
+            {formatPrice(totals.total)}
           </span>
         </div>
 
         {/* Coupon code */}
         <div className="space-y-2">
-          {appliedCoupon ? (
+          {couponCode ? (
             <div className="flex items-center justify-between rounded-lg bg-green-50 px-3 py-2">
               <div className="flex items-center gap-2 text-sm text-green-700">
                 <Tag size={14} />
-                <span className="font-medium">{appliedCoupon}</span>
+                <span className="font-medium">{couponCode}</span>
               </div>
               <button
                 onClick={handleRemoveCoupon}
-                className="text-green-600 hover:text-green-800 transition-colors"
+                disabled={isApplyingCoupon}
+                className="text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"
                 aria-label="Supprimer le code promo"
               >
-                <X size={14} />
+                {isApplyingCoupon ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <X size={14} />
+                )}
               </button>
             </div>
           ) : (
@@ -111,16 +132,18 @@ function OrderSummary({ items }: OrderSummaryProps) {
               <div className="flex-1">
                 <input
                   type="text"
-                  value={couponCode}
+                  value={couponInput}
                   onChange={(e) => {
-                    setCouponCode(e.target.value);
+                    setCouponInput(e.target.value);
                     setCouponError(null);
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
                   placeholder="Code promo"
+                  disabled={isApplyingCoupon}
                   className={cn(
                     "w-full h-10 rounded-lg border bg-background px-3 text-sm transition-all duration-200",
                     "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
                     couponError ? "border-error" : "border-border"
                   )}
                   aria-label="Code promo"
@@ -131,15 +154,25 @@ function OrderSummary({ items }: OrderSummaryProps) {
                 variant="outline"
                 size="md"
                 onClick={handleApplyCoupon}
+                disabled={isApplyingCoupon || !couponInput.trim()}
                 className="flex-shrink-0"
               >
-                Appliquer
+                {isApplyingCoupon ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  "Appliquer"
+                )}
               </Button>
             </div>
           )}
           {couponError && (
             <p className="text-xs text-error" role="alert">
               {couponError}
+            </p>
+          )}
+          {couponMessage && !couponError && (
+            <p className="text-xs text-green-600" role="status">
+              {couponMessage}
             </p>
           )}
         </div>
@@ -151,10 +184,16 @@ function OrderSummary({ items }: OrderSummaryProps) {
             size="lg"
             fullWidth
             pill
+            onClick={onCheckout}
+            disabled={isCheckingOut}
             className="text-base font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
           >
-            <Lock size={16} />
-            Passer la commande
+            {isCheckingOut ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Lock size={16} />
+            )}
+            {isCheckingOut ? "Traitement..." : "Passer la commande"}
           </Button>
 
           <Button
@@ -162,9 +201,15 @@ function OrderSummary({ items }: OrderSummaryProps) {
             size="lg"
             fullWidth
             pill
+            onClick={onMobileMoneyPayment}
+            disabled={isCheckingOut}
             className="text-base"
           >
-            <Smartphone size={16} />
+            {isCheckingOut ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Smartphone size={16} />
+            )}
             Payer avec Mobile Money
           </Button>
         </div>

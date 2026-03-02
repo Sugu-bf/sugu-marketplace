@@ -1,33 +1,21 @@
 import { createMetadata } from "@/lib/metadata";
-import {
-  queryCountryCodes,
-  queryDefaultCountryCode,
-  querySocialProviders,
-} from "@/features/auth";
+import { querySocialProviders } from "@/features/auth";
 import { LoginPageClient } from "@/features/auth/components/LoginPageClient";
 
 export const metadata = createMetadata({
   title: "Connexion",
   description:
-    "Connectez-vous à votre compte Sugu par email, téléphone ou réseau social.",
+    "Connectez-vous à votre compte Sugu par email ou téléphone.",
   path: "/login",
   noIndex: true,
 });
 
 /**
  * Login page — Server Component.
- * Fetches mock data via queries and passes to client shell.
+ * Fetches social providers and passes to client shell.
  */
 export default async function LoginPage() {
-  const [countryCodes, defaultCountryCode, socialProviders] = await Promise.all(
-    [queryCountryCodes(), queryDefaultCountryCode(), querySocialProviders()]
-  );
+  const socialProviders = await querySocialProviders();
 
-  return (
-    <LoginPageClient
-      countryCodes={countryCodes}
-      defaultCountryCode={defaultCountryCode}
-      socialProviders={socialProviders}
-    />
-  );
+  return <LoginPageClient socialProviders={socialProviders} />;
 }

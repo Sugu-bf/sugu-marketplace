@@ -1,6 +1,6 @@
 import { createMetadata } from "@/lib/metadata";
 import { Container, Breadcrumb } from "@/components/ui";
-import { queryCartItems } from "@/features/cart";
+import { queryCart } from "@/features/cart/queries/cart-queries";
 import { queryFeaturedProducts } from "@/features/product";
 import { CartOrchestrator } from "@/features/cart/components/CartOrchestrator";
 import { CartSuggestions } from "@/features/cart/components/CartSuggestions";
@@ -17,13 +17,12 @@ export const metadata = createMetadata({
 // ─── Page Component (Server) ─────────────────────────────────
 
 export default async function CartPage() {
-  const [cartItems, suggestedProducts] = await Promise.all([
-    queryCartItems(),
+  const [cart, suggestedProducts] = await Promise.all([
+    queryCart(),
     queryFeaturedProducts(5),
   ]);
 
   const breadcrumbItems = [{ label: "Mon Panier" }];
-  const itemCount = cartItems.reduce((acc, i) => acc + i.quantity, 0);
 
   return (
     <main className="pb-12">
@@ -39,14 +38,14 @@ export default async function CartPage() {
             Mon Panier
           </h1>
           <span className="text-base text-muted-foreground">
-            ({itemCount} article{itemCount > 1 ? "s" : ""})
+            ({cart.totals.itemCount} article{cart.totals.itemCount > 1 ? "s" : ""})
           </span>
         </div>
       </Container>
 
       {/* Cart Content */}
       <Container>
-        <CartOrchestrator initialItems={cartItems} />
+        <CartOrchestrator initialCart={cart} />
       </Container>
 
       {/* Suggested Products */}

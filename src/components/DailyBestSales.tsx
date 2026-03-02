@@ -1,37 +1,69 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import Link from "next/link";
 import Image from "next/image";
-import { Star, ShoppingCart, ArrowRight, Camera, ShoppingBag } from "lucide-react";
+import { Star, ShoppingCart, ArrowRight, Camera, ShoppingBag, Loader2 } from "lucide-react";
 import { Container, SectionHeader } from "@/components/ui";
+import { formatPrice } from "@/lib/constants";
+import { addToCart } from "@/features/home";
 import type { DailyBestSaleProduct } from "@/features/home";
 
 interface DailyBestSalesProps {
   products: DailyBestSaleProduct[];
 }
 
-function formatDailyPrice(price: number): string {
-  if (price >= 1000) {
-    return price.toLocaleString("fr-FR");
-  }
-  return price.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function ProductCard({ product, index }: { product: DailyBestSaleProduct; index: number }) {
-  const soldPercent = (product.soldCount / product.totalStock) * 100;
+  const soldPercent = product.totalStock > 0
+    ? (product.soldCount / product.totalStock) * 100
+    : 0;
+  const [isAdding, setIsAdding] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const handleAdd = useCallback(async () => {
+    if (isAdding) return;
+    setIsAdding(true);
+    setFeedback(null);
+
+    try {
+      const result = await addToCart({ product_id: product.id, qty: 1 });
+      setFeedback(result.success ? "✓ Ajouté" : (result.message || "Erreur"));
+    } catch {
+      setFeedback("Erreur");
+    } finally {
+      setIsAdding(false);
+      setTimeout(() => setFeedback(null), 3000);
+    }
+  }, [isAdding, product.id]);
+
+  const href = product.slug ? `/product/${product.slug}` : "#";
 
   return (
-    <div
+    <Link
+      href={href}
       className="group flex items-stretch gap-0 rounded-2xl border border-border-light bg-white overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer"
       style={{
         animation: `fadeSlideUp 0.4s ease-out ${200 + index * 80}ms both`,
       }}
     >
       {/* Product Image */}
-      <div className="relative w-[130px] flex-shrink-0 bg-muted flex items-center justify-center">
+      <div className="relative w-[100px] sm:w-[130px] flex-shrink-0 bg-muted flex items-center justify-center">
         {product.promoPercent && (
           <span className="absolute top-2 left-2 z-10 rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
             Promo {product.promoPercent}%
           </span>
         )}
-        <Camera size={32} className="text-border" />
+        {product.image && !product.image.includes("fallback-product") ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-contain p-2"
+            sizes="130px"
+          />
+        ) : (
+          <Camera size={32} className="text-border" />
+        )}
       </div>
 
       {/* Product Info */}
@@ -39,10 +71,10 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
         {/* Price */}
         <div className="flex items-baseline gap-2 mb-1">
           <span className="text-xs text-muted-foreground line-through">
-            {formatDailyPrice(product.originalPrice)} F
+            {formatPrice(product.originalPrice)}
           </span>
           <span className="text-sm font-bold text-primary">
-            {formatDailyPrice(product.price)} F
+            {formatPrice(product.price)}
           </span>
           <span className="text-[10px] text-muted-foreground">/Qty</span>
         </div>
@@ -75,18 +107,42 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
           <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{ width: `${soldPercent}%` }}
+              style={{ width: `${Math.min(soldPercent, 100)}%` }}
             />
           </div>
         </div>
 
+        {/* Feedback */}
+        {feedback && (
+          <p
+            className={`text-[10px] font-medium mb-1 ${
+              feedback.startsWith("✓") ? "text-green-600" : "text-error"
+            }`}
+          >
+            {feedback}
+          </p>
+        )}
+
         {/* Add to cart */}
-        <button className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline transition-colors duration-200">
-          Ajouter au panier
-          <ShoppingCart size={12} />
+        <button
+          onClick={(e) => { e.preventDefault(); handleAdd(); }}
+          disabled={isAdding}
+          className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline transition-colors duration-200 disabled:opacity-50"
+        >
+          {isAdding ? (
+            <>
+              <Loader2 size={12} className="animate-spin" />
+              Ajout...
+            </>
+          ) : (
+            <>
+              Ajouter au panier
+              <ShoppingCart size={12} />
+            </>
+          )}
         </button>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -108,11 +164,9 @@ export default function DailyBestSales({ products }: DailyBestSalesProps) {
 
         {/* Promo card */}
         <div
-          className="rounded-2xl overflow-hidden relative lg:row-span-2 lg:-order-1 order-last flex flex-col"
+          className="rounded-2xl overflow-hidden relative flex flex-col md:col-span-2 lg:col-span-1 lg:row-span-2 lg:col-start-4 lg:row-start-1 order-first lg:order-none"
           style={{
             background: "linear-gradient(180deg, #FFF8F0 0%, #FEF3E8 100%)",
-            gridRow: "1 / 3",
-            gridColumn: "-2 / -1",
             animation: "fadeSlideUp 0.5s ease-out 300ms both",
           }}
         >
@@ -124,7 +178,7 @@ export default function DailyBestSales({ products }: DailyBestSalesProps) {
 
             {/* Text */}
             <p className="text-base font-bold text-foreground leading-snug mb-2">
-              5 000 F de réduction sur votre première commande
+              {formatPrice(5000)} de réduction sur votre première commande
             </p>
             <p className="text-xs text-muted-foreground mb-4">
               Livraison avant 6h15

@@ -12,12 +12,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "via.placeholder.com",
+        hostname: "api.mysugu.com",
         pathname: "/**",
       },
       {
-        protocol: "http",
-        hostname: "localhost",
+        protocol: "https",
+        hostname: "via.placeholder.com",
         pathname: "/**",
       },
     ],

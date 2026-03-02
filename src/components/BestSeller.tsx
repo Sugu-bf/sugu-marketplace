@@ -33,7 +33,7 @@ export default function BestSeller({ products }: BestSellerProps) {
       {/* Products Scroll */}
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+        className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2 -mx-4 px-4 lg:mx-0 lg:px-0"
       >
         {products.map((product, index) => (
           <div

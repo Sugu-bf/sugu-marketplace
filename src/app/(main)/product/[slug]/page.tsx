@@ -27,8 +27,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   return createMetadata({
-    title: product.name,
-    description: product.description.slice(0, 155),
+    title: product._api?.seo?.title ?? product.name,
+    description: product._api?.seo?.description ?? product.description.slice(0, 155),
     path: `/product/${slug}`,
     image: product.thumbnail,
   });
@@ -38,14 +38,22 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = await queryProductBySlug(slug);
+
+  // Fetch product + related in parallel (zero waterfall)
+  const [product, relatedProducts] = await Promise.all([
+    queryProductBySlug(slug),
+    queryRelatedProducts(slug, 5),
+  ]);
 
   if (!product) notFound();
 
-  const relatedProducts = await queryRelatedProducts(product.id, 5);
-
   const breadcrumbItems = [
-    { label: product.categoryName, href: `/category/${product.categoryName.toLowerCase().replace(/ & /g, "-").replace(/ /g, "-")}` },
+    {
+      label: product.categoryName,
+      href: product._api?.category?.slug
+        ? `/category/${product._api.category.slug}`
+        : `/category/${product.categoryName.toLowerCase().replace(/ & /g, "-").replace(/ /g, "-")}`,
+    },
     { label: product.name },
   ];
 
@@ -63,6 +71,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <ProductImageGallery
             images={product.images}
             productName={product.name}
+            productId={product._api ? String(product._api.id) : String(product.id)}
           />
 
           {/* Right — Product Details */}
@@ -77,14 +86,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               />
             )}
 
-            <ProductActions product={product} />
+            <ProductActions
+              product={product}
+              apiData={product._api ?? undefined}
+            />
           </div>
         </div>
       </Container>
 
       {/* Product Tabs */}
       <Container className="py-8 border-t border-border-light">
-        <ProductDetailTabs product={product} />
+        <ProductDetailTabs product={product} slug={slug} descriptionHtml={product._api?.description_html} />
       </Container>
 
       {/* Related Products */}
@@ -102,15 +114,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             name: product.name,
             description: product.description,
             image: product.images.map((img) => img.url),
-            sku: product.slug,
+            sku: product._api?.sku ?? product.slug,
             brand: {
               "@type": "Organization",
-              name: product.vendorName,
+              name: product._api?.brand?.name ?? product.vendorName,
             },
             offers: {
               "@type": "Offer",
               url: `https://sugu.pro/product/${product.slug}`,
-              priceCurrency: product.currency,
+              priceCurrency: product.currency === "F" ? "XOF" : product.currency,
               price: product.price,
               availability: product.stock > 0
                 ? "https://schema.org/InStock"
@@ -120,11 +132,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 name: product.vendorName,
               },
             },
-            aggregateRating: {
+            aggregateRating: product.reviewCount > 0 ? {
               "@type": "AggregateRating",
               ratingValue: product.rating,
               reviewCount: product.reviewCount,
-            },
+            } : undefined,
           }),
         }}
       />

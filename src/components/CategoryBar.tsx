@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import { Container, ScrollArrow } from "@/components/ui";
 import type { CategoryPill } from "@/features/home";
 
@@ -33,8 +34,9 @@ export default function CategoryBar({ categories }: CategoryBarProps) {
           className="flex gap-2 overflow-x-auto px-10 scrollbar-hide scroll-smooth"
         >
           {categories.map((cat, index) => (
-            <button
+            <Link
               key={`${cat.name}-${index}`}
+              href={`/category/${cat.slug}`}
               className="flex flex-shrink-0 items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground transition-all duration-300 hover:border-primary/40 hover:bg-primary-50 hover:text-primary hover:shadow-md hover:scale-105 active:scale-95"
               style={{
                 animation: `fadeSlideUp 0.5s ease-out ${index * 50}ms both`,
@@ -42,7 +44,7 @@ export default function CategoryBar({ categories }: CategoryBarProps) {
             >
               <span className="text-lg" aria-hidden="true">{cat.emoji}</span>
               <span className="whitespace-nowrap">{cat.name}</span>
-            </button>
+            </Link>
           ))}
         </div>
 

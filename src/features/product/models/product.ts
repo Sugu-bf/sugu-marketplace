@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CURRENCY } from "@/lib/constants";
 
 // ─── Product Schemas ─────────────────────────────────────────
 
@@ -29,13 +30,13 @@ export const ProductVariantSchema = z.object({
 });
 
 export const ProductSchema = z.object({
-  id: z.number(),
+  id: z.union([z.string(), z.number()]),
   slug: z.string(),
   name: z.string(),
   description: z.string(),
   price: z.number().nonnegative(),
   originalPrice: z.number().nonnegative().optional(),
-  currency: z.string().default("XOF"),
+  currency: z.string().default(CURRENCY.code),
   discount: z.number().min(0).max(100).optional(),
   images: z.array(ProductImageSchema),
   thumbnail: z.string(),

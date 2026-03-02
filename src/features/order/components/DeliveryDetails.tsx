@@ -75,17 +75,21 @@ function DeliveryDetails({
             value={
               <div className="flex flex-wrap items-center gap-2">
                 <span>{driver.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {driver.phone}
-                </span>
-                <a
-                  href={`tel:${driver.phone.replace(/\s/g, "")}`}
-                  className="inline-block"
-                >
-                  <Button variant="primary" size="xs" pill>
-                    Appeler
-                  </Button>
-                </a>
+                {driver.phone && (
+                  <span className="text-xs text-muted-foreground">
+                    {driver.phone}
+                  </span>
+                )}
+                {driver.phone && (
+                  <a
+                    href={`tel:${driver.phone.replace(/\s/g, "")}`}
+                    className="inline-block"
+                  >
+                    <Button variant="primary" size="xs" pill>
+                      Appeler
+                    </Button>
+                  </a>
+                )}
               </div>
             }
           />

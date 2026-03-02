@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import {
   SlidersHorizontal,
   X,
@@ -9,197 +10,286 @@ import {
   ChevronDown,
   Star,
   Search,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/constants";
 import { ProductCard, Pagination, Badge } from "@/components/ui";
-import type { ProductListItem } from "@/features/product";
-import type { RelatedSearch, PriceRange } from "@/features/search";
+import type {
+  SearchQueryState,
+  SortValue,
+  ViewMode,
+  SearchProductItem,
+  FilterCategoryFacet,
+} from "@/features/search";
+import {
+  SORT_VALUES,
+  serializeSearchState,
+  DEFAULT_SEARCH_STATE,
+} from "@/features/search";
+import type { PriceRange } from "@/features/search";
 
-// ─── Sort Options ────────────────────────────────────────────
+// ─── Sort Options (label map) ────────────────────────────────
 
-const SORT_OPTIONS = [
-  { value: "relevance", label: "Pertinence" },
-  { value: "price-asc", label: "Prix croissant" },
-  { value: "price-desc", label: "Prix décroissant" },
-  { value: "rating", label: "Meilleures notes" },
-  { value: "newest", label: "Nouveautés" },
-  { value: "best-seller", label: "Meilleures ventes" },
-] as const;
+const SORT_LABELS: Record<SortValue, string> = {
+  relevance: "Pertinence",
+  price_asc: "Prix croissant",
+  price_desc: "Prix décroissant",
+  newest: "Nouveautés",
+  popular: "Meilleures ventes",
+};
 
 // ─── Types ───────────────────────────────────────────────────
 
-interface FilterCategory {
-  slug: string;
-  name: string;
-  count: number;
+interface SearchPageClientProps {
+  initialState: SearchQueryState;
+  initialProducts: SearchProductItem[];
+  initialPagination: {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+  };
+  initialCategoryFacets: FilterCategoryFacet[];
+  priceRanges: PriceRange[];
 }
 
-interface SearchPageClientProps {
-  query: string;
-  products: ProductListItem[];
-  relatedSearches: RelatedSearch[];
-  priceRanges: PriceRange[];
-  filterCategories: FilterCategory[];
-  totalResults: number;
+// ─── Debounce helper ─────────────────────────────────────────
+
+function useDebouncedCallback<T extends (...args: unknown[]) => void>(
+  callback: T,
+  delay: number
+): T {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  return useCallback(
+    (...args: unknown[]) => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => callback(...args), delay);
+    },
+    [callback, delay]
+  ) as T;
 }
 
 // ─── Component ───────────────────────────────────────────────
 
 export default function SearchPageClient({
-  query,
-  products,
-  relatedSearches,
+  initialState,
+  initialProducts,
+  initialPagination,
+  initialCategoryFacets,
   priceRanges,
-  filterCategories,
-  totalResults,
 }: SearchPageClientProps) {
-  // State
-  const [sortBy, setSortBy] = useState<string>("relevance");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // ─── Local UI state ──────────────────────────────────────
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
 
-  // Filters
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedPriceRange, setSelectedPriceRange] = useState<number | null>(null);
-  const [minRating, setMinRating] = useState<number | null>(null);
-  const [inStockOnly, setInStockOnly] = useState(false);
+  // Navigation lock to avoid rapid-fire pushes
+  const isNavigatingRef = useRef(false);
 
-  const ITEMS_PER_PAGE = 8;
+  // We read everything from initialState (SSR), so state is URL-driven.
+  // The client interacts by navigating to new URLs.
+
+  const query = initialState.q;
+  const sortBy = initialState.sort;
+  const viewMode = initialState.view;
+  const currentPage = initialState.page;
+  const selectedCategories = initialState.categories;
+  const selectedPriceMin = initialState.price_min;
+  const selectedPriceMax = initialState.price_max;
+  const minRating = initialState.rating_min;
+  const inStockOnly = initialState.in_stock;
+
+  const products = initialProducts;
+  const totalResults = initialPagination.total;
+  const totalPages = initialPagination.lastPage;
+  const filterCategories = initialCategoryFacets;
+
+  // Determine which price range index is selected
+  const selectedPriceRange = useMemo(() => {
+    if (selectedPriceMin === null && selectedPriceMax === null) return null;
+    return priceRanges.findIndex(
+      (r) => r.min === selectedPriceMin && r.max === selectedPriceMax
+    );
+  }, [selectedPriceMin, selectedPriceMax, priceRanges]);
 
   // Active filter count
   const activeFilterCount =
     selectedCategories.length +
-    (selectedPriceRange !== null ? 1 : 0) +
+    (selectedPriceRange !== null && selectedPriceRange >= 0 ? 1 : 0) +
     (minRating !== null ? 1 : 0) +
     (inStockOnly ? 1 : 0);
 
-  // Filtered & sorted products
-  const processedProducts = useMemo(() => {
-    let result = [...products];
+  // ─── Navigation (URL update) ──────────────────────────────
 
-    // Category filter
-    if (selectedCategories.length > 0) {
-      result = result.filter((p) =>
-        selectedCategories.some(
-          (c) =>
-            filterCategories.find((fc) => fc.slug === c)?.name === p.categoryName
-        )
-      );
-    }
+  const navigateWithState = useCallback(
+    (partial: Partial<SearchQueryState>) => {
+      if (isNavigatingRef.current) return;
+      isNavigatingRef.current = true;
 
-    // Price filter
-    if (selectedPriceRange !== null) {
-      const range = priceRanges[selectedPriceRange];
-      if (range) {
-        result = result.filter(
-          (p) => p.price >= range.min && p.price <= range.max
-        );
-      }
-    }
+      const newState: SearchQueryState = {
+        q: partial.q ?? query,
+        categories: partial.categories ?? selectedCategories,
+        price_min: partial.price_min !== undefined ? partial.price_min : selectedPriceMin,
+        price_max: partial.price_max !== undefined ? partial.price_max : selectedPriceMax,
+        rating_min: partial.rating_min !== undefined ? partial.rating_min : minRating,
+        in_stock: partial.in_stock !== undefined ? partial.in_stock : inStockOnly,
+        sort: partial.sort ?? sortBy,
+        view: partial.view ?? viewMode,
+        page: partial.page ?? 1, // Reset to page 1 on filter changes
+      };
 
-    // Rating filter
-    if (minRating !== null) {
-      result = result.filter((p) => p.rating >= minRating);
-    }
+      const params = serializeSearchState(newState);
+      const qs = params.toString();
+      const url = qs ? `${pathname}?${qs}` : pathname;
 
-    // Stock filter
-    if (inStockOnly) {
-      result = result.filter((p) => p.stock > 0);
-    }
+      router.push(url, { scroll: false });
 
-    // Sort
-    switch (sortBy) {
-      case "price-asc":
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case "price-desc":
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        result.sort((a, b) => b.rating - a.rating);
-        break;
-      case "newest":
-        result.sort((a, b) => b.id - a.id);
-        break;
-      case "best-seller":
-        result.sort((a, b) => b.sold - a.sold);
-        break;
-    }
-
-    return result;
-  }, [
-    products,
-    selectedCategories,
-    selectedPriceRange,
-    minRating,
-    inStockOnly,
-    sortBy,
-    filterCategories,
-    priceRanges,
-  ]);
-
-  // Pagination
-  const totalPages = Math.ceil(processedProducts.length / ITEMS_PER_PAGE);
-  const paginatedProducts = processedProducts.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+      // Release lock after a tick
+      requestAnimationFrame(() => {
+        isNavigatingRef.current = false;
+      });
+    },
+    [
+      query, selectedCategories, selectedPriceMin, selectedPriceMax,
+      minRating, inStockOnly, sortBy, viewMode, pathname, router,
+    ]
   );
 
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  const debouncedNavigate = useDebouncedCallback(
+    navigateWithState as (...args: unknown[]) => void,
+    300
+  );
 
-  // Clear all filters
-  const clearAllFilters = useCallback(() => {
-    setSelectedCategories([]);
-    setSelectedPriceRange(null);
-    setMinRating(null);
-    setInStockOnly(false);
-    setCurrentPage(1);
-  }, []);
+  // ─── Filter handlers ──────────────────────────────────────
 
-  // Toggle category
   const toggleCategory = useCallback(
     (slug: string) => {
-      setSelectedCategories((prev) =>
-        prev.includes(slug) ? prev.filter((c) => c !== slug) : [...prev, slug]
-      );
-      setCurrentPage(1);
+      const updated = selectedCategories.includes(slug)
+        ? selectedCategories.filter((c) => c !== slug)
+        : [...selectedCategories, slug];
+      navigateWithState({ categories: updated, page: 1 });
     },
-    []
+    [selectedCategories, navigateWithState]
   );
+
+  const selectPriceRange = useCallback(
+    (idx: number | null) => {
+      if (idx === null || idx < 0 || idx >= priceRanges.length) {
+        navigateWithState({ price_min: null, price_max: null, page: 1 });
+      } else {
+        const range = priceRanges[idx];
+        navigateWithState({ price_min: range.min, price_max: range.max, page: 1 });
+      }
+    },
+    [priceRanges, navigateWithState]
+  );
+
+  const selectRating = useCallback(
+    (rating: number | null) => {
+      navigateWithState({ rating_min: rating, page: 1 });
+    },
+    [navigateWithState]
+  );
+
+  const toggleInStock = useCallback(() => {
+    navigateWithState({ in_stock: !inStockOnly, page: 1 });
+  }, [inStockOnly, navigateWithState]);
+
+  const changeSortBy = useCallback(
+    (value: SortValue) => {
+      setShowSortDropdown(false);
+      navigateWithState({ sort: value, page: 1 });
+    },
+    [navigateWithState]
+  );
+
+  const changeViewMode = useCallback(
+    (mode: ViewMode) => {
+      navigateWithState({ view: mode, page: currentPage });
+    },
+    [navigateWithState, currentPage]
+  );
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      navigateWithState({ page });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [navigateWithState]
+  );
+
+  const clearAllFilters = useCallback(() => {
+    navigateWithState({
+      categories: [],
+      price_min: null,
+      price_max: null,
+      rating_min: null,
+      in_stock: false,
+      page: 1,
+    });
+  }, [navigateWithState]);
+
+  // ─── Suggestions (top categories or related) ──────────────
+
+  const suggestions = useMemo(() => {
+    const terms = [
+      "Fruits frais",
+      "Légumes bio",
+      "Épicerie",
+      "Boissons",
+      "Viande & Poisson",
+      "Produits laitiers",
+    ];
+    // If we have category facets, use them instead
+    if (filterCategories.length > 0) {
+      return filterCategories.slice(0, 6).map((c) => ({
+        label: c.name,
+        query: c.name,
+      }));
+    }
+    return terms.map((t) => ({ label: t, query: t }));
+  }, [filterCategories]);
 
   // ─── Filter Sidebar Content ─────────────────────────────────
 
   const FilterContent = (
     <div className="space-y-6">
       {/* Categories */}
-      <div>
-        <h3 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wider">
-          Catégories
-        </h3>
-        <div className="space-y-2">
-          {filterCategories.map((cat) => (
-            <label
-              key={cat.slug}
-              className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors duration-200 hover:bg-primary-50"
-            >
-              <input
-                type="checkbox"
-                checked={selectedCategories.includes(cat.slug)}
-                onChange={() => toggleCategory(cat.slug)}
-                className="h-4 w-4 rounded border-border text-primary accent-primary focus:ring-primary/30"
-              />
-              <span className="flex-1 text-sm text-foreground">{cat.name}</span>
-              <span className="text-xs text-muted-foreground">({cat.count})</span>
-            </label>
-          ))}
+      {filterCategories.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-sm font-bold text-foreground uppercase tracking-wider">
+            Catégories
+          </h3>
+          <div className="space-y-2">
+            {filterCategories.map((cat) => (
+              <label
+                key={cat.slug}
+                className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors duration-200 hover:bg-primary-50"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedCategories.includes(cat.slug)}
+                  onChange={() => toggleCategory(cat.slug)}
+                  className="h-4 w-4 rounded border-border text-primary accent-primary focus:ring-primary/30"
+                />
+                <span className="flex-1 text-sm text-foreground">{cat.name}</span>
+                <span className="text-xs text-muted-foreground">({cat.count})</span>
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Price Range */}
       <div>
@@ -217,10 +307,7 @@ export default function SearchPageClient({
                 name="priceRange"
                 checked={selectedPriceRange === idx}
                 onChange={() => {
-                  setSelectedPriceRange(
-                    selectedPriceRange === idx ? null : idx
-                  );
-                  setCurrentPage(1);
+                  selectPriceRange(selectedPriceRange === idx ? null : idx);
                 }}
                 className="h-4 w-4 border-border text-primary accent-primary focus:ring-primary/30"
               />
@@ -240,8 +327,7 @@ export default function SearchPageClient({
             <button
               key={rating}
               onClick={() => {
-                setMinRating(minRating === rating ? null : rating);
-                setCurrentPage(1);
+                selectRating(minRating === rating ? null : rating);
               }}
               className={cn(
                 "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors duration-200",
@@ -275,10 +361,7 @@ export default function SearchPageClient({
           <input
             type="checkbox"
             checked={inStockOnly}
-            onChange={() => {
-              setInStockOnly(!inStockOnly);
-              setCurrentPage(1);
-            }}
+            onChange={toggleInStock}
             className="h-4 w-4 rounded border-border text-primary accent-primary focus:ring-primary/30"
           />
           <span className="text-sm font-medium text-foreground">
@@ -301,9 +384,9 @@ export default function SearchPageClient({
 
   return (
     <div>
-      {/* ─── Related Searches ─────────────────────────────────── */}
+      {/* ─── Suggestion Chips ─────────────────────────────────── */}
       <div className="mb-6 flex flex-wrap gap-2">
-        {relatedSearches.map((rs) => (
+        {suggestions.map((rs) => (
           <a
             key={rs.query}
             href={`/search?q=${encodeURIComponent(rs.query)}`}
@@ -335,13 +418,15 @@ export default function SearchPageClient({
 
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">
-              {processedProducts.length}
+              {totalResults}
             </span>{" "}
-            résultat{processedProducts.length !== 1 ? "s" : ""}{" "}
-            <span className="hidden sm:inline">
-              pour &quot;<span className="font-medium text-primary">{query}</span>
-              &quot;
-            </span>
+            résultat{totalResults !== 1 ? "s" : ""}{" "}
+            {query && (
+              <span className="hidden sm:inline">
+                pour &quot;<span className="font-medium text-primary">{query}</span>
+                &quot;
+              </span>
+            )}
           </p>
         </div>
 
@@ -356,7 +441,7 @@ export default function SearchPageClient({
             >
               Trier par :{" "}
               <span className="text-primary">
-                {SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
+                {SORT_LABELS[sortBy]}
               </span>
               <ChevronDown
                 size={14}
@@ -373,22 +458,18 @@ export default function SearchPageClient({
                   onClick={() => setShowSortDropdown(false)}
                 />
                 <div className="absolute right-0 top-full z-20 mt-1 w-52 rounded-xl border border-border-light bg-background p-1.5 shadow-lg animate-fade-slide-down">
-                  {SORT_OPTIONS.map((option) => (
+                  {SORT_VALUES.map((value) => (
                     <button
-                      key={option.value}
-                      onClick={() => {
-                        setSortBy(option.value);
-                        setShowSortDropdown(false);
-                        setCurrentPage(1);
-                      }}
+                      key={value}
+                      onClick={() => changeSortBy(value)}
                       className={cn(
                         "flex w-full items-center rounded-lg px-3 py-2 text-sm transition-colors duration-150",
-                        sortBy === option.value
+                        sortBy === value
                           ? "bg-primary-50 font-medium text-primary"
                           : "text-foreground hover:bg-muted"
                       )}
                     >
-                      {option.label}
+                      {SORT_LABELS[value]}
                     </button>
                   ))}
                 </div>
@@ -399,7 +480,7 @@ export default function SearchPageClient({
           {/* View toggle */}
           <div className="hidden items-center gap-1 rounded-lg border border-border p-0.5 sm:flex">
             <button
-              onClick={() => setViewMode("grid")}
+              onClick={() => changeViewMode("grid")}
               className={cn(
                 "rounded-md p-1.5 transition-all duration-200",
                 viewMode === "grid"
@@ -411,7 +492,7 @@ export default function SearchPageClient({
               <LayoutGrid size={16} />
             </button>
             <button
-              onClick={() => setViewMode("list")}
+              onClick={() => changeViewMode("list")}
               className={cn(
                 "rounded-md p-1.5 transition-all duration-200",
                 viewMode === "list"
@@ -448,12 +529,9 @@ export default function SearchPageClient({
               </button>
             ) : null;
           })}
-          {selectedPriceRange !== null && (
+          {selectedPriceRange !== null && selectedPriceRange >= 0 && (
             <button
-              onClick={() => {
-                setSelectedPriceRange(null);
-                setCurrentPage(1);
-              }}
+              onClick={() => selectPriceRange(null)}
               className="group/chip flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary transition-all duration-200 hover:bg-primary hover:text-white"
             >
               {priceRanges[selectedPriceRange]?.label}
@@ -465,10 +543,7 @@ export default function SearchPageClient({
           )}
           {minRating !== null && (
             <button
-              onClick={() => {
-                setMinRating(null);
-                setCurrentPage(1);
-              }}
+              onClick={() => selectRating(null)}
               className="group/chip flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary transition-all duration-200 hover:bg-primary hover:text-white"
             >
               {minRating}★ & plus
@@ -480,10 +555,7 @@ export default function SearchPageClient({
           )}
           {inStockOnly && (
             <button
-              onClick={() => {
-                setInStockOnly(false);
-                setCurrentPage(1);
-              }}
+              onClick={toggleInStock}
               className="group/chip flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary transition-all duration-200 hover:bg-primary hover:text-white"
             >
               En stock
@@ -524,7 +596,7 @@ export default function SearchPageClient({
 
         {/* Products */}
         <div className="flex-1">
-          {paginatedProducts.length > 0 ? (
+          {products.length > 0 ? (
             <>
               <div
                 className={cn(
@@ -533,7 +605,7 @@ export default function SearchPageClient({
                     : "flex flex-col gap-4"
                 )}
               >
-                {paginatedProducts.map((product, idx) => (
+                {products.map((product, idx) => (
                   <div
                     key={product.id}
                     className="animate-fade-slide-up"
@@ -541,7 +613,7 @@ export default function SearchPageClient({
                   >
                     {viewMode === "grid" ? (
                       <ProductCard
-                        product={product}
+                        product={product as any}
                         showSaleBadge
                         className="w-full"
                       />
@@ -553,13 +625,15 @@ export default function SearchPageClient({
               </div>
 
               {/* Pagination */}
-              <div className="mt-8">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </div>
+              {totalPages > 1 && (
+                <div className="mt-8">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
             </>
           ) : (
             <EmptySearchState query={query} />
@@ -594,7 +668,7 @@ export default function SearchPageClient({
                 onClick={() => setShowMobileFilters(false)}
                 className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white shadow-sm transition-colors duration-200 hover:bg-primary-dark"
               >
-                Voir les résultats ({processedProducts.length})
+                Voir les résultats ({totalResults})
               </button>
             </div>
           </div>
@@ -606,12 +680,15 @@ export default function SearchPageClient({
 
 // ─── List View Item ──────────────────────────────────────────
 
-function SearchListItem({ product }: { product: ProductListItem }) {
+function SearchListItem({ product }: { product: SearchProductItem }) {
   const hasDiscount =
-    product.originalPrice && product.originalPrice > product.price;
+    product.originalPrice !== null && product.originalPrice > product.price;
 
   return (
-    <div className="group flex gap-4 rounded-2xl border border-border-light bg-background p-3 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20">
+    <a
+      href={`/product/${product.slug}`}
+      className="group flex gap-4 rounded-2xl border border-border-light bg-background p-3 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20"
+    >
       {/* Image */}
       <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
         <img
@@ -619,7 +696,7 @@ function SearchListItem({ product }: { product: ProductListItem }) {
           alt={product.name}
           className="h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-110"
         />
-        {hasDiscount && (
+        {hasDiscount && product.discount && (
           <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
             -{product.discount}%
           </span>
@@ -674,16 +751,7 @@ function SearchListItem({ product }: { product: ProductListItem }) {
           )}
         </div>
       </div>
-      {/* Quick Add */}
-      <div className="hidden items-center sm:flex">
-        <button
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white shadow-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:scale-110 active:scale-90"
-          aria-label={`Ajouter ${product.name} au panier`}
-        >
-          +
-        </button>
-      </div>
-    </div>
+    </a>
   );
 }
 
@@ -699,9 +767,15 @@ function EmptySearchState({ query }: { query: string }) {
         Aucun résultat trouvé
       </h3>
       <p className="max-w-md text-sm text-muted-foreground">
-        Nous n&apos;avons rien trouvé pour &quot;
-        <span className="font-medium text-foreground">{query}</span>&quot;.
-        Essayez de modifier vos filtres ou d&apos;utiliser des termes différents.
+        {query ? (
+          <>
+            Nous n&apos;avons rien trouvé pour &quot;
+            <span className="font-medium text-foreground">{query}</span>&quot;.
+            Essayez de modifier vos filtres ou d&apos;utiliser des termes différents.
+          </>
+        ) : (
+          <>Essayez d&apos;utiliser des termes de recherche ou de modifier vos filtres.</>
+        )}
       </p>
       <a
         href="/"

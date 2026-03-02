@@ -1,24 +1,46 @@
 import { createMetadata } from "@/lib/metadata";
 import { Container, Breadcrumb, Button } from "@/components/ui";
 import Link from "next/link";
-import { queryFaqItems } from "@/features/account";
-import { FaqAccordion } from "@/features/account/components/FaqAccordion";
+import { queryFaqItems, groupFaqsByCategory } from "@/features/faq";
+import { FaqSection } from "@/features/faq/components/FaqSection";
 import { Headphones, Mail, MessageCircle, Phone } from "lucide-react";
+import Script from "next/script";
 
 export const metadata = createMetadata({
-  title: "Centre d'aide",
+  title: "Centre d'aide - FAQ",
   description: "Trouvez des réponses à vos questions sur Sugu. FAQ, contact, support client.",
   path: "/help",
 });
 
 export default async function HelpCenterPage() {
   const faqItems = await queryFaqItems();
+  const categories = groupFaqsByCategory(faqItems);
 
-  // Group by category
-  const categories = [...new Set(faqItems.map((f) => f.category))];
+  // Build FAQ JSON-LD structured data for SEO
+  const faqJsonLd = faqItems.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqItems.map((faq) => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer,
+      },
+    })),
+  } : null;
 
   return (
     <main className="pb-12">
+      {/* FAQ JSON-LD Structured Data */}
+      {faqJsonLd && (
+        <Script
+          id="faq-jsonld"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
+
       <Container className="pt-4 pb-2">
         <Breadcrumb items={[{ label: "Centre d'aide" }]} />
       </Container>
@@ -34,12 +56,7 @@ export default async function HelpCenterPage() {
           <div className="lg:col-span-2 space-y-6">
             <div className="rounded-2xl border border-border-light bg-background p-5 sm:p-6">
               <h2 className="text-lg font-bold text-foreground mb-5">Questions fréquentes</h2>
-              {categories.map((cat) => (
-                <div key={cat} className="mb-6 last:mb-0">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{cat}</h3>
-                  <FaqAccordion items={faqItems.filter((f) => f.category === cat)} />
-                </div>
-              ))}
+              <FaqSection items={faqItems} categories={categories} />
             </div>
           </div>
 

@@ -3,7 +3,9 @@
  * Communicates with the Laravel backend via Sanctum-authenticated requests.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+import { API_BASE_URL } from "@/lib/api/config";
+
+const API_BASE = API_BASE_URL;
 
 export interface ChatConversation {
   id: string;

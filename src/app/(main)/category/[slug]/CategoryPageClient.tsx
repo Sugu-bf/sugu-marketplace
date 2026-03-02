@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useCallback, useRef, useTransition } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import {
   SlidersHorizontal,
   X,
@@ -12,31 +13,34 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { formatPrice } from "@/lib/constants";
+import { formatPrice, DEFAULT_PRICE_RANGES } from "@/lib/constants";
 import { ProductCard, Pagination, Badge } from "@/components/ui";
 import type { ProductListItem } from "@/features/product";
 import type { Subcategory } from "@/features/category";
+import {
+  type CategoryFiltersState,
+  type SortValue,
+  type ViewMode,
+  serializeCategoryFilters,
+  countActiveFilters,
+  DEFAULT_FILTERS,
+  SORT_VALUES,
+} from "@/features/category";
+import { useState } from "react";
 
 // ─── Sort Options ────────────────────────────────────────────
 
-const SORT_OPTIONS = [
+const SORT_OPTIONS: { value: SortValue; label: string }[] = [
   { value: "relevance", label: "Pertinence" },
-  { value: "price-asc", label: "Prix croissant" },
-  { value: "price-desc", label: "Prix décroissant" },
+  { value: "price_asc", label: "Prix croissant" },
+  { value: "price_desc", label: "Prix décroissant" },
   { value: "rating", label: "Meilleures notes" },
   { value: "newest", label: "Nouveautés" },
-  { value: "best-seller", label: "Meilleures ventes" },
-] as const;
-
-// ─── Price Ranges ────────────────────────────────────────────
-
-const PRICE_RANGES = [
-  { min: 0, max: 1000, label: "Moins de 1 000 FCFA" },
-  { min: 1000, max: 2000, label: "1 000 – 2 000 FCFA" },
-  { min: 2000, max: 3000, label: "2 000 – 3 000 FCFA" },
-  { min: 3000, max: 5000, label: "3 000 – 5 000 FCFA" },
-  { min: 5000, max: 999999, label: "Plus de 5 000 FCFA" },
+  { value: "best_selling", label: "Meilleures ventes" },
 ];
+
+// Price ranges from the central currency constant
+const PRICE_RANGES = DEFAULT_PRICE_RANGES;
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -46,6 +50,30 @@ interface CategoryPageClientProps {
   products: ProductListItem[];
   subcategories: Subcategory[];
   totalProducts: number;
+  totalPages: number;
+  currentPage: number;
+  initialFilters: CategoryFiltersState;
+}
+
+// ─── Debounce Hook ───────────────────────────────────────────
+
+function useDebouncedCallback<T extends (...args: Parameters<T>) => void>(
+  callback: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        callback(...args);
+      }, delay);
+    },
+    [callback, delay]
+  );
 }
 
 // ─── Component ───────────────────────────────────────────────
@@ -56,115 +84,138 @@ export default function CategoryPageClient({
   products,
   subcategories,
   totalProducts,
+  totalPages,
+  currentPage,
+  initialFilters,
 }: CategoryPageClientProps) {
-  // State
-  const [sortBy, setSortBy] = useState<string>("relevance");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+
+  // Local UI state (dropdowns, mobile drawer)
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
 
-  // Filters
-  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(
-    []
+  // Filters derived from props (SSR source of truth)
+  const filters = initialFilters;
+  const activeFilterCount = countActiveFilters(filters);
+
+  // ─── Navigation (pushes new URL, triggers SSR) ─────────────
+
+  const navigateWithFilters = useCallback(
+    (newFilters: CategoryFiltersState) => {
+      const params = serializeCategoryFilters(newFilters);
+      const qs = params.toString();
+      const url = qs ? `${pathname}?${qs}` : pathname;
+
+      startTransition(() => {
+        router.push(url, { scroll: false });
+      });
+    },
+    [pathname, router]
   );
-  const [selectedPriceRange, setSelectedPriceRange] = useState<number | null>(
-    null
-  );
-  const [minRating, setMinRating] = useState<number | null>(null);
-  const [inStockOnly, setInStockOnly] = useState(false);
 
-  const ITEMS_PER_PAGE = 8;
+  const debouncedNavigate = useDebouncedCallback(navigateWithFilters, 300);
 
-  // Active filter count
-  const activeFilterCount =
-    selectedSubcategories.length +
-    (selectedPriceRange !== null ? 1 : 0) +
-    (minRating !== null ? 1 : 0) +
-    (inStockOnly ? 1 : 0);
+  // ─── Filter Handlers (update URL) ──────────────────────────
 
-  // Filtered & sorted products
-  const processedProducts = useMemo(() => {
-    let result = [...products];
+  const updateFilters = useCallback(
+    (partial: Partial<CategoryFiltersState>, immediate = false) => {
+      const newFilters: CategoryFiltersState = {
+        ...filters,
+        ...partial,
+        // Reset page when filters change (except when page itself changes)
+        page: "page" in partial ? partial.page! : 1,
+      };
 
-    // Subcategory filter (for now mock — just shuffles order)
-    if (selectedSubcategories.length > 0) {
-      // In real impl, this would filter by subcategory
-      result = result.filter((_, idx) =>
-        selectedSubcategories.length <= 2 ? true : idx % 2 === 0
-      );
-    }
-
-    // Price filter
-    if (selectedPriceRange !== null) {
-      const range = PRICE_RANGES[selectedPriceRange];
-      if (range) {
-        result = result.filter(
-          (p) => p.price >= range.min && p.price <= range.max
-        );
+      if (immediate) {
+        navigateWithFilters(newFilters);
+      } else {
+        debouncedNavigate(newFilters);
       }
-    }
-
-    // Rating filter
-    if (minRating !== null) {
-      result = result.filter((p) => p.rating >= minRating);
-    }
-
-    // Stock filter
-    if (inStockOnly) {
-      result = result.filter((p) => p.stock > 0);
-    }
-
-    // Sort
-    switch (sortBy) {
-      case "price-asc":
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case "price-desc":
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        result.sort((a, b) => b.rating - a.rating);
-        break;
-      case "newest":
-        result.sort((a, b) => b.id - a.id);
-        break;
-      case "best-seller":
-        result.sort((a, b) => b.sold - a.sold);
-        break;
-    }
-
-    return result;
-  }, [products, selectedSubcategories, selectedPriceRange, minRating, inStockOnly, sortBy]);
-
-  // Pagination
-  const totalPages = Math.ceil(processedProducts.length / ITEMS_PER_PAGE);
-  const paginatedProducts = processedProducts.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    },
+    [filters, navigateWithFilters, debouncedNavigate]
   );
 
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  const toggleSubcategory = useCallback(
+    (slug: string) => {
+      const newSubcats = filters.subcats.includes(slug)
+        ? filters.subcats.filter((s) => s !== slug)
+        : [...filters.subcats, slug];
+      updateFilters({ subcats: newSubcats });
+    },
+    [filters.subcats, updateFilters]
+  );
 
-  // Clear all filters
   const clearAllFilters = useCallback(() => {
-    setSelectedSubcategories([]);
-    setSelectedPriceRange(null);
-    setMinRating(null);
-    setInStockOnly(false);
-    setCurrentPage(1);
-  }, []);
+    navigateWithFilters({
+      ...DEFAULT_FILTERS,
+      view: filters.view, // Preserve view mode
+    });
+  }, [navigateWithFilters, filters.view]);
 
-  // Toggle subcategory
-  const toggleSubcategory = useCallback((slug: string) => {
-    setSelectedSubcategories((prev) =>
-      prev.includes(slug) ? prev.filter((c) => c !== slug) : [...prev, slug]
-    );
-    setCurrentPage(1);
-  }, []);
+  const handlePageChange = useCallback(
+    (page: number) => {
+      updateFilters({ page }, true);
+      // Scroll to top of listing
+      const listingEl = document.querySelector("[data-listing-top]");
+      if (listingEl) {
+        listingEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    },
+    [updateFilters]
+  );
+
+  const handleSortChange = useCallback(
+    (value: SortValue) => {
+      updateFilters({ sort: value }, true);
+      setShowSortDropdown(false);
+    },
+    [updateFilters]
+  );
+
+  const handleViewChange = useCallback(
+    (view: ViewMode) => {
+      updateFilters({ view, page: filters.page }, true);
+    },
+    [updateFilters, filters.page]
+  );
+
+  const handlePriceRange = useCallback(
+    (idx: number) => {
+      const range = PRICE_RANGES[idx];
+      const isAlreadySelected =
+        filters.priceMin === range.min && filters.priceMax === range.max;
+
+      if (isAlreadySelected) {
+        updateFilters({ priceMin: null, priceMax: null });
+      } else {
+        updateFilters({ priceMin: range.min, priceMax: range.max });
+      }
+    },
+    [filters.priceMin, filters.priceMax, updateFilters]
+  );
+
+  const handleRatingChange = useCallback(
+    (rating: number) => {
+      updateFilters({
+        ratingMin: filters.ratingMin === rating ? null : rating,
+      });
+    },
+    [filters.ratingMin, updateFilters]
+  );
+
+  const handleInStockChange = useCallback(() => {
+    updateFilters({ inStock: !filters.inStock });
+  }, [filters.inStock, updateFilters]);
+
+  // ─── Computed ──────────────────────────────────────────────
+
+  const selectedPriceRangeIdx = PRICE_RANGES.findIndex(
+    (r) => r.min === filters.priceMin && r.max === filters.priceMax
+  );
 
   // ─── Filter Sidebar Content ──────────────────────────────────
 
@@ -184,7 +235,7 @@ export default function CategoryPageClient({
               >
                 <input
                   type="checkbox"
-                  checked={selectedSubcategories.includes(sub.slug)}
+                  checked={filters.subcats.includes(sub.slug)}
                   onChange={() => toggleSubcategory(sub.slug)}
                   className="h-4 w-4 rounded border-border text-primary accent-primary focus:ring-primary/30"
                 />
@@ -214,13 +265,8 @@ export default function CategoryPageClient({
               <input
                 type="radio"
                 name="priceRange"
-                checked={selectedPriceRange === idx}
-                onChange={() => {
-                  setSelectedPriceRange(
-                    selectedPriceRange === idx ? null : idx
-                  );
-                  setCurrentPage(1);
-                }}
+                checked={selectedPriceRangeIdx === idx}
+                onChange={() => handlePriceRange(idx)}
                 className="h-4 w-4 border-border text-primary accent-primary focus:ring-primary/30"
               />
               <span className="text-sm text-foreground">{range.label}</span>
@@ -238,13 +284,10 @@ export default function CategoryPageClient({
           {[4, 3, 2, 1].map((rating) => (
             <button
               key={rating}
-              onClick={() => {
-                setMinRating(minRating === rating ? null : rating);
-                setCurrentPage(1);
-              }}
+              onClick={() => handleRatingChange(rating)}
               className={cn(
                 "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors duration-200",
-                minRating === rating
+                filters.ratingMin === rating
                   ? "bg-primary-50 text-primary font-medium"
                   : "text-foreground hover:bg-primary-50"
               )}
@@ -273,11 +316,8 @@ export default function CategoryPageClient({
         <label className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition-colors duration-200 hover:bg-primary-50">
           <input
             type="checkbox"
-            checked={inStockOnly}
-            onChange={() => {
-              setInStockOnly(!inStockOnly);
-              setCurrentPage(1);
-            }}
+            checked={filters.inStock}
+            onChange={handleInStockChange}
             className="h-4 w-4 rounded border-border text-primary accent-primary focus:ring-primary/30"
           />
           <span className="text-sm font-medium text-foreground">
@@ -303,38 +343,56 @@ export default function CategoryPageClient({
       {/* ─── Subcategory Chips ───────────────────────────────────── */}
       {subcategories.length > 0 && (
         <div className="mb-6 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          <a
-            href={`/category/${categorySlug}`}
-            className="flex items-center gap-2 flex-shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-primary-dark"
+          <button
+            onClick={clearAllFilters}
+            className={cn(
+              "flex items-center gap-2 flex-shrink-0 rounded-full px-4 py-2 text-sm font-medium shadow-sm transition-all duration-200",
+              filters.subcats.length === 0
+                ? "bg-primary text-white hover:bg-primary-dark"
+                : "border border-border bg-background text-foreground hover:border-primary/40 hover:bg-primary-50 hover:text-primary"
+            )}
           >
             Tout voir
-          </a>
+          </button>
           {subcategories.map((sub) => (
-            <a
+            <button
               key={sub.slug}
-              href={`/category/${sub.slug}`}
-              className="flex items-center gap-2 flex-shrink-0 rounded-full border border-border bg-background px-4 py-2 text-sm text-foreground shadow-sm transition-all duration-200 hover:border-primary/40 hover:bg-primary-50 hover:text-primary"
+              onClick={() => toggleSubcategory(sub.slug)}
+              className={cn(
+                "flex items-center gap-2 flex-shrink-0 rounded-full px-4 py-2 text-sm shadow-sm transition-all duration-200",
+                filters.subcats.includes(sub.slug)
+                  ? "bg-primary text-white hover:bg-primary-dark font-medium"
+                  : "border border-border bg-background text-foreground hover:border-primary/40 hover:bg-primary-50 hover:text-primary"
+              )}
             >
-              <div className="relative h-5 w-5 overflow-hidden rounded-full">
-                <Image
-                  src={sub.image}
-                  alt={sub.name}
-                  fill
-                  className="object-cover"
-                  sizes="20px"
-                />
-              </div>
+              {sub.image && (
+                <div className="relative h-5 w-5 overflow-hidden rounded-full">
+                  <Image
+                    src={sub.image}
+                    alt={sub.name}
+                    fill
+                    className="object-cover"
+                    sizes="20px"
+                  />
+                </div>
+              )}
               {sub.name}
-              <span className="text-xs text-muted-foreground">
+              <span className={cn(
+                "text-xs",
+                filters.subcats.includes(sub.slug) ? "text-white/70" : "text-muted-foreground"
+              )}>
                 ({sub.productCount})
               </span>
-            </a>
+            </button>
           ))}
         </div>
       )}
 
       {/* ─── Sort Bar ─────────────────────────────────────────── */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-light bg-background p-3 shadow-sm">
+      <div
+        data-listing-top
+        className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-light bg-background p-3 shadow-sm"
+      >
         <div className="flex items-center gap-3">
           {/* Mobile filter toggle */}
           <button
@@ -353,13 +411,16 @@ export default function CategoryPageClient({
 
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">
-              {processedProducts.length}
+              {totalProducts}
             </span>{" "}
-            produit{processedProducts.length !== 1 ? "s" : ""}{" "}
+            produit{totalProducts !== 1 ? "s" : ""}{" "}
             <span className="hidden sm:inline">
               dans{" "}
               <span className="font-medium text-primary">{categoryName}</span>
             </span>
+            {isPending && (
+              <span className="ml-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            )}
           </p>
         </div>
 
@@ -374,7 +435,7 @@ export default function CategoryPageClient({
             >
               Trier par :{" "}
               <span className="text-primary">
-                {SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
+                {SORT_OPTIONS.find((o) => o.value === filters.sort)?.label}
               </span>
               <ChevronDown
                 size={14}
@@ -394,14 +455,10 @@ export default function CategoryPageClient({
                   {SORT_OPTIONS.map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => {
-                        setSortBy(option.value);
-                        setShowSortDropdown(false);
-                        setCurrentPage(1);
-                      }}
+                      onClick={() => handleSortChange(option.value)}
                       className={cn(
                         "flex w-full items-center rounded-lg px-3 py-2 text-sm transition-colors duration-150",
-                        sortBy === option.value
+                        filters.sort === option.value
                           ? "bg-primary-50 font-medium text-primary"
                           : "text-foreground hover:bg-muted"
                       )}
@@ -417,10 +474,10 @@ export default function CategoryPageClient({
           {/* View toggle */}
           <div className="hidden items-center gap-1 rounded-lg border border-border p-0.5 sm:flex">
             <button
-              onClick={() => setViewMode("grid")}
+              onClick={() => handleViewChange("grid")}
               className={cn(
                 "rounded-md p-1.5 transition-all duration-200",
-                viewMode === "grid"
+                filters.view === "grid"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
@@ -429,10 +486,10 @@ export default function CategoryPageClient({
               <LayoutGrid size={16} />
             </button>
             <button
-              onClick={() => setViewMode("list")}
+              onClick={() => handleViewChange("list")}
               className={cn(
                 "rounded-md p-1.5 transition-all duration-200",
-                viewMode === "list"
+                filters.view === "list"
                   ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
@@ -450,7 +507,7 @@ export default function CategoryPageClient({
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Filtres actifs :
           </span>
-          {selectedSubcategories.map((slug) => {
+          {filters.subcats.map((slug) => {
             const sub = subcategories.find((s) => s.slug === slug);
             return sub ? (
               <button
@@ -466,42 +523,33 @@ export default function CategoryPageClient({
               </button>
             ) : null;
           })}
-          {selectedPriceRange !== null && (
+          {selectedPriceRangeIdx >= 0 && (
             <button
-              onClick={() => {
-                setSelectedPriceRange(null);
-                setCurrentPage(1);
-              }}
+              onClick={() => updateFilters({ priceMin: null, priceMax: null }, true)}
               className="group/chip flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary transition-all duration-200 hover:bg-primary hover:text-white"
             >
-              {PRICE_RANGES[selectedPriceRange]?.label}
+              {PRICE_RANGES[selectedPriceRangeIdx]?.label}
               <X
                 size={12}
                 className="opacity-60 group-hover/chip:opacity-100"
               />
             </button>
           )}
-          {minRating !== null && (
+          {filters.ratingMin !== null && (
             <button
-              onClick={() => {
-                setMinRating(null);
-                setCurrentPage(1);
-              }}
+              onClick={() => updateFilters({ ratingMin: null }, true)}
               className="group/chip flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary transition-all duration-200 hover:bg-primary hover:text-white"
             >
-              {minRating}★ & plus
+              {filters.ratingMin}★ & plus
               <X
                 size={12}
                 className="opacity-60 group-hover/chip:opacity-100"
               />
             </button>
           )}
-          {inStockOnly && (
+          {filters.inStock && (
             <button
-              onClick={() => {
-                setInStockOnly(false);
-                setCurrentPage(1);
-              }}
+              onClick={() => updateFilters({ inStock: false }, true)}
               className="group/chip flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary transition-all duration-200 hover:bg-primary hover:text-white"
             >
               En stock
@@ -542,22 +590,23 @@ export default function CategoryPageClient({
 
         {/* Products */}
         <div className="flex-1">
-          {paginatedProducts.length > 0 ? (
+          {products.length > 0 ? (
             <>
               <div
                 className={cn(
-                  viewMode === "grid"
+                  isPending && "opacity-60 transition-opacity duration-200",
+                  filters.view === "grid"
                     ? "grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4"
                     : "flex flex-col gap-4"
                 )}
               >
-                {paginatedProducts.map((product, idx) => (
+                {products.map((product, idx) => (
                   <div
                     key={product.id}
                     className="animate-fade-slide-up"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
-                    {viewMode === "grid" ? (
+                    {filters.view === "grid" ? (
                       <ProductCard
                         product={product}
                         showSaleBadge
@@ -612,7 +661,7 @@ export default function CategoryPageClient({
                 onClick={() => setShowMobileFilters(false)}
                 className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white shadow-sm transition-colors duration-200 hover:bg-primary-dark"
               >
-                Voir les produits ({processedProducts.length})
+                Voir les produits ({totalProducts})
               </button>
             </div>
           </div>
@@ -632,13 +681,19 @@ function CategoryListItem({ product }: { product: ProductListItem }) {
     <div className="group flex gap-4 rounded-2xl border border-border-light bg-background p-3 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20">
       {/* Image */}
       <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
-        <Image
-          src={product.thumbnail}
-          alt={product.name}
-          fill
-          className="object-contain p-2 transition-transform duration-500 group-hover:scale-110"
-          sizes="128px"
-        />
+        {product.thumbnail ? (
+          <Image
+            src={product.thumbnail}
+            alt={product.name}
+            fill
+            className="object-contain p-2 transition-transform duration-500 group-hover:scale-110"
+            sizes="128px"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <PackageSearch size={32} />
+          </div>
+        )}
         {hasDiscount && (
           <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
             -{product.discount}%

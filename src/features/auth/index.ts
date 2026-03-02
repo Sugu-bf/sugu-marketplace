@@ -31,5 +31,26 @@ export {
   queryVerificationDestination,
 } from "./queries/auth-queries";
 
+// ─── Services ────────────────────────────────────────────────
+export {
+  loginUser,
+  registerUser,
+  verifyOtp,
+  resendOtp,
+  forgotPassword,
+  resetPassword,
+  getAuthErrorMessage,
+  OTP_TYPE,
+} from "./services/auth-service";
+
+export type {
+  LoginParams,
+  RegisterParams,
+  VerifyOtpParams,
+  ResendOtpParams,
+  ResetPasswordParams,
+  AuthUserProfile,
+} from "./services/auth-service";
+
 // ─── Mocks (types only for re-export) ────────────────────────
 export type { SocialProviderConfig } from "./mocks/auth";

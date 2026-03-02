@@ -49,10 +49,10 @@ function TrackingOrderSummary({
         {/* Items */}
         <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.productId} className="flex items-center gap-3">
+            <div key={item.id} className="flex items-center gap-3">
               <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
                 <Image
-                  src={item.thumbnail}
+                  src={item.image || "/products/placeholder.png"}
                   alt={item.name}
                   fill
                   className="object-contain p-1"

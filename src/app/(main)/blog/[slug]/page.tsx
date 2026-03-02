@@ -3,9 +3,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { SITE_URL, SEO } from "@/lib/constants";
+import { API_BASE_URL } from "@/lib/api/config";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const API_BASE = `${API_BASE_URL}/v1`;
 
 // ─── Types ───────────────────────────────────────────────
 

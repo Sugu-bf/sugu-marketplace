@@ -1,5 +1,9 @@
 import type { TrackedOrder } from "../models/order";
 
+/**
+ * Mock tracked order data — for design-only rendering and tests.
+ * Now matches the new TrackedOrder shape with API-compatible fields.
+ */
 export function getMockTrackedOrder(): TrackedOrder {
   return {
     orderNumber: "SGU-2026-04821",
@@ -82,25 +86,28 @@ export function getMockTrackedOrder(): TrackedOrder {
     // Order items
     items: [
       {
-        productId: 1,
+        id: "item-1",
         name: "Mangues Kent (5 kg)",
         quantity: 3,
         price: 5000,
-        thumbnail: "/products/oranges.png",
+        total: 15000,
+        image: "/products/oranges.png",
       },
       {
-        productId: 2,
+        id: "item-2",
         name: "Plantains mûrs",
         quantity: 3,
         price: 4500,
-        thumbnail: "/products/limes.png",
+        total: 13500,
+        image: "/products/limes.png",
       },
       {
-        productId: 3,
+        id: "item-3",
         name: "Huile de Palme Rouge (1L)",
         quantity: 1,
         price: 3000,
-        thumbnail: "/products/apple.png",
+        total: 3000,
+        image: "/products/apple.png",
       },
     ],
 

@@ -1,8 +1,14 @@
+import { redirect } from "next/navigation";
 import { createMetadata } from "@/lib/metadata";
 import { Container, Breadcrumb, Stepper } from "@/components/ui";
 import type { StepperStep } from "@/components/ui";
-import { queryCheckoutData } from "@/features/checkout";
+import { getAuthUser } from "@/lib/api/auth";
+import { queryCheckoutSession } from "@/features/checkout";
 import { CheckoutOrchestrator } from "@/features/checkout/components/CheckoutOrchestrator";
+import { CheckoutError } from "@/features/checkout/components/CheckoutError";
+
+// Checkout is user-specific (auth + session) — never prerender
+export const dynamic = "force-dynamic";
 
 // ─── SEO Metadata ────────────────────────────────────────────
 
@@ -22,10 +28,77 @@ const CHECKOUT_STEPS: StepperStep[] = [
   { id: "payment", label: "Paiement" },
 ];
 
+// ─── Derive step progress from session state ─────────────────
+
+function getStepProgress(session: { totals: { shipping_amount: number } } | null) {
+  if (!session) return { currentStepId: "cart" as const, completedStepIds: [] as string[] };
+
+  const completedSteps: string[] = ["cart", "address"];
+  let currentStep = "shipping";
+
+  if (session.totals.shipping_amount > 0) {
+    completedSteps.push("shipping");
+    currentStep = "payment";
+  }
+
+  return { currentStepId: currentStep, completedStepIds: completedSteps };
+}
+
 // ─── Page Component (Server) ─────────────────────────────────
 
-export default async function CheckoutPage() {
-  const checkoutData = await queryCheckoutData();
+interface CheckoutPageProps {
+  searchParams: Promise<{ session?: string }>;
+}
+
+export default async function CheckoutPage({ searchParams }: CheckoutPageProps) {
+  // ── AUTH GATE: Guests cannot checkout ──
+  // They must create an account or login first.
+  const user = await getAuthUser();
+
+  if (!user) {
+    // Redirect to login with return URL
+    redirect("/login?redirect=/checkout");
+  }
+
+  const params = await searchParams;
+  const sessionId = params.session;
+
+  // No session ID → redirect suggestion
+  if (!sessionId) {
+    return (
+      <main className="pb-12">
+        <Container className="pt-8">
+          <CheckoutError
+            title="Session manquante"
+            message="Aucune session de paiement trouvée. Veuillez d'abord ajouter des articles à votre panier."
+            linkHref="/cart"
+            linkLabel="Retour au panier"
+          />
+        </Container>
+      </main>
+    );
+  }
+
+  // Fetch checkout data from backend (no-store, SSR)
+  const result = await queryCheckoutSession(sessionId);
+
+  // Error fetching session
+  if (result.error || !result.session) {
+    return (
+      <main className="pb-12">
+        <Container className="pt-8">
+          <CheckoutError
+            title="Session invalide"
+            message={result.error || "La session de paiement est invalide ou a expiré."}
+            linkHref="/cart"
+            linkLabel="Retour au panier"
+          />
+        </Container>
+      </main>
+    );
+  }
+
+  const { currentStepId, completedStepIds } = getStepProgress(result.session);
 
   const breadcrumbItems = [
     { label: "Panier", href: "/cart" },
@@ -50,14 +123,19 @@ export default async function CheckoutPage() {
       <Container className="pb-8">
         <Stepper
           steps={CHECKOUT_STEPS}
-          currentStepId={checkoutData.currentStep}
-          completedStepIds={checkoutData.completedSteps}
+          currentStepId={currentStepId}
+          completedStepIds={completedStepIds}
         />
       </Container>
 
       {/* Checkout Content */}
       <Container>
-        <CheckoutOrchestrator initialData={checkoutData} />
+        <CheckoutOrchestrator
+          session={result.session}
+          partners={result.partners}
+          zones={result.zones}
+          sessionId={sessionId}
+        />
       </Container>
     </main>
   );

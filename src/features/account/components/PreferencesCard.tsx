@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { Globe, Coins } from "lucide-react";
+import { CURRENCY } from "@/lib/constants";
 import type { UserPreferences } from "@/features/account";
 
 interface PreferencesCardProps {
@@ -103,7 +104,7 @@ function PreferencesCard({
               transition-all duration-200 cursor-pointer"
             aria-label="Devise"
           >
-            <option value="FCFA (XOF)">FCFA (XOF)</option>
+            <option value={CURRENCY.label}>{CURRENCY.label}</option>
             <option value="EUR (€)">EUR (€)</option>
             <option value="USD ($)">USD ($)</option>
           </select>

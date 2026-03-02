@@ -26,14 +26,22 @@ export const SEO = {
 export const DEFAULT_PAGE_SIZE = 20;
 
 // ─── Currency ────────────────────────────────────────────────
+// Single source of truth for the site's currency.
+// Change these values to switch the entire marketplace to another currency.
 export const CURRENCY = {
+  /** ISO 4217 code (e.g. "XOF", "EUR", "USD") */
   code: "XOF",
+  /** Short symbol shown next to prices (e.g. "FCFA", "€", "$") */
   symbol: "FCFA",
+  /** Intl locale used by Intl.NumberFormat (e.g. "fr-BF") */
   locale: "fr-BF",
+  /** Human-readable label for settings / selects (e.g. "FCFA (XOF)") */
+  label: "FCFA (XOF)",
 } as const;
 
 /**
  * Format a price with the site currency.
+ * Uses Intl.NumberFormat for correct thousand-separators and symbol placement.
  */
 export function formatPrice(amount: number): string {
   return new Intl.NumberFormat(CURRENCY.locale, {
@@ -43,3 +51,33 @@ export function formatPrice(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+/**
+ * Build a human-readable price-range label using the site currency symbol.
+ * Examples:
+ *   formatPriceRangeLabel(0, 1000)       → "Moins de 1 000 FCFA"
+ *   formatPriceRangeLabel(1000, 2000)    → "1 000 – 2 000 FCFA"
+ *   formatPriceRangeLabel(5000, Infinity) → "Plus de 5 000 FCFA"
+ */
+export function formatPriceRangeLabel(min: number, max: number): string {
+  const fmt = (n: number) =>
+    new Intl.NumberFormat(CURRENCY.locale, {
+      maximumFractionDigits: 0,
+    }).format(n);
+
+  if (min === 0 || min <= 0) return `Moins de ${fmt(max)} ${CURRENCY.symbol}`;
+  if (max >= 999_999 || max === Infinity) return `Plus de ${fmt(min)} ${CURRENCY.symbol}`;
+  return `${fmt(min)} – ${fmt(max)} ${CURRENCY.symbol}`;
+}
+
+/**
+ * Default price-range buckets used across filters (search, category, etc.).
+ * Labels are auto-generated from the CURRENCY constant.
+ */
+export const DEFAULT_PRICE_RANGES = [
+  { min: 0, max: 1000, label: formatPriceRangeLabel(0, 1000) },
+  { min: 1000, max: 2000, label: formatPriceRangeLabel(1000, 2000) },
+  { min: 2000, max: 3000, label: formatPriceRangeLabel(2000, 3000) },
+  { min: 3000, max: 5000, label: formatPriceRangeLabel(3000, 5000) },
+  { min: 5000, max: 999999, label: formatPriceRangeLabel(5000, 999999) },
+] as const;

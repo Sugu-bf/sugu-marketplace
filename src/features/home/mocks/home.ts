@@ -50,10 +50,10 @@ export const mockCategoryPills: CategoryPill[] = [
 // ─── Fresh Categories ───────────────────────────────────────
 
 export const mockFreshCategories: FreshCategory[] = [
-  { id: 1, title: "Everyday Fresh", subtitle: "Viande", price: "60,99 F", image: "/categories/meat.png", bgColor: "#E8EDF3" },
-  { id: 2, title: "Daily Fresh", subtitle: "Légumes", price: "60,99 F", image: "/categories/vegetables.png", bgColor: "#EAF0E4" },
-  { id: 3, title: "Everyday Fresh", subtitle: "Lait", price: "100 F", image: "/categories/milk.png", bgColor: "#E3EEF0" },
-  { id: 4, title: "Everyday Fresh", subtitle: "Fruits", price: "60,99 F", image: "/categories/fruits.png", bgColor: "#F0EDE3" },
+  { id: 1, title: "Everyday Fresh", subtitle: "Viande", price: 6099, image: "/categories/meat.png", bgColor: "#E8EDF3" },
+  { id: 2, title: "Daily Fresh", subtitle: "Légumes", price: 6099, image: "/categories/vegetables.png", bgColor: "#EAF0E4" },
+  { id: 3, title: "Everyday Fresh", subtitle: "Lait", price: 100, image: "/categories/milk.png", bgColor: "#E3EEF0" },
+  { id: 4, title: "Everyday Fresh", subtitle: "Fruits", price: 6099, image: "/categories/fruits.png", bgColor: "#F0EDE3" },
 ];
 
 // ─── Promotional Deals ──────────────────────────────────────

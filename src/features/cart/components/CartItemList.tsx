@@ -1,37 +1,35 @@
 "use client";
 
+/**
+ * CartItemList — DEPRECATED. Kept for backward compatibility.
+ * The CartOrchestrator now handles all cart list logic directly.
+ * This file is no longer imported anywhere.
+ */
+
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui";
-import type { CartItem } from "@/features/cart";
+import type { CartLineUI } from "@/features/cart";
 import { CartItemCard } from "./CartItemCard";
 
 interface CartItemListProps {
-  /** Initial items from SSR — used as default state. */
-  initialItems: CartItem[];
+  initialItems: CartLineUI[];
 }
 
-/**
- * Cart items list orchestrator — manages cart state client-side.
- * Client component — the minimal client boundary for item interactions.
- *
- * NOTE: In production, this would read from useCartStore (zustand).
- * For design-only, we use local state initialized from mock data via SSR.
- */
 function CartItemList({ initialItems }: CartItemListProps) {
-  const [items, setItems] = useState<CartItem[]>(initialItems);
+  const [items, setItems] = useState<CartLineUI[]>(initialItems);
 
-  const handleUpdateQuantity = (productId: number, quantity: number) => {
+  const handleUpdateQuantity = (lineId: number, quantity: number) => {
     setItems((prev) =>
       prev.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item
+        item.id === lineId ? { ...item, qty: quantity } : item
       )
     );
   };
 
-  const handleRemove = (productId: number) => {
-    setItems((prev) => prev.filter((item) => item.productId !== productId));
+  const handleRemove = (lineId: number) => {
+    setItems((prev) => prev.filter((item) => item.id !== lineId));
   };
 
   if (items.length === 0) {
@@ -55,7 +53,6 @@ function CartItemList({ initialItems }: CartItemListProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium text-muted-foreground">
           {items.length} article{items.length > 1 ? "s" : ""}
@@ -68,19 +65,17 @@ function CartItemList({ initialItems }: CartItemListProps) {
         </button>
       </div>
 
-      {/* Items */}
       <div className="space-y-3">
         {items.map((item) => (
           <CartItemCard
-            key={item.productId}
-            item={item}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemove={handleRemove}
+            key={item.id}
+            line={item}
+            onUpdateQuantity={(qty) => handleUpdateQuantity(item.id, qty)}
+            onRemove={() => handleRemove(item.id)}
           />
         ))}
       </div>
 
-      {/* Continue shopping */}
       <div className="pt-2">
         <Link
           href="/"

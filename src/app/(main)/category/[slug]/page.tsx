@@ -3,24 +3,27 @@ import { notFound } from "next/navigation";
 import { createMetadata } from "@/lib/metadata";
 import { Container, Breadcrumb } from "@/components/ui";
 import {
-  queryCategoryBySlug,
-  querySubcategories,
-  queryCategoryProducts,
-  queryCategoryProductCount,
+  queryCategoryPageData,
+  parseCategorySearchParams,
 } from "@/features/category";
+import type { CategoryFiltersState } from "@/features/category";
 import CategoryPageClient from "./CategoryPageClient";
 
 // ─── Dynamic Metadata ────────────────────────────────────────
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
-  const category = await queryCategoryBySlug(slug);
+  const sp = await searchParams;
+  const filters = parseCategorySearchParams(sp);
+  const data = await queryCategoryPageData(slug, filters);
 
-  if (!category) {
+  if (!data) {
     return createMetadata({
       title: "Catégorie introuvable",
       description: "La catégorie demandée n'existe pas.",
@@ -29,33 +32,34 @@ export async function generateMetadata({
     });
   }
 
+  const pageLabel = filters.page > 1 ? ` — Page ${filters.page}` : "";
+
   return createMetadata({
-    title: category.name,
+    title: `${data.category.name}${pageLabel}`,
     description:
-      category.description ??
-      `Parcourez les produits de la catégorie ${category.name} sur Sugu. ${category.productCount} produits disponibles.`,
+      data.category.description ??
+      `Parcourez les produits de la catégorie ${data.category.name} sur Sugu. ${data.totalProducts} produits disponibles.`,
     path: `/category/${slug}`,
   });
 }
 
-// ─── Page Component ──────────────────────────────────────────
+// ─── Page Component (Server) ─────────────────────────────────
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
+  const sp = await searchParams;
+  const filters: CategoryFiltersState = parseCategorySearchParams(sp);
 
-  // Fetch all category data in parallel (SSR)
-  const [category, subcategories, products, totalProducts] = await Promise.all([
-    queryCategoryBySlug(slug),
-    querySubcategories(slug),
-    queryCategoryProducts(slug),
-    queryCategoryProductCount(slug),
-  ]);
+  // Single parallel fetch for category detail + products
+  const data = await queryCategoryPageData(slug, filters);
 
-  if (!category) {
+  if (!data) {
     notFound();
   }
 
@@ -76,44 +80,46 @@ export default async function CategoryPage({
               <Breadcrumb
                 items={[
                   { label: "Catégories", href: "/" },
-                  { label: category.name },
+                  { label: data.category.name },
                 ]}
                 className="mb-4 [&_a]:text-white/60 [&_a:hover]:text-white [&_span]:text-white [&_svg]:text-white/40"
               />
               <h1 className="text-2xl font-extrabold text-white sm:text-3xl lg:text-4xl">
-                {category.name}
+                {data.category.name}
               </h1>
-              {category.description && (
+              {data.category.description && (
                 <p className="mt-3 max-w-xl text-sm text-white/70 sm:text-base leading-relaxed line-clamp-2">
-                  {category.description}
+                  {data.category.description}
                 </p>
               )}
               <div className="mt-4 flex items-center gap-3">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-sm px-3.5 py-1.5 text-sm font-medium text-white">
-                  {totalProducts} produit{totalProducts !== 1 ? "s" : ""}
+                  {data.totalProducts} produit{data.totalProducts !== 1 ? "s" : ""}
                 </span>
-                {subcategories.length > 0 && (
+                {data.subcategories.length > 0 && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-sm px-3.5 py-1.5 text-sm font-medium text-white">
-                    {subcategories.length} sous-catégorie
-                    {subcategories.length !== 1 ? "s" : ""}
+                    {data.subcategories.length} sous-catégorie
+                    {data.subcategories.length !== 1 ? "s" : ""}
                   </span>
                 )}
               </div>
             </div>
 
             {/* Category image */}
-            <div className="hidden sm:block flex-shrink-0">
-              <div className="relative h-32 w-32 lg:h-40 lg:w-40 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm shadow-xl ring-1 ring-white/20">
-                <Image
-                  src={category.image}
-                  alt={category.name}
-                  fill
-                  className="object-contain p-4 drop-shadow-lg"
-                  sizes="(max-width: 1024px) 128px, 160px"
-                  priority
-                />
+            {data.category.image && (
+              <div className="hidden sm:block flex-shrink-0">
+                <div className="relative h-32 w-32 lg:h-40 lg:w-40 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm shadow-xl ring-1 ring-white/20">
+                  <Image
+                    src={data.category.image}
+                    alt={data.category.name}
+                    fill
+                    className="object-contain p-4 drop-shadow-lg"
+                    sizes="(max-width: 1024px) 128px, 160px"
+                    priority
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </Container>
 
@@ -137,11 +143,14 @@ export default async function CategoryPage({
       {/* ─── Main Content ──────────────────────────────────────── */}
       <Container as="section" className="py-6 sm:py-8">
         <CategoryPageClient
-          categoryName={category.name}
+          categoryName={data.category.name}
           categorySlug={slug}
-          products={products}
-          subcategories={subcategories}
-          totalProducts={totalProducts}
+          products={data.products}
+          subcategories={data.subcategories}
+          totalProducts={data.meta.total}
+          totalPages={data.meta.last_page}
+          currentPage={data.meta.current_page}
+          initialFilters={filters}
         />
       </Container>
     </>

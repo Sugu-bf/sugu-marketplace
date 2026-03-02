@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+  (process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com").replace(/\/+$/, "");
 
 // Paths we should never attempt to resolve redirects for
 const SKIP_PREFIXES = [
@@ -30,7 +30,7 @@ const SKIP_PREFIXES = [
   "/__nextjs",
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // Skip non-page paths
@@ -45,7 +45,7 @@ export async function middleware(request: NextRequest) {
 
   try {
     const resolveUrl = new URL(
-      `${API_BASE}/v1/public/redirects/resolve`
+      `${API_BASE}/api/v1/public/redirects/resolve`
     );
     resolveUrl.searchParams.set("path", pathname);
     if (search && search.length > 1) {

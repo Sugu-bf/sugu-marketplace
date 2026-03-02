@@ -4,6 +4,7 @@ import { SEO, SITE_NAME, SITE_URL } from "@/lib/constants";
 import { fetchBranding } from "@/lib/branding.service";
 import { BrandingProvider } from "@/components/BrandingProvider";
 import BrandingHead from "@/components/BrandingHead";
+import { ToastContainer } from "@/features/toast/ToastContainer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -44,10 +45,11 @@ export default async function RootLayout({
 
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${fontInter.variable} font-sans antialiased`}>
+      <body className={`${fontInter.variable} font-sans antialiased`} suppressHydrationWarning>
         <BrandingProvider branding={branding}>
           <BrandingHead />
           {children}
+          <ToastContainer />
         </BrandingProvider>
       </body>
     </html>

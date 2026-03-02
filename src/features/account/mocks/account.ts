@@ -2,6 +2,7 @@ import type {
   Address, Order, UserProfile, SecurityInfo, UserPreferences,
   AccountPageData, PaymentMethod, Notification, Coupon, ReferralData, FaqItem,
 } from "../models/account";
+import { CURRENCY, formatPrice } from "@/lib/constants";
 
 // ─── Addresses ───────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ export const mockSecurityInfo: SecurityInfo = { passwordLastChanged: "Il y a 3 m
 
 export const mockUserPreferences: UserPreferences = {
   newsletterSubscribed: true, pushNotifications: true, smsNotifications: false,
-  language: "Français", currency: "FCFA (XOF)",
+  language: "Français", currency: CURRENCY.label,
 };
 
 // ─── Payment Methods ─────────────────────────────────────────
@@ -84,7 +85,7 @@ export const mockNotifications: Notification[] = [
 
 export const mockCoupons: Coupon[] = [
   { id: 1, code: "SUGU10", description: "10% de réduction sur votre commande", discountType: "percentage", discountValue: 10, minOrder: 5000, expiresAt: "2026-03-31", isUsed: false },
-  { id: 2, code: "BIENVENUE", description: "1 500 FCFA offerts pour votre première commande", discountType: "fixed", discountValue: 1500, minOrder: 3000, expiresAt: "2026-04-15", isUsed: false },
+  { id: 2, code: "BIENVENUE", description: `${formatPrice(1500)} offerts pour votre première commande`, discountType: "fixed", discountValue: 1500, minOrder: 3000, expiresAt: "2026-04-15", isUsed: false },
   { id: 3, code: "FRUITS20", description: "20% sur les fruits frais", discountType: "percentage", discountValue: 20, minOrder: 2000, expiresAt: "2026-02-28", isUsed: true },
 ];
 

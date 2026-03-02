@@ -13,10 +13,17 @@ interface TabsProps {
   tabs: Tab[];
   defaultTab?: string;
   className?: string;
+  /** Called when the active tab changes */
+  onChange?: (tabId: string) => void;
 }
 
-function Tabs({ tabs, defaultTab, className }: TabsProps) {
+function Tabs({ tabs, defaultTab, className, onChange }: TabsProps) {
   const [activeId, setActiveId] = useState(defaultTab ?? tabs[0]?.id ?? "");
+
+  const handleTabChange = (id: string) => {
+    setActiveId(id);
+    onChange?.(id);
+  };
   const activeTab = tabs.find((t) => t.id === activeId);
 
   return (
@@ -30,7 +37,7 @@ function Tabs({ tabs, defaultTab, className }: TabsProps) {
             aria-selected={tab.id === activeId}
             aria-controls={`panel-${tab.id}`}
             id={`tab-${tab.id}`}
-            onClick={() => setActiveId(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
             className={cn(
               "relative px-4 py-2.5 text-sm font-medium transition-colors",
               tab.id === activeId

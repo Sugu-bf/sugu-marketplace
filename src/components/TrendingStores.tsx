@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
+import Link from "next/link";
 import { Container, SectionHeader, ScrollArrows, ViewAllButton, ProductCard } from "@/components/ui";
 import type { ProductListItem } from "@/features/product";
 import type { Tag } from "@/features/home";
@@ -11,7 +12,6 @@ interface TrendingStoresProps {
 }
 
 export default function TrendingStores({ tags, products }: TrendingStoresProps) {
-  const [activeTag, setActiveTag] = useState(0);
   const productScrollRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -33,32 +33,36 @@ export default function TrendingStores({ tags, products }: TrendingStoresProps) 
         }
       />
 
-      {/* Tags */}
+      {/* Tags — each links to its category page */}
       <div className="relative mb-6">
         <div className="flex flex-wrap gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
-          {tags.map((tag, index) => (
-            <button
-              key={index}
-              onClick={() => setActiveTag(index)}
-              className={`flex-shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
-                activeTag === index
-                  ? "border-primary bg-primary text-white shadow-md shadow-primary/20"
-                  : "border-border bg-white text-muted-foreground hover:border-primary/40 hover:bg-primary-50 hover:text-primary"
-              }`}
-              style={{
-                animation: `fadeSlideUp 0.4s ease-out ${700 + index * 40}ms both`,
-              }}
-            >
-              {tag.label}
-            </button>
-          ))}
+          {tags.map((tag, index) => {
+            const href = tag.slug ? `/category/${tag.slug}` : "/search";
+            const isFirst = index === 0;
+            return (
+              <Link
+                key={index}
+                href={href}
+                className={`flex-shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
+                  isFirst
+                    ? "border-primary bg-primary text-white shadow-md shadow-primary/20"
+                    : "border-border bg-white text-muted-foreground hover:border-primary/40 hover:bg-primary-50 hover:text-primary"
+                }`}
+                style={{
+                  animation: `fadeSlideUp 0.4s ease-out ${700 + index * 40}ms both`,
+                }}
+              >
+                {tag.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 
       {/* Product Cards */}
       <div
         ref={productScrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+        className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2 -mx-4 px-4 lg:mx-0 lg:px-0"
       >
         {products.map((product, index) => (
           <div

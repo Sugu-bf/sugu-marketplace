@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { Container, ScrollArrow } from "@/components/ui";
+import { formatPrice } from "@/lib/constants";
 import type { FreshCategory } from "@/features/home";
 
 interface FreshCategoriesProps {
@@ -30,12 +32,13 @@ export default function FreshCategories({ categories }: FreshCategoriesProps) {
         {/* Category Cards */}
         <div
           ref={scrollRef}
-          className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth px-2"
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide scroll-smooth -mx-4 px-4 lg:mx-0 lg:px-2"
         >
           {categories.map((category, index) => (
-            <div
+            <Link
               key={category.id}
-              className="group relative flex-shrink-0 w-[280px] sm:w-[300px] h-[110px] rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+              href={category.href || `/search?q=${encodeURIComponent(category.subtitle)}`}
+              className="group relative flex-shrink-0 w-[240px] sm:w-[280px] md:w-[300px] h-[110px] rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] block"
               style={{
                 backgroundColor: category.bgColor,
                 animation: `fadeSlideUp 0.5s ease-out ${200 + index * 100}ms both`,
@@ -68,13 +71,19 @@ export default function FreshCategories({ categories }: FreshCategoriesProps) {
                   {category.subtitle}
                 </p>
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  À partir de{" "}
-                  <span className="font-bold text-info">
-                    {category.price}
-                  </span>
+                  {category.price != null ? (
+                    <>
+                      À partir de{" "}
+                      <span className="font-bold text-info">
+                        {formatPrice(category.price)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="font-bold text-info">Voir les produits</span>
+                  )}
                 </p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 

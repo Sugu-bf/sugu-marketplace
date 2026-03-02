@@ -52,7 +52,10 @@ function AddressModal({
   onSelectAddress,
   onCreateAddress,
 }: AddressModalProps) {
-  const [view, setView] = useState<ModalView>("select");
+  // If no addresses exist, open directly in "create" mode
+  const [view, setView] = useState<ModalView>(
+    addresses.length === 0 ? "create" : "select"
+  );
 
   // New address form state
   const [newLabel, setNewLabel] = useState("Maison");

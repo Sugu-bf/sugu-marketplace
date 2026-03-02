@@ -34,3 +34,11 @@ export {
   queryWeeklyDeal,
   queryTrustBadges,
 } from "./queries/home-queries";
+
+// ─── API Functions (for client-side use) ─────────────────────
+export {
+  addToCart,
+  subscribeNewsletter,
+  fetchRecommended,
+} from "./api/home.api";
+export type { AddToCartParams, AddToCartResult } from "./api/home.api";

@@ -1,8 +1,8 @@
 import type { BrandingData, MarketplaceConfig } from "./branding.types";
+import { API_BASE_URL } from "./api/config";
 
 // ─── Configuration ───────────────────────────────────────────
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
-const BRANDING_ENDPOINT = `${API_BASE}/v1/public/marketplace-config`;
+const BRANDING_ENDPOINT = `${API_BASE_URL}/v1/public/marketplace-config`;
 
 /** In-memory cache for SSR deduplication within the same request lifecycle */
 let cachedBranding: BrandingData | null = null;

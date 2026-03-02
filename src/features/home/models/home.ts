@@ -29,7 +29,7 @@ export const FreshCategorySchema = z.object({
   id: z.number(),
   title: z.string(),
   subtitle: z.string(),
-  price: z.string(),
+  price: z.number().optional(),
   image: z.string(),
   bgColor: z.string(),
   href: z.string().optional(),
@@ -85,7 +85,8 @@ export const DailyDealCardSchema = z.object({
 // ─── Daily Best Sale product (horizontal card) ──────────────
 
 export const DailyBestSaleProductSchema = z.object({
-  id: z.number(),
+  id: z.union([z.string(), z.number()]),
+  slug: z.string().optional(),
   name: z.string(),
   price: z.number(),
   originalPrice: z.number(),
@@ -101,7 +102,8 @@ export const DailyBestSaleProductSchema = z.object({
 // ─── Weekly Deal (featured single product) ──────────────────
 
 export const WeeklyDealSchema = z.object({
-  id: z.number(),
+  id: z.union([z.string(), z.number()]),
+  slug: z.string().optional(),
   name: z.string(),
   price: z.number(),
   originalPrice: z.number().optional(),
@@ -113,7 +115,8 @@ export const WeeklyDealSchema = z.object({
 // ─── Product Column (Produits Vedettes, etc.) ───────────────
 
 export const ProductColumnItemSchema = z.object({
-  id: z.number(),
+  id: z.union([z.string(), z.number()]),
+  slug: z.string().optional(),
   name: z.string(),
   price: z.number(),
   originalPrice: z.number().optional(),

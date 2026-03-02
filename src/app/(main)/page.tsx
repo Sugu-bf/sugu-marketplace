@@ -8,8 +8,8 @@ import FreshCategories from "@/components/FreshCategories";
 import PromotionalDeals from "@/components/PromotionalDeals";
 import ShopByBrands from "@/components/ShopByBrands";
 import DailyBestSales from "@/components/DailyBestSales";
-import NewsletterAndTrust from "@/components/NewsletterAndTrust";
 import { createMetadata } from "@/lib/metadata";
+import { SITE_NAME, SITE_URL, SEO } from "@/lib/constants";
 import {
   queryBannerSlides,
   queryHeroBanner,
@@ -26,7 +26,6 @@ import {
   queryMeilleuresVentes,
   queryEnPromotion,
   queryWeeklyDeal,
-  queryTrustBadges,
 } from "@/features/home";
 import { queryFeaturedProducts } from "@/features/product";
 
@@ -37,8 +36,22 @@ export const metadata = createMetadata({
   path: "/",
 });
 
+/**
+ * Home page — Server Component with parallel SSR data fetching.
+ *
+ * All data is fetched in parallel via Promise.all for maximum performance.
+ * Interactive sections (carousel, tabs, timer) receive SSR data as props
+ * and don't refetch on the client.
+ *
+ * Cache strategy:
+ * - Categories: static (10 min) + tag "categories"
+ * - Banners: frequent (2 min) + tag "home-banners"
+ * - Products: frequent (2 min) + tag "products"
+ * - Hot deals: short (1 min) + tag "products"
+ * - Trust badges: infinite (static data)
+ */
 export default async function Home() {
-  // ─── Data fetching (SSR) — all via queries, no direct mock/API access ───
+  // ─── Data fetching (SSR) — all requests in parallel ─────────
   const [
     bannerSlides,
     heroBanner,
@@ -56,7 +69,6 @@ export default async function Home() {
     meilleuresVentes,
     enPromotion,
     weeklyDeal,
-    trustBadges,
   ] = await Promise.all([
     queryBannerSlides(),
     queryHeroBanner(),
@@ -74,32 +86,81 @@ export default async function Home() {
     queryMeilleuresVentes(),
     queryEnPromotion(),
     queryWeeklyDeal(),
-    queryTrustBadges(),
   ]);
+
+  // ─── JSON-LD structured data for SEO ────────────────────────
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+    description: SEO.defaultDescription,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/logo.svg`,
+      },
+    },
+  };
 
   return (
     <>
+      {/* JSON-LD for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Hidden h1 for SEO — the visual header is in the hero section */}
       <h1 className="sr-only">
         Sugu — Votre marketplace en ligne au Burkina Faso
       </h1>
 
+      {/* SECTION 1+2: Top Banners + Hero */}
       <HeroBanners slides={bannerSlides} heroBanner={heroBanner} />
+
+      {/* SECTION 3: Category Pills */}
       <CategoryBar categories={categoryPills} />
+
+      {/* SECTION 4: Promo Cards Carousel */}
       <FreshCategories categories={freshCategories} />
+
+      {/* SECTION 5: Best Seller */}
       <BestSeller products={bestSellerProducts} />
+
+      {/* SECTION 5b: Promotional Deal Banners (with timer) */}
       <PromotionalDeals deals={promotionalDeals} />
+
+      {/* SECTION 6: Trending Store Favorites (with tabs) */}
       <TrendingStores tags={trendingTags} products={trendingProducts} />
+
+      {/* SECTION 6b: Products + Deal Card */}
       <OrderNowBanner products={orderNowProducts} dealCard={dailyDealCard} />
+
+      {/* SECTION 7: 4 Columns (Vedettes, Ventes, Promo, Weekly) */}
       <TrendingStoresSecond
         produitsVedettes={produitsVedettes}
         meilleuresVentes={meilleuresVentes}
         enPromotion={enPromotion}
         weeklyDeal={weeklyDeal}
       />
+
+      {/* SECTION 8: Shop by Brands */}
       <ShopByBrands brands={brands} />
+
+      {/* SECTION 9: Daily Best Sales */}
       <DailyBestSales products={dailyBestSaleProducts} />
-      <NewsletterAndTrust trustBadges={trustBadges} />
     </>
   );
 }

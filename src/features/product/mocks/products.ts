@@ -1,4 +1,5 @@
 import type { Product, ProductListItem } from "../models/product";
+import { CURRENCY } from "@/lib/constants";
 
 // ─── Mock Products ───────────────────────────────────────────
 
@@ -11,7 +12,7 @@ const baseMockProducts: Product[] = [
       "Fraises cultivées localement, 100% bio et sans pesticides. Idéales pour vos desserts, smoothies et salades de fruits. Récoltées à maturité pour un goût optimal et une fraîcheur incomparable. Nos fraises sont sélectionnées avec soin auprès de producteurs locaux engagés dans une agriculture durable.",
     price: 2500,
     originalPrice: 3500,
-    currency: "XOF",
+    currency: CURRENCY.code,
     discount: 29,
     images: [
       { id: 1, url: "/products/strawberries.png", alt: "Fraises fraîches vue de face" },
@@ -77,7 +78,7 @@ const baseMockProducts: Product[] = [
       "Oranges juteuses et sucrées, parfaites pour le jus frais du matin. Sélectionnées pour leur calibre et leur qualité supérieure.",
     price: 1800,
     originalPrice: 2500,
-    currency: "XOF",
+    currency: CURRENCY.code,
     discount: 28,
     images: [
       { id: 2, url: "/products/oranges.png", alt: "Oranges Navel" },
@@ -109,7 +110,7 @@ const baseMockProducts: Product[] = [
       "Citrons verts aromatiques pour relever tous vos plats et cocktails.",
     price: 1200,
     originalPrice: 1500,
-    currency: "XOF",
+    currency: CURRENCY.code,
     discount: 20,
     images: [
       { id: 3, url: "/products/limes.png", alt: "Citrons verts" },
@@ -136,7 +137,7 @@ const baseMockProducts: Product[] = [
       "Raisins rouges croquants et sucrés, sans pépins pour plus de plaisir.",
     price: 3200,
     originalPrice: 4000,
-    currency: "XOF",
+    currency: CURRENCY.code,
     discount: 20,
     images: [
       { id: 4, url: "/products/grapes.png", alt: "Raisins rouges" },
@@ -168,7 +169,7 @@ const baseMockProducts: Product[] = [
       "Pommes golden croquantes et sucrées, importées de première qualité.",
     price: 2800,
     originalPrice: 3500,
-    currency: "XOF",
+    currency: CURRENCY.code,
     discount: 20,
     images: [
       { id: 5, url: "/products/apple.png", alt: "Pommes golden" },
@@ -195,7 +196,7 @@ const baseMockProducts: Product[] = [
       "Assortiment de fruits frais de saison pour toute la famille.",
     price: 4500,
     originalPrice: 6000,
-    currency: "XOF",
+    currency: CURRENCY.code,
     discount: 25,
     images: [
       { id: 6, url: "/products/strawberries.png", alt: "Fruits mixtes" },

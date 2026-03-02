@@ -3,6 +3,7 @@ import { Truck, MapPin } from "lucide-react";
 
 interface TrackingMapProps {
   className?: string;
+  statusMessage?: string;
 }
 
 /**
@@ -10,7 +11,7 @@ interface TrackingMapProps {
  * Server Component — purely presentational.
  * In production, this would be replaced with a live map integration (Google Maps / Mapbox).
  */
-function TrackingMap({ className }: TrackingMapProps) {
+function TrackingMap({ className, statusMessage }: TrackingMapProps) {
   return (
     <div
       className={cn(
@@ -88,7 +89,7 @@ function TrackingMap({ className }: TrackingMapProps) {
             <Truck size={14} className="text-primary" />
           </div>
           <p className="text-sm font-semibold text-foreground">
-            Votre livreur est en route
+            {statusMessage ?? "Votre livreur est en route"}
           </p>
         </div>
       </div>

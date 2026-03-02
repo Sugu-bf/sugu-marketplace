@@ -1,7 +1,15 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import Link from "next/link";
 import Image from "next/image";
+import { ShoppingCart, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProductListItem } from "@/features/product";
 import { formatPrice } from "@/lib/constants";
+import { addToCart } from "@/features/product";
+import { useToast } from "@/features/toast/toast-store";
+import { emitCartChanged } from "@/features/cart/events/cart-events";
 
 interface ProductCardProps {
   product: ProductListItem;
@@ -11,16 +19,63 @@ interface ProductCardProps {
 }
 
 /**
- * Reusable product card — used in BestSeller, Trending Stores, and Order Now sections.
- * Server Component by default. Wrap in a client component if onClick needed.
+ * Reusable product card — used in BestSeller, Trending Stores, Search, Category.
+ * Links to /product/[slug] for product detail page.
+ * Quick-add button sends product_id to the cart API.
  */
 function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
   const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  const href = product.slug ? `/product/${product.slug}` : "#";
+  const toast = useToast();
+
+  const [addState, setAddState] = useState<"idle" | "loading" | "done">("idle");
+
+  const handleQuickAdd = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (addState !== "idle") return;
+      setAddState("loading");
+
+      try {
+        await addToCart({ product_id: product.id, qty: 1 });
+
+        setAddState("done");
+        toast.success(`${product.name} ajouté au panier !`, {
+          action: { label: "Voir le panier", href: "/cart" },
+        });
+
+        // Notify header cart badge to refresh with product preview data
+        emitCartChanged({
+          action: "add",
+          item: {
+            id: String(product.id),
+            name: product.name,
+            slug: product.slug,
+            thumbnail: product.thumbnail,
+            price: product.price,
+            qty: 1,
+          },
+        });
+
+        // Reset button after 2s
+        setTimeout(() => setAddState("idle"), 2000);
+      } catch (err) {
+        setAddState("idle");
+        const message =
+          err instanceof Error ? err.message : "Erreur lors de l'ajout au panier.";
+        toast.error(message);
+      }
+    },
+    [addState, product.id, product.name, toast]
+  );
 
   return (
-    <div
+    <Link
+      href={href}
       className={cn(
-        "group flex-shrink-0 w-[200px] sm:w-[220px] cursor-pointer",
+        "group flex-shrink-0 w-[160px] sm:w-[200px] cursor-pointer block",
         className
       )}
     >
@@ -41,10 +96,23 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
         )}
         {/* Quick add button */}
         <button
-          className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white shadow-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:scale-110 active:scale-90"
+          className={cn(
+            "absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition-all duration-300 hover:scale-110 active:scale-90",
+            addState === "done"
+              ? "bg-green-500 text-white opacity-100 translate-y-0"
+              : "bg-primary text-white opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
+          )}
           aria-label={`Ajouter ${product.name} au panier`}
+          onClick={handleQuickAdd}
+          disabled={addState === "loading"}
         >
-          +
+          {addState === "loading" ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : addState === "done" ? (
+            <Check size={16} strokeWidth={3} />
+          ) : (
+            <ShoppingCart size={16} />
+          )}
         </button>
       </div>
 
@@ -79,7 +147,7 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

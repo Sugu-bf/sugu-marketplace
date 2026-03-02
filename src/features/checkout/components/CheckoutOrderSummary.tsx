@@ -5,7 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui";
 import { AssuranceBadge } from "@/components/ui/assurance-badge";
-import { ArrowRight, Lock, ShieldCheck, Truck, Tag, X, CreditCard, Smartphone } from "lucide-react";
+import { ArrowRight, Lock, ShieldCheck, Truck, Tag, X, Smartphone, Loader2 } from "lucide-react";
 import { formatPrice } from "@/lib/constants";
 import { Badge } from "@/components/ui";
 import type { OrderSummaryItem } from "@/features/checkout";
@@ -20,11 +20,22 @@ interface CheckoutOrderSummaryProps {
   total: number;
   initialCouponCode: string | null;
   shippingLabel?: string;
+  /** Apply coupon via API — returns success/error */
+  onApplyCoupon?: (code: string) => Promise<{ success: boolean; error?: string }>;
+  /** Remove coupon via API */
+  onRemoveCoupon?: () => Promise<void>;
+  /** Place order action */
+  onPlaceOrder?: (paymentMethod: "cod" | "moneroo") => Promise<void>;
+  /** Whether an order placement is in progress */
+  isPlacingOrder?: boolean;
 }
 
 /**
  * Checkout order summary — compact item list + pricing + coupon + CTA.
  * Client component — handles coupon interaction.
+ *
+ * RULE: All prices displayed here come from the backend (props).
+ * This component NEVER calculates totals.
  */
 function CheckoutOrderSummary({
   items,
@@ -34,25 +45,64 @@ function CheckoutOrderSummary({
   total,
   initialCouponCode,
   shippingLabel,
+  onApplyCoupon,
+  onRemoveCoupon,
+  onPlaceOrder,
+  isPlacingOrder = false,
 }: CheckoutOrderSummaryProps) {
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(initialCouponCode);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
-    if (couponCode.toUpperCase() === "SUGU10") {
-      setAppliedCoupon(couponCode.toUpperCase());
+
+    if (onApplyCoupon) {
+      // Real API call
+      setCouponLoading(true);
       setCouponError(null);
-      setCouponCode("");
+      try {
+        const result = await onApplyCoupon(couponCode.trim());
+        if (result.success) {
+          setAppliedCoupon(couponCode.toUpperCase());
+          setCouponCode("");
+        } else {
+          setCouponError(result.error || "Code promo invalide");
+        }
+      } catch {
+        setCouponError("Erreur lors de l'application du coupon");
+      } finally {
+        setCouponLoading(false);
+      }
     } else {
+      // Fallback (no API connected)
       setCouponError("Code promo invalide");
     }
   };
 
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponError(null);
+  const handleRemoveCoupon = async () => {
+    if (onRemoveCoupon) {
+      setCouponLoading(true);
+      try {
+        await onRemoveCoupon();
+        setAppliedCoupon(null);
+        setCouponError(null);
+      } catch {
+        setCouponError("Erreur lors de la suppression du coupon");
+      } finally {
+        setCouponLoading(false);
+      }
+    } else {
+      setAppliedCoupon(null);
+      setCouponError(null);
+    }
+  };
+
+  const handlePlaceOrder = async () => {
+    if (onPlaceOrder && !isPlacingOrder) {
+      await onPlaceOrder("cod"); // Default to COD
+    }
   };
 
   return (
@@ -141,10 +191,11 @@ function CheckoutOrderSummary({
               </div>
               <button
                 onClick={handleRemoveCoupon}
-                className="text-green-600 hover:text-green-800 transition-colors"
+                disabled={couponLoading}
+                className="text-green-600 hover:text-green-800 transition-colors disabled:opacity-50"
                 aria-label="Supprimer le code promo"
               >
-                <X size={14} />
+                {couponLoading ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
               </button>
             </div>
           ) : (
@@ -159,9 +210,11 @@ function CheckoutOrderSummary({
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
                   placeholder="Code promo"
+                  disabled={couponLoading}
                   className={cn(
                     "w-full h-10 rounded-lg border bg-background px-3 text-sm transition-all duration-200",
                     "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
+                    "disabled:opacity-50",
                     couponError ? "border-error" : "border-border"
                   )}
                   aria-label="Code promo"
@@ -172,9 +225,10 @@ function CheckoutOrderSummary({
                 variant="primary"
                 size="md"
                 onClick={handleApplyCoupon}
+                disabled={couponLoading || !couponCode.trim()}
                 className="flex-shrink-0"
               >
-                Appliquer
+                {couponLoading ? <Loader2 size={14} className="animate-spin" /> : "Appliquer"}
               </Button>
             </div>
           )}
@@ -191,10 +245,21 @@ function CheckoutOrderSummary({
           size="lg"
           fullWidth
           pill
+          disabled={isPlacingOrder}
+          onClick={handlePlaceOrder}
           className="text-base font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
         >
-          Procéder au paiement
-          <ArrowRight size={18} />
+          {isPlacingOrder ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Traitement en cours...
+            </>
+          ) : (
+            <>
+              Procéder au paiement
+              <ArrowRight size={18} />
+            </>
+          )}
         </Button>
 
         {/* Payment methods */}

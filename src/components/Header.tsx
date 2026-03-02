@@ -23,6 +23,9 @@ import {
   ChevronRight,
   Trash2,
   Sparkles,
+  MapPin,
+  Ticket,
+  Truck,
 } from "lucide-react";
 
 /* ── Search data (will come from API later) ── */
@@ -311,10 +314,16 @@ export default function Header() {
   const [recentSearches, setRecentSearches] = useState(initialRecentSearches);
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<number>(1);
+  const [userOpen, setUserOpen] = useState(false);
+  const [wishOpen, setWishOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
   const megaMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const userTimeout = useRef<NodeJS.Timeout | null>(null);
+  const wishTimeout = useRef<NodeJS.Timeout | null>(null);
+  const cartTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const activeCategory = megaCategories.find((c) => c.id === activeCategoryId) || megaCategories[0];
 
@@ -512,18 +521,153 @@ export default function Header() {
             >
               <Search size={20} />
             </button>
-            <button className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition-all duration-200 hover:bg-white/15 hover:text-white">
-              <User size={20} />
-            </button>
-            <button className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition-all duration-200 hover:bg-white/15 hover:text-white">
-              <Heart size={20} />
-            </button>
-            <button className="relative flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition-all duration-200 hover:bg-white/15 hover:text-white">
-              <ShoppingCart size={20} />
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#F5C451] text-[9px] font-bold text-gray-900">
-                3
-              </span>
-            </button>
+
+            {/* ── User Icon + Popup ── */}
+            <div
+              className="relative"
+              onMouseEnter={() => { if (userTimeout.current) clearTimeout(userTimeout.current); setUserOpen(true); }}
+              onMouseLeave={() => { userTimeout.current = setTimeout(() => setUserOpen(false), 200); }}
+            >
+              <a
+                href="/account"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition-all duration-200 hover:bg-white/15 hover:text-white"
+              >
+                <User size={20} />
+              </a>
+              {userOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-white shadow-2xl border border-gray-100 py-2 z-50 hidden md:block animate-fade-slide-down">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-bold text-gray-900">Mon Compte</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Gérez votre profil</p>
+                  </div>
+                  {[
+                    { label: "Mon compte", href: "/account", Icon: User },
+                    { label: "Mes commandes", href: "/account/orders", Icon: Package },
+                    { label: "Mes adresses", href: "/account/addresses", Icon: MapPin },
+                    { label: "Mes coupons", href: "/account/coupons", Icon: Ticket },
+                    { label: "Suivre ma commande", href: "/track-order", Icon: Truck },
+                  ].map((item) => (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-[#F15412]/5 hover:text-[#F15412] transition-colors duration-150"
+                    >
+                      <item.Icon size={16} className="text-gray-400 group-hover:text-[#F15412]" />
+                      {item.label}
+                    </a>
+                  ))}
+                  <div className="px-4 pt-2 pb-1 border-t border-gray-100 mt-1">
+                    <a
+                      href="/login"
+                      className="block w-full rounded-xl bg-[#F15412] py-2.5 text-center text-sm font-bold text-white transition-all duration-200 hover:bg-[#d94a0f] active:scale-95"
+                    >
+                      Se connecter
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Wishlist Icon + Popup ── */}
+            <div
+              className="relative"
+              onMouseEnter={() => { if (wishTimeout.current) clearTimeout(wishTimeout.current); setWishOpen(true); }}
+              onMouseLeave={() => { wishTimeout.current = setTimeout(() => setWishOpen(false), 200); }}
+            >
+              <a
+                href="/account"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition-all duration-200 hover:bg-white/15 hover:text-white"
+              >
+                <Heart size={20} />
+              </a>
+              {wishOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white shadow-2xl border border-gray-100 py-2 z-50 hidden md:block animate-fade-slide-down">
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <p className="text-sm font-bold text-gray-900">Liste de souhaits</p>
+                    <span className="text-xs text-gray-400">3 articles</span>
+                  </div>
+                  {[
+                    { name: "Fraises Fraîches Bio", price: "2 500 FCFA", img: "/products/strawberries.png" },
+                    { name: "Oranges Navel Premium", price: "1 800 FCFA", img: "/products/oranges.png" },
+                    { name: "Citrons Verts Frais", price: "1 200 FCFA", img: "/products/limes.png" },
+                  ].map((item) => (
+                    <div key={item.name} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors duration-150">
+                      <div className="relative h-10 w-10 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                        <Image src={item.img} alt={item.name} fill className="object-contain p-1" sizes="40px" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 font-medium truncate">{item.name}</p>
+                        <p className="text-xs font-bold text-[#F15412]">{item.price}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="px-4 pt-2 pb-1 border-t border-gray-100 mt-1">
+                    <a
+                      href="/account"
+                      className="block w-full rounded-xl border-2 border-[#F15412] py-2 text-center text-sm font-bold text-[#F15412] transition-all duration-200 hover:bg-[#F15412] hover:text-white active:scale-95"
+                    >
+                      Voir tout
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Cart Icon + Popup ── */}
+            <div
+              className="relative"
+              onMouseEnter={() => { if (cartTimeout.current) clearTimeout(cartTimeout.current); setCartOpen(true); }}
+              onMouseLeave={() => { cartTimeout.current = setTimeout(() => setCartOpen(false), 200); }}
+            >
+              <a
+                href="/cart"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition-all duration-200 hover:bg-white/15 hover:text-white"
+              >
+                <ShoppingCart size={20} />
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#F5C451] text-[9px] font-bold text-gray-900">
+                  3
+                </span>
+              </a>
+              {cartOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-white shadow-2xl border border-gray-100 py-2 z-50 hidden md:block animate-fade-slide-down">
+                  <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                    <p className="text-sm font-bold text-gray-900">Mon Panier</p>
+                    <span className="text-xs font-medium text-white bg-[#F15412] px-2 py-0.5 rounded-full">3 articles</span>
+                  </div>
+                  {[
+                    { name: "Fraises Fraîches Bio", price: "2 500 FCFA", qty: 2, img: "/products/strawberries.png" },
+                    { name: "Oranges Navel Premium", price: "1 800 FCFA", qty: 1, img: "/products/oranges.png" },
+                    { name: "Citrons Verts Frais", price: "1 200 FCFA", qty: 1, img: "/products/limes.png" },
+                  ].map((item) => (
+                    <div key={item.name} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors duration-150">
+                      <div className="relative h-12 w-12 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden">
+                        <Image src={item.img} alt={item.name} fill className="object-contain p-1" sizes="48px" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 font-medium truncate">{item.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs font-bold text-[#F15412]">{item.price}</span>
+                          <span className="text-[10px] text-gray-400">× {item.qty}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="px-4 pt-3 pb-1 border-t border-gray-100 mt-1 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Sous-total</span>
+                      <span className="text-base font-bold text-gray-900">8 000 FCFA</span>
+                    </div>
+                    <a
+                      href="/cart"
+                      className="block w-full rounded-xl bg-[#F15412] py-2.5 text-center text-sm font-bold text-white transition-all duration-200 hover:bg-[#d94a0f] active:scale-95"
+                    >
+                      Voir le panier
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               className="ml-1 flex lg:hidden items-center justify-center rounded-lg p-2 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

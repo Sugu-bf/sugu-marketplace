@@ -1,24 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { ProductImage } from "@/features/product";
-import { Heart } from "lucide-react";
+import { addToWishlist, removeFromWishlist, fetchWishlist } from "@/features/product";
+import { isApiError } from "@/lib/api";
+import { Heart, Loader2 } from "lucide-react";
 
 interface ProductImageGalleryProps {
   images: ProductImage[];
   productName: string;
+  /** Product ID for wishlist API calls */
+  productId?: string;
 }
 
 /**
  * Product image gallery with thumbnail navigation and wishlist button.
- * Client component — handles thumbnail selection interaction.
+ * Client component — handles thumbnail selection and wishlist toggle.
  */
-function ProductImageGallery({ images, productName }: ProductImageGalleryProps) {
+function ProductImageGallery({ images, productName, productId }: ProductImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+  const [wishlistItemId, setWishlistItemId] = useState<string | number | null>(null);
+  const toggleMutex = useRef(false);
   const currentImage = images[selectedIndex] ?? images[0];
+
+  // ─── Wishlist Toggle (Optimistic + Revert) ─────────────
+  const handleWishlistToggle = useCallback(async () => {
+    if (toggleMutex.current || isToggling || !productId) return;
+    toggleMutex.current = true;
+    setIsToggling(true);
+
+    const previousState = isWishlisted;
+    const previousItemId = wishlistItemId;
+
+    // Optimistic update
+    setIsWishlisted(!previousState);
+
+    try {
+      if (previousState && previousItemId) {
+        // Remove from wishlist
+        await removeFromWishlist(previousItemId);
+        setWishlistItemId(null);
+      } else {
+        // Add to wishlist
+        const result = await addToWishlist({ product_id: productId });
+        // Find the item we just added
+        const addedItem = result.data.items.find(
+          (item) => String(item.product_id) === String(productId)
+        );
+        if (addedItem) {
+          setWishlistItemId(addedItem.id);
+        }
+      }
+    } catch (error) {
+      // Revert on failure
+      setIsWishlisted(previousState);
+      setWishlistItemId(previousItemId);
+
+      if (isApiError(error) && error.code === "UNAUTHORIZED") {
+        // Could open login modal here
+        console.warn("[Wishlist] User not authenticated");
+      }
+    } finally {
+      setIsToggling(false);
+      toggleMutex.current = false;
+    }
+  }, [isWishlisted, isToggling, productId, wishlistItemId]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -35,17 +85,23 @@ function ProductImageGallery({ images, productName }: ProductImageGalleryProps) 
 
         {/* Wishlist button */}
         <button
-          onClick={() => setIsWishlisted(!isWishlisted)}
+          onClick={handleWishlistToggle}
+          disabled={isToggling}
           className={cn(
             "absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all duration-300",
             "hover:scale-110 active:scale-90",
+            isToggling && "opacity-50 cursor-wait",
             isWishlisted
               ? "bg-primary text-white"
               : "bg-white/90 text-muted-foreground hover:bg-white hover:text-primary"
           )}
           aria-label={isWishlisted ? "Retirer des favoris" : "Ajouter aux favoris"}
         >
-          <Heart size={18} className={cn(isWishlisted && "fill-current")} />
+          {isToggling ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <Heart size={18} className={cn(isWishlisted && "fill-current")} />
+          )}
         </button>
 
         {/* Image counter */}

@@ -16,12 +16,13 @@ export default function OrderNowBanner({ products, dealCard }: OrderNowBannerPro
       className="py-8"
       style={{ animation: "fadeSlideUp 0.5s ease-out 200ms both" }}
     >
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
-        {/* Left side - Product Cards */}
-        <div className="flex gap-4 flex-1 overflow-x-auto scrollbar-hide">
+      <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+        {/* Left side - Product Cards (horizontal scroll) */}
+        <div className="flex gap-3 sm:gap-4 flex-1 overflow-x-auto scrollbar-hide scroll-smooth pb-2 -mx-4 px-4 lg:mx-0 lg:px-0">
           {products.map((product, index) => (
             <div
               key={product.id}
+              className="flex-shrink-0"
               style={{
                 animation: `fadeSlideUp 0.5s ease-out ${300 + index * 100}ms both`,
               }}

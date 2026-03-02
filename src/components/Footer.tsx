@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Phone,
   Mail,
   MapPin,
   ArrowUp,
+  ChevronDown,
 } from "lucide-react";
 
 const footerColumns = [
@@ -69,25 +70,69 @@ const socialLinks = [
 
 const paymentMethods = ["AM", "VISA", "MC", "CB", "PP"];
 
+/* ── Collapsible Link Column (mobile accordion) ── */
+
+function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="border-b border-gray-100 md:border-b-0">
+      {/* Header — clickable on mobile, static on md+ */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between py-3 md:py-0 md:mb-4 md:cursor-default"
+        aria-expanded={open}
+      >
+        <h4 className="text-sm font-bold text-gray-900">{title}</h4>
+        <ChevronDown
+          size={16}
+          className={`text-gray-400 transition-transform duration-300 md:hidden ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {/* Links — toggle on mobile, always visible on md+ */}
+      <ul
+        className={`space-y-2.5 overflow-hidden transition-all duration-300 md:!max-h-none md:!opacity-100 md:!pb-0 ${
+          open ? "max-h-[500px] opacity-100 pb-4" : "max-h-0 opacity-0"
+        }`}
+      >
+        {links.map((link) => (
+          <li key={link.label}>
+            <a
+              href={link.href}
+              className="text-sm text-gray-500 hover:text-[#F15412] transition-colors duration-200"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ── Footer Component ── */
+
 export default function Footer() {
   const [loaded, setLoaded] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  const handleScroll = useCallback(() => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? Math.min(scrollTop / docHeight, 1) : 0;
+    setScrollProgress(progress);
+    setShowScrollTop(scrollTop > 300);
+  }, []);
+
   useEffect(() => {
     setLoaded(true);
-
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = docHeight > 0 ? Math.min(scrollTop / docHeight, 1) : 0;
-      setScrollProgress(progress);
-      setShowScrollTop(scrollTop > 300);
-    };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [handleScroll]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -100,28 +145,29 @@ export default function Footer() {
       }`}
     >
       {/* ── Main Footer ── */}
-      <div className="mx-auto max-w-[1400px] px-4 pt-12 pb-8 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-6">
+      <div className="mx-auto max-w-[1400px] px-4 pt-10 pb-6 sm:pt-12 sm:pb-8 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-0 md:gap-8 lg:gap-6">
           {/* Brand Column */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 mb-6 md:mb-0">
+            {/* Logo */}
             <div className="flex items-center gap-2 mb-4">
               <div className="h-7 w-7 rounded-lg bg-[#F15412] flex items-center justify-center">
                 <span className="text-white text-xs font-black">S</span>
               </div>
               <span className="text-lg font-extrabold text-gray-900 tracking-tight">
-                MARKETPRO
+                SUGU
               </span>
             </div>
 
-            <p className="text-sm text-gray-500 leading-relaxed mb-5 max-w-[260px]">
-              Sugu est la plus grande plateforme de vente en ligne
+            <p className="text-sm text-gray-500 leading-relaxed mb-5 max-w-[280px]">
+              Sugu est la plus grande plateforme de vente en ligne au Burkina Faso
             </p>
 
             {/* Contact info */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="flex items-center gap-2.5">
                 <Phone size={14} className="text-[#F15412] flex-shrink-0" />
-                <span className="text-sm text-gray-600">+226000000</span>
+                <span className="text-sm text-gray-600">+226 00 00 00 00</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail size={14} className="text-[#F15412] flex-shrink-0" />
@@ -130,66 +176,55 @@ export default function Footer() {
               <div className="flex items-start gap-2.5">
                 <MapPin size={14} className="text-[#F15412] flex-shrink-0 mt-0.5" />
                 <span className="text-sm text-gray-600 leading-relaxed">
-                  3252 Bobo Dioula Avenue<br />
-                  Guimbi Ouattara koko,<br />
-                  Burkina Faso
+                  3252 Bobo Dioula Avenue, Guimbi Ouattara koko, Burkina Faso
                 </span>
               </div>
             </div>
+
+            {/* Social Icons — below contact on mobile, separate row on md+ */}
+            <div className="flex items-center gap-2.5 mt-6">
+              {socialLinks.map((social) => (
+                <a
+                  key={social.name}
+                  href="#"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F15412] text-white text-xs font-bold transition-all duration-200 hover:bg-[#d94a0f] hover:scale-110 active:scale-95"
+                  title={social.name}
+                >
+                  {social.icon}
+                </a>
+              ))}
+            </div>
           </div>
 
-          {/* Link Columns */}
-          {footerColumns.map((col) => (
-            <div key={col.title}>
-              <h4 className="text-sm font-bold text-gray-900 mb-4">{col.title}</h4>
-              <ul className="space-y-2.5">
-                {col.links.map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-gray-500 hover:text-[#F15412] transition-colors duration-200"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+          {/* Link Columns — accordion on mobile, grid on md+ */}
+          <div className="md:contents">
+            {/* Divider above links on mobile */}
+            <div className="border-t border-gray-100 md:hidden" />
 
-        {/* Social Icons */}
-        <div className="flex items-center gap-3 mt-10">
-          {socialLinks.map((social) => (
-            <a
-              key={social.name}
-              href="#"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F15412] text-white text-xs font-bold transition-all duration-200 hover:bg-[#d94a0f] hover:scale-110 active:scale-95"
-              title={social.name}
-            >
-              {social.icon}
-            </a>
-          ))}
+            {footerColumns.map((col) => (
+              <FooterColumn key={col.title} title={col.title} links={col.links} />
+            ))}
+          </div>
         </div>
       </div>
 
       {/* ── Bottom Bar ── */}
       <div className="border-t border-gray-200">
-        <div className="mx-auto max-w-[1400px] px-4 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* Left */}
-          <p className="text-xs text-gray-400">
+        <div className="mx-auto max-w-[1400px] px-4 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Left — copyright */}
+          <p className="text-xs text-gray-400 text-center sm:text-left">
             sugu © 2026. Tous droits réservés
           </p>
 
-          {/* Center – mini logo */}
-          <div className="h-6 w-6 rounded-md bg-gray-100 flex items-center justify-center">
+          {/* Center — mini logo (hidden on mobile) */}
+          <div className="hidden sm:flex h-6 w-6 rounded-md bg-gray-100 items-center justify-center">
             <span className="text-[10px] font-black text-gray-400">S</span>
           </div>
 
-          {/* Right – payment + scroll to top */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 mr-1">Nous acceptons</span>
+          {/* Right — payment methods */}
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <span className="text-xs text-gray-400">Nous acceptons</span>
+            <div className="flex items-center gap-1.5">
               {paymentMethods.map((pm) => (
                 <div
                   key={pm}
@@ -206,11 +241,12 @@ export default function Footer() {
       {/* ── Fixed Floating Scroll-to-Top Button ── */}
       <button
         onClick={scrollToTop}
-        className={`fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 ${
+        className={`fixed bottom-6 right-4 sm:right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 ${
           showScrollTop
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-4 pointer-events-none"
         }`}
+        aria-label="Retour en haut"
       >
         {/* SVG Progress Ring */}
         <svg

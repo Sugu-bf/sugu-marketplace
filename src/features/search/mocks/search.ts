@@ -1,5 +1,6 @@
 import type { RelatedSearch, PriceRange } from "../models/search";
 import type { ProductListItem } from "@/features/product";
+import { DEFAULT_PRICE_RANGES } from "@/lib/constants";
 
 // ─── Mock Search Products (richer, 12 items) ────────────────
 
@@ -199,15 +200,9 @@ const mockRelatedSearches: RelatedSearch[] = [
   { label: "Épicerie fine", query: "épicerie fine" },
 ];
 
-// ─── Price Ranges ────────────────────────────────────────────
+// ─── Price Ranges (from central currency constant) ──────────
 
-const mockPriceRanges: PriceRange[] = [
-  { min: 0, max: 1000, label: "Moins de 1 000 FCFA" },
-  { min: 1000, max: 2000, label: "1 000 – 2 000 FCFA" },
-  { min: 2000, max: 3000, label: "2 000 – 3 000 FCFA" },
-  { min: 3000, max: 5000, label: "3 000 – 5 000 FCFA" },
-  { min: 5000, max: 999999, label: "Plus de 5 000 FCFA" },
-];
+const mockPriceRanges: PriceRange[] = [...DEFAULT_PRICE_RANGES];
 
 // ─── Filter Categories ──────────────────────────────────────
 
