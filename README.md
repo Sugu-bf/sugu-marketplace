@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.png" alt="SUGU Marketplace" width="200" />
+  <img src="https://cdn.sugu.pro/s/theme/brand-logo.png" alt="SUGU Marketplace" width="200" />
 </p>
 
 <h1 align="center">🛒 SUGU Marketplace</h1>
