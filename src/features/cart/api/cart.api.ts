@@ -17,7 +17,7 @@
  * header. The backend's CartResolver already accepts this header.
  */
 
-import { api, v1Url, isApiError, initCsrf } from "@/lib/api";
+import { api, v1Url, isApiError } from "@/lib/api";
 import {
   ApiCartResponseSchema,
   ApiCouponApplyResponseSchema,
@@ -95,20 +95,8 @@ function mapApiResponseToCartUI(responseData: ApiCartResponse): CartUI {
   };
 }
 
-// ─── CSRF helper ─────────────────────────────────────────────
-
-let csrfInitialized = false;
-
-async function ensureCsrf(): Promise<void> {
-  if (typeof window === "undefined") return;
-  if (csrfInitialized) return;
-  try {
-    await initCsrf();
-    csrfInitialized = true;
-  } catch {
-    console.warn("[Cart API] CSRF init failed — mutation may be rejected.");
-  }
-}
+// Note: CSRF initialization removed — not needed for cross-domain Bearer token auth.
+// Protection is provided by Bearer token + Content-Type: application/json + CORS.
 
 // ─── GET Cart ────────────────────────────────────────────────
 
@@ -159,7 +147,6 @@ export async function updateLineQty(
   qty: number,
   signal?: AbortSignal
 ): Promise<CartUI> {
-  await ensureCsrf();
   const url = v1Url(`cart/items/${lineId}`);
   const { data } = await api.patch(url, {
     body: { qty },
@@ -180,7 +167,6 @@ export async function removeLine(
   lineId: number,
   signal?: AbortSignal
 ): Promise<CartUI> {
-  await ensureCsrf();
   const url = v1Url(`cart/items/${lineId}`);
   const { data } = await api.delete(url, {
     schema: ApiCartResponseSchema,
@@ -197,7 +183,6 @@ export async function removeLine(
  * Clear the entire cart. Returns the empty cart state.
  */
 export async function clearCart(signal?: AbortSignal): Promise<CartUI> {
-  await ensureCsrf();
   const url = v1Url("cart");
   const { data } = await api.delete(url, {
     schema: ApiCartResponseSchema,
@@ -223,7 +208,6 @@ export async function applyCoupon(
   code: string,
   signal?: AbortSignal
 ): Promise<CouponResult> {
-  await ensureCsrf();
   const url = v1Url("cart/coupon/apply");
   const { data } = await api.post(url, {
     body: { code },
@@ -262,7 +246,6 @@ export async function applyCoupon(
 export async function removeCoupon(
   signal?: AbortSignal
 ): Promise<CouponResult> {
-  await ensureCsrf();
   const url = v1Url("cart/coupon/remove");
   const { data } = await api.post(url, {
     schema: ApiCouponRemoveResponseSchema,
@@ -307,7 +290,6 @@ export async function createCheckoutSession(
   idempotencyKey: string,
   signal?: AbortSignal
 ): Promise<CheckoutSessionResult> {
-  await ensureCsrf();
   const url = v1Url("checkout/sessions");
   const { data } = await api.post(url, {
     schema: ApiCheckoutSessionResponseSchema,
@@ -341,7 +323,6 @@ export async function placeOrder(
   idempotencyKey: string,
   signal?: AbortSignal
 ): Promise<PlaceOrderResult> {
-  await ensureCsrf();
   const url = v1Url("checkout/orders");
   const { data } = await api.post(url, {
     body: params,

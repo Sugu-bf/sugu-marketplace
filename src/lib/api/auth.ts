@@ -3,17 +3,22 @@
  *
  * Backend uses Laravel Sanctum with Bearer token authentication:
  * - Token stored in auth_token cookie (accessible to JS, SameSite=Lax)
- * - XSRF-TOKEN cookie used for CSRF protection on mutations
+ * - Bearer token auth is inherently CSRF-safe (attacker can't forge
+ *   the Authorization header from another origin)
+ *
+ * NOTE: Sanctum's cookie-based CSRF (XSRF-TOKEN) does NOT work in this
+ * cross-domain setup (sugu.pro → api.mysugu.com). The XSRF-TOKEN cookie
+ * is scoped to .mysugu.com, so the browser on sugu.pro never stores it.
+ * Therefore initCsrf() is a no-op — we rely on Bearer token + CORS for
+ * protection against cross-site request forgery.
  *
  * RULES:
  * - NEVER store tokens in localStorage/sessionStorage
  * - NEVER log auth cookies or headers
- * - All mutations automatically include XSRF-TOKEN via the client
  */
 
 import { api } from "./client";
 import { buildApiUrl } from "./endpoints";
-import { API_BASE_URL } from "./config";
 import { isApiError } from "./errors";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -39,14 +44,22 @@ export interface AuthUser {
 // ─── CSRF Initialization ─────────────────────────────────────
 
 /**
- * Fetch the CSRF cookie from Sanctum.
- * Must be called BEFORE any mutation (POST/PUT/DELETE) in the SPA.
- * The XSRF-TOKEN cookie is set by the server and read by the client.
+ * No-op — CSRF via Sanctum cookie is impossible in cross-domain setup.
+ *
+ * sugu.pro (frontend) → api.mysugu.com (backend) are different base domains.
+ * The XSRF-TOKEN cookie set by /sanctum/csrf-cookie is scoped to .mysugu.com,
+ * so the browser on sugu.pro never stores it.
+ *
+ * Protection against CSRF is provided by:
+ * 1. Bearer token auth (can't be forged cross-origin)
+ * 2. Content-Type: application/json (triggers CORS preflight)
+ * 3. CORS only allows https://sugu.pro and https://pro.sugu.pro
+ *
+ * Kept as a function for backward compatibility — callers don't need to change.
  */
 export async function initCsrf(): Promise<void> {
-  await fetch(`${API_BASE_URL}/sanctum/csrf-cookie`, {
-    credentials: "include",
-  });
+  // No-op: cross-domain CSRF cookies don't work.
+  // Bearer token + CORS provides equivalent protection.
 }
 
 // ─── Auth Helpers ────────────────────────────────────────────

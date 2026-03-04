@@ -95,22 +95,11 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Read the XSRF-TOKEN cookie for Sanctum CSRF protection.
- * This cookie is intentionally NOT HttpOnly so the SPA can read it.
- * The actual session cookie IS HttpOnly (secure).
+ * CSRF note: Sanctum's XSRF-TOKEN approach does NOT work in this
+ * cross-domain setup (sugu.pro → api.mysugu.com). Protection against
+ * CSRF is provided by Bearer token auth + Content-Type: application/json
+ * (which triggers CORS preflight) + strict CORS allowed_origins.
  */
-function getXsrfToken(): string | null {
-  if (typeof document === "undefined") return null;
-
-  const match = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("XSRF-TOKEN="));
-
-  if (!match) return null;
-
-  // The cookie value is URL-encoded by Laravel
-  return decodeURIComponent(match.split("=")[1]);
-}
 
 /**
  * Read the auth_token cookie for Bearer token auth.
@@ -187,14 +176,6 @@ async function executeRequest<T>(
   }
 
   headers.set("X-Request-Id", requestId);
-
-  // CSRF token for mutations (Sanctum)
-  if (!isIdempotent(method)) {
-    const xsrf = getXsrfToken();
-    if (xsrf) {
-      headers.set("X-XSRF-TOKEN", xsrf);
-    }
-  }
 
   // Bearer token from auth_token cookie
   if (!headers.has("Authorization")) {
