@@ -36,7 +36,7 @@ import { getAuthUser, logout, type AuthUser } from "@/lib/api/auth";
 const NAV_LINKS = [
   { label: "Produits", href: "/search" },
   { label: "Fournisseurs", href: "/fournisseurs" },
-  { label: "Actualités", href: "/actualites" },
+  { label: "Actualités", href: "/blog" },
 ] as const;
 
 // ─── Props ───────────────────────────────────────────────────
