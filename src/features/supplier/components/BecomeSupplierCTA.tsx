@@ -21,7 +21,9 @@ export default function BecomeSupplierCTA() {
           </p>
         </div>
         <Link
-          href="/vendor/register"
+          href="https://pro.sugu.pro"
+          target="_blank"
+          rel="noopener noreferrer"
           className="rounded-full bg-white text-foreground px-6 py-3 text-sm font-bold hover:bg-gray-100 transition-colors inline-flex items-center gap-2 flex-shrink-0"
         >
           Créer mon compte fournisseur
