@@ -15,11 +15,11 @@ export const HeroBannerSchema = z.object({
   href: z.string().optional(),
 });
 
-// ─── Category Bar (emoji pills) ─────────────────────────────
+// ─── Category Bar (Lucide icon pills) ───────────────────────
 
 export const CategoryPillSchema = z.object({
   name: z.string(),
-  emoji: z.string(),
+  icon: z.string(),
   slug: z.string().optional(),
 });
 

@@ -79,46 +79,13 @@ function bannerItemToHero(item: ApiBannerItem): HeroBanner {
   };
 }
 
-// emoji lookup for category slugs/names
-const categoryEmojis: Record<string, string> = {
-  pain: "🍞", fromage: "🧀", boissons: "🍷", yaourt: "🥛",
-  fruits: "🍎", pasteque: "🍉", snacks: "🍿", gateau: "🎂",
-  bonbons: "🍬", legumes: "🥬", agrumes: "🍊", surgeles: "🧊",
-  viande: "🥩", "fruits-de-mer": "🦐", boulangerie: "🥐", jus: "🥤",
-  lait: "🥛", poisson: "🐟", riz: "🍚", huile: "🫒",
-  epicerie: "🛒", bebe: "👶", beaute: "💄", "beaute-sante": "💄",
-  maison: "🏠", electronique: "📱", mode: "👕", sport: "⚽",
-  bureau: "📎", informatique: "💻", telephone: "📞",
-  smartphones: "📱", accessoires: "🎧",
-};
-
-function categoryToEmoji(slug: string, name: string, iconName?: string | null): string {
-  // Try icon name mapping first
-  const iconEmojis: Record<string, string> = {
-    sparkles: "✨", shirt: "👕", cpu: "📱", shopping_bag: "🛍️",
-    home: "🏠", heart: "❤️", baby: "👶", book: "📚",
-  };
-  if (iconName && iconEmojis[iconName]) return iconEmojis[iconName];
-
-  // Try slug
-  const normalizedSlug = slug.toLowerCase().replace(/[^a-z-]/g, "");
-  if (categoryEmojis[normalizedSlug]) return categoryEmojis[normalizedSlug];
-
-  // Try partial name match
-  const normalizedName = name.toLowerCase();
-  for (const [key, emoji] of Object.entries(categoryEmojis)) {
-    if (normalizedName.includes(key)) return emoji;
-  }
-  return "📦";
-}
-
 function apiCategoryToPill(cat: ApiCategory): CategoryPill {
   const iconName = typeof cat.icon === "object" && cat.icon !== null
     ? (cat.icon as { name?: string }).name ?? null
     : null;
   return {
     name: cat.name,
-    emoji: categoryToEmoji(cat.slug, cat.name, iconName),
+    icon: iconName ?? "tag",
     slug: cat.slug,
   };
 }

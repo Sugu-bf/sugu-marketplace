@@ -29,22 +29,22 @@ export const mockHeroBanner: HeroBanner = {
 // ─── Category Pills ─────────────────────────────────────────
 
 export const mockCategoryPills: CategoryPill[] = [
-  { name: "Pain", emoji: "🍞", slug: "pain" },
-  { name: "Fromage", emoji: "🧀", slug: "fromage" },
-  { name: "Boissons", emoji: "🍷", slug: "boissons" },
-  { name: "Yaourt", emoji: "🥛", slug: "yaourt" },
-  { name: "Fruits", emoji: "🍎", slug: "fruits" },
-  { name: "Pastèque", emoji: "🍉", slug: "pasteque" },
-  { name: "Snacks", emoji: "🍿", slug: "snacks" },
-  { name: "Gâteau", emoji: "🎂", slug: "gateau" },
-  { name: "Bonbons", emoji: "🍬", slug: "bonbons" },
-  { name: "Légumes", emoji: "🥬", slug: "legumes" },
-  { name: "Agrumes", emoji: "🍊", slug: "agrumes" },
-  { name: "Surgelés", emoji: "🧊", slug: "surgeles" },
-  { name: "Viande", emoji: "🥩", slug: "viande" },
-  { name: "Fruits de mer", emoji: "🦐", slug: "fruits-de-mer" },
-  { name: "Boulangerie", emoji: "🥐", slug: "boulangerie" },
-  { name: "Jus", emoji: "🥤", slug: "jus" },
+  { name: "Pain", icon: "wheat", slug: "pain" },
+  { name: "Fromage", icon: "cheese", slug: "fromage" },
+  { name: "Boissons", icon: "wine", slug: "boissons" },
+  { name: "Yaourt", icon: "cup-soda", slug: "yaourt" },
+  { name: "Fruits", icon: "apple", slug: "fruits" },
+  { name: "Pastèque", icon: "citrus", slug: "pasteque" },
+  { name: "Snacks", icon: "popcorn", slug: "snacks" },
+  { name: "Gâteau", icon: "cake-slice", slug: "gateau" },
+  { name: "Bonbons", icon: "candy", slug: "bonbons" },
+  { name: "Légumes", icon: "carrot", slug: "legumes" },
+  { name: "Agrumes", icon: "citrus", slug: "agrumes" },
+  { name: "Surgelés", icon: "snowflake", slug: "surgeles" },
+  { name: "Viande", icon: "beef", slug: "viande" },
+  { name: "Fruits de mer", icon: "fish", slug: "fruits-de-mer" },
+  { name: "Boulangerie", icon: "croissant", slug: "boulangerie" },
+  { name: "Jus", icon: "glass-water", slug: "jus" },
 ];
 
 // ─── Fresh Categories ───────────────────────────────────────
