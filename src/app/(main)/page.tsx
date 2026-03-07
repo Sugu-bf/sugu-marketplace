@@ -37,7 +37,16 @@ export const metadata = createMetadata({
 });
 
 /**
- * Home page — Server Component with parallel SSR data fetching.
+ * ISR floor — the page is revalidated at most every 60 seconds.
+ *
+ * This is a safety net: individual queries already carry their own
+ * `next: { revalidate }` values (60–600 s), but this route-level export
+ * makes the ISR intent explicit and prevents accidental opt-out.
+ */
+export const revalidate = 60;
+
+/**
+ * Home page — Server Component with ISR + parallel data fetching.
  *
  * All data is fetched in parallel via Promise.all for maximum performance.
  * Interactive sections (carousel, tabs, timer) receive SSR data as props

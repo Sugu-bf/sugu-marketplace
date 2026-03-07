@@ -48,6 +48,7 @@ export async function fetchBannerSlot(slotKey: string): Promise<ApiBannerItem[]>
         schema: BannerSlotResponseSchema,
         revalidate: RevalidatePresets.frequent,
         tags: [CacheTags.homeBanners(), CacheTags.homeSections()],
+        skipCredentials: true,
       }
     );
     return data.items;
@@ -65,6 +66,7 @@ export async function fetchFeaturedCategories(): Promise<ApiCategory[]> {
       schema: CategoriesResponseSchema,
       revalidate: RevalidatePresets.static,
       tags: [CacheTags.categories(), CacheTags.homeSections()],
+      skipCredentials: true,
     });
     return data.data.categories;
   } catch (error) {
@@ -79,6 +81,7 @@ export async function fetchAllCategories(): Promise<ApiCategory[]> {
       schema: CategoriesResponseSchema,
       revalidate: RevalidatePresets.static,
       tags: [CacheTags.categories(), CacheTags.homeSections()],
+      skipCredentials: true,
     });
     return data.data.categories;
   } catch (error) {
@@ -95,6 +98,7 @@ export async function fetchHomeBrands(limit = 12): Promise<ApiBrand[]> {
       schema: BrandsResponseSchema,
       revalidate: RevalidatePresets.standard,
       tags: [CacheTags.brands(), CacheTags.homeSections()],
+      skipCredentials: true,
     });
     return data.items;
   } catch (error) {
@@ -121,6 +125,7 @@ export async function fetchRecommended(
         schema: RecommendedResponseSchema,
         revalidate: RevalidatePresets.frequent,
         tags: [CacheTags.products(), CacheTags.homeSections()],
+        skipCredentials: true,
       }
     );
     return { tabs: data.tabs, products: data.items };
@@ -155,6 +160,7 @@ export async function fetchHotDeals(limit = 10): Promise<HotDealsResult> {
       schema: HotDealsResponseSchema,
       revalidate: 60, // Short revalidation since deals are time-sensitive
       tags: [CacheTags.products(), CacheTags.homeSections()],
+      skipCredentials: true,
     });
     return {
       banner: data.banner ?? null,
@@ -186,6 +192,7 @@ export async function fetchProductLists(limit = 6): Promise<ProductListsResult> 
       schema: ProductListsResponseSchema,
       revalidate: RevalidatePresets.frequent,
       tags: [CacheTags.products(), CacheTags.homeSections()],
+      skipCredentials: true,
     });
     return {
       featured: data.lists.featured,
@@ -232,6 +239,7 @@ export async function fetchDailyBestSells(limit = 6): Promise<DailyBestSellsResu
         schema: DailyBestSellsResponseSchema,
         revalidate: 60,
         tags: [CacheTags.products(), CacheTags.homeSections()],
+        skipCredentials: true,
       }
     );
     return {

@@ -36,6 +36,7 @@ export async function fetchCategoriesTree(): Promise<HeaderCategory[]> {
       schema: CategoriesTreeResponseSchema,
       revalidate: RevalidatePresets.static, // 600s = 10min
       tags: [CacheTags.categories(), "header"],
+      skipCredentials: true,
     });
 
     // Deduplicate by ID — backend may return duplicates

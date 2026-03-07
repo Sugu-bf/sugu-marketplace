@@ -71,6 +71,7 @@ export async function fetchHomeBrands(limit = 12): Promise<ApiBrand[]> {
       schema: BrandsResponseSchema,
       revalidate: RevalidatePresets.standard,
       tags: [CacheTags.brands(), CacheTags.homeSections()],
+      skipCredentials: true,
     });
     return data.items;
   } catch (error) {
@@ -90,6 +91,7 @@ export async function fetchBannersBySlot(slotKey: string): Promise<ApiBanner[]> 
         schema: BannersSlotResponseSchema,
         revalidate: RevalidatePresets.frequent,
         tags: [CacheTags.homeBanners()],
+        skipCredentials: true,
       }
     );
     return data.banners;
@@ -107,6 +109,7 @@ export async function fetchBanners(): Promise<ApiBanner[]> {
     const { data } = await api.get<{ data: ApiBanner[] }>(v1Url("banners"), {
       revalidate: RevalidatePresets.frequent,
       tags: [CacheTags.homeBanners()],
+      skipCredentials: true,
     });
     return data.data ?? [];
   } catch (error) {

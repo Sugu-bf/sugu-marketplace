@@ -178,7 +178,9 @@ async function executeRequest<T>(
   headers.set("X-Request-Id", requestId);
 
   // Bearer token from auth_token cookie
-  if (!headers.has("Authorization")) {
+  // Skip for public requests (skipCredentials) — calling cookies() opts
+  // the route into dynamic rendering and breaks ISR.
+  if (!headers.has("Authorization") && !skipCredentials) {
     const token = await getAuthToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
