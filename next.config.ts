@@ -4,6 +4,28 @@ const nextConfig: NextConfig = {
   output: "standalone",
   reactCompiler: true,
 
+  // ─── Cache-Control headers for Cloudflare edge caching ──────
+  // Next.js ISR sets s-maxage automatically, but we make it
+  // explicit so Cloudflare's CDN reads it reliably.
+  async headers() {
+    return [
+      {
+        // Homepage — ISR 60s + stale-while-revalidate 5 min
+        source: "/",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=60, stale-while-revalidate=300",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=60, stale-while-revalidate=300",
+          },
+        ],
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       {
