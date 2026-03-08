@@ -30,6 +30,7 @@ import type {
   ApplyCouponResponse,
   RemoveCouponResponse,
   PlaceOrderResponse,
+  UpdateCheckoutSessionPayload,
 } from "./checkout.types";
 import {
   sessionIdempotencyKey,
@@ -59,6 +60,31 @@ export async function getCheckoutSession(
       timeout: CHECKOUT_TIMEOUT_MS,
       retries: 2,
     } as Parameters<typeof api.get>[1]
+  );
+
+  return (data as { success: true; data: { session: CheckoutSessionApi } }).data.session;
+}
+
+// ─── UPDATE Session ──────────────────────────────────────────
+
+/**
+ * Update a checkout session with address, partner, rate selections.
+ * Called before placeOrder to persist user choices on the server.
+ * CSRF token required. Not retried (PATCH mutation).
+ */
+export async function updateCheckoutSession(
+  sessionId: string,
+  payload: UpdateCheckoutSessionPayload
+): Promise<CheckoutSessionApi> {
+  await initCsrf();
+
+  const { data } = await api.patch(
+    v1Url(`checkout/sessions/${sessionId}`),
+    {
+      body: payload,
+      schema: ShowSessionResponseSchema,
+      timeout: CHECKOUT_TIMEOUT_MS,
+    }
   );
 
   return (data as { success: true; data: { session: CheckoutSessionApi } }).data.session;

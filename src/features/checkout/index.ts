@@ -52,12 +52,14 @@ export type {
   CheckoutPageState,
   CreateCheckoutSessionPayload,
   PlaceOrderPayload,
+  UpdateCheckoutSessionPayload,
 } from "./api/checkout.types";
 
 // ─── API Functions ───────────────────────────────────────────
 export {
   getCheckoutSession,
   createCheckoutSession,
+  updateCheckoutSession,
   getShippingOptions,
   applyCoupon,
   removeCoupon,

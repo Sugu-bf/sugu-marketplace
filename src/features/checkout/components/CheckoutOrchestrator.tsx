@@ -26,6 +26,7 @@ import type {
 import {
   getCheckoutSession,
   createCheckoutSession,
+  updateCheckoutSession,
   applyCoupon as applyCouponApi,
   removeCoupon as removeCouponApi,
   placeOrder,
@@ -124,6 +125,9 @@ function CheckoutOrchestrator({
   // Loading/error states
   const [placingOrder, setPlacingOrder] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Payment method state (WARN-01 fix)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cod" | "moneroo">("cod");
 
   // Modal states
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
@@ -279,11 +283,29 @@ function CheckoutOrchestrator({
         setActionError("Veuillez choisir une agence de livraison.");
         return;
       }
+      if (!selectedMethodId) {
+        setActionError("Veuillez choisir une méthode de livraison.");
+        return;
+      }
 
       setPlacingOrder(true);
       setActionError(null);
 
       try {
+        // ── CRIT-02 FIX: Persist selections on the backend before placing order ──
+        const addr = displayAddress!;
+        await updateCheckoutSession(sessionId, {
+          shipping_address: {
+            full_name: addr.fullName,
+            phone: addr.phone ?? "",
+            line1: addr.street,
+            city: addr.city,
+            country_code: addr.country === "Burkina Faso" ? "BF" : "BF",
+          },
+          shipping_partner_id: selectedAgencyId,
+          shipping_rate_id: selectedMethodId,
+        });
+
         const result = await placeOrder({
           checkout_session_id: sessionId,
           payment_method: paymentMethod,
@@ -310,7 +332,7 @@ function CheckoutOrchestrator({
         setPlacingOrder(false);
       }
     },
-    [hasAddress, selectedAgencyId, sessionId, router, refreshSession]
+    [hasAddress, selectedAgencyId, selectedMethodId, displayAddress, sessionId, router, refreshSession]
   );
 
   // ─── Render ──────────────────────────────────────────────

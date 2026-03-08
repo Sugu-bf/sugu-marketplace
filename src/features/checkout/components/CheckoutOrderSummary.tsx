@@ -5,7 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui";
 import { AssuranceBadge } from "@/components/ui/assurance-badge";
-import { ArrowRight, Lock, ShieldCheck, Truck, Tag, X, Smartphone, Loader2 } from "lucide-react";
+import { ArrowRight, Lock, ShieldCheck, Truck, Tag, X, Smartphone, Loader2, Banknote, Wallet } from "lucide-react";
 import { formatPrice } from "@/lib/constants";
 import { Badge } from "@/components/ui";
 import type { OrderSummaryItem } from "@/features/checkout";
@@ -99,9 +99,12 @@ function CheckoutOrderSummary({
     }
   };
 
+  // Payment method state
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "moneroo">("cod");
+
   const handlePlaceOrder = async () => {
     if (onPlaceOrder && !isPlacingOrder) {
-      await onPlaceOrder("cod"); // Default to COD
+      await onPlaceOrder(paymentMethod);
     }
   };
 
@@ -237,6 +240,78 @@ function CheckoutOrderSummary({
               {couponError}
             </p>
           )}
+        </div>
+
+        {/* ── Payment Method Selector (WARN-01 fix) ── */}
+        <div className="space-y-2.5">
+          <p className="text-sm font-bold text-foreground">Moyen de paiement</p>
+          <div className="space-y-2" role="radiogroup" aria-label="Moyen de paiement">
+            {/* COD option */}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={paymentMethod === "cod"}
+              onClick={() => setPaymentMethod("cod")}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all",
+                paymentMethod === "cod"
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                  : "border-border hover:border-primary/40 bg-background"
+              )}
+            >
+              <div className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg",
+                paymentMethod === "cod" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+              )}>
+                <Banknote size={18} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">Paiement à la livraison</p>
+                <p className="text-xs text-muted-foreground">Payez en espèces lors de la réception</p>
+              </div>
+              <div className={cn(
+                "h-4 w-4 rounded-full border-2 transition-colors",
+                paymentMethod === "cod" ? "border-primary bg-primary" : "border-border"
+              )}>
+                {paymentMethod === "cod" && (
+                  <div className="h-full w-full rounded-full bg-white scale-[0.4]" />
+                )}
+              </div>
+            </button>
+
+            {/* Moneroo (Mobile Money) option */}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={paymentMethod === "moneroo"}
+              onClick={() => setPaymentMethod("moneroo")}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all",
+                paymentMethod === "moneroo"
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                  : "border-border hover:border-primary/40 bg-background"
+              )}
+            >
+              <div className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg",
+                paymentMethod === "moneroo" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+              )}>
+                <Wallet size={18} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">Paiement mobile</p>
+                <p className="text-xs text-muted-foreground">Orange Money, Moov Money, Wave</p>
+              </div>
+              <div className={cn(
+                "h-4 w-4 rounded-full border-2 transition-colors",
+                paymentMethod === "moneroo" ? "border-primary bg-primary" : "border-border"
+              )}>
+                {paymentMethod === "moneroo" && (
+                  <div className="h-full w-full rounded-full bg-white scale-[0.4]" />
+                )}
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* CTA */}
