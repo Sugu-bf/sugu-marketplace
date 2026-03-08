@@ -15,11 +15,10 @@ const footerColumns = [
     links: [
       { label: "Profil de l'entreprise", href: "#" },
       { label: "Tous nos magasins", href: "/stores" },
+      { label: "Nos fournisseurs", href: "/fournisseurs" },
       { label: "Espace vendeur", href: "#" },
       { label: "Programme d'affiliation", href: "#" },
       { label: "Contactez-nous", href: "#" },
-      { label: "Commentaires", href: "#" },
-      { label: "Conditions générales", href: "/conditions-generales" },
     ],
   },
   {
@@ -28,11 +27,9 @@ const footerColumns = [
       { label: "Centre d'aide", href: "/help" },
       { label: "Chat Support", href: "/support-chat" },
       { label: "Contactez-nous", href: "#" },
-      { label: "Carte cadeau", href: "#" },
       { label: "Signaler un abus", href: "#" },
       { label: "Soumettre un litige", href: "#" },
-      { label: "Politique de confidentialité", href: "/politique-de-confidentialite" },
-      { label: "Utiliser un bon", href: "#" },
+      { label: "Livraison & Retours", href: "/politique-livraison-retours" },
     ],
   },
   {
@@ -50,13 +47,11 @@ const footerColumns = [
   {
     title: "Informations",
     links: [
-      { label: "Devenir vendeur", href: "#" },
-      { label: "Programme d'affiliation", href: "#" },
-      { label: "Politique de confidentialité", href: "/politique-de-confidentialite" },
       { label: "Conditions générales", href: "/conditions-generales" },
-      { label: "Nos fournisseurs", href: "/fournisseurs" },
-      { label: "Communauté", href: "#" },
-      { label: "Forum", href: "#" },
+      { label: "Politique de confidentialité", href: "/politique-de-confidentialite" },
+      { label: "Livraison & Retours", href: "/politique-livraison-retours" },
+      { label: "Politique anti-fraude", href: "/politique-anti-fraude" },
+      { label: "Devenir vendeur", href: "#" },
     ],
   },
 ];
