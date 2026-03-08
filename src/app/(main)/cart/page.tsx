@@ -33,14 +33,9 @@ export default async function CartPage() {
 
       {/* Page Header */}
       <Container className="pb-6">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Mon Panier
-          </h1>
-          <span className="text-base text-muted-foreground">
-            ({cart.totals.itemCount} article{cart.totals.itemCount > 1 ? "s" : ""})
-          </span>
-        </div>
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+          Mon Panier
+        </h1>
       </Container>
 
       {/* Cart Content */}

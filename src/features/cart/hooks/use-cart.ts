@@ -37,6 +37,8 @@ export interface UseCartReturn {
 
   /** Loading states */
   isLoading: boolean;
+  /** True after the first client-side refetch completes (SSR data reconciled) */
+  hasHydrated: boolean;
   isUpdatingLine: (lineId: number) => boolean;
   isRemovingLine: (lineId: number) => boolean;
   isClearing: boolean;
@@ -86,7 +88,10 @@ const EMPTY_CART: CartUI = {
 
 export function useCart(initialCart: CartUI): UseCartReturn {
   const [cart, setCart] = useState<CartUI>(initialCart);
-  const [isLoading, setIsLoading] = useState(false);
+  // Start loading=true so the UI doesn't flash "empty cart" before
+  // the client-side refetch has a chance to reconcile with the real backend data.
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
 
@@ -131,11 +136,16 @@ export function useCart(initialCart: CartUI): UseCartReturn {
   // available to the Next.js server during SSR. Only a client-side
   // fetch with credentials:"include" can send it. So we always
   // reconcile after hydration.
+  //
+  // We start with isLoading=true so the UI shows a loading state
+  // (not "empty cart") until this refetch completes.
   const hasMounted = useRef(false);
   useEffect(() => {
     if (hasMounted.current) return;
     hasMounted.current = true;
-    refetch();
+    refetch().finally(() => {
+      setHasHydrated(true);
+    });
   }, [refetch]);
 
   // ─── Update Qty (serialized per line) ────────────────────
@@ -364,6 +374,7 @@ export function useCart(initialCart: CartUI): UseCartReturn {
   return {
     cart,
     isLoading,
+    hasHydrated,
     isUpdatingLine: (lineId: number) => updatingLineIds.has(lineId),
     isRemovingLine: (lineId: number) => removingLineIds.has(lineId),
     isClearing,

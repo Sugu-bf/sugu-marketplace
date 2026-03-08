@@ -26,6 +26,7 @@ function CartOrchestrator({ initialCart }: CartOrchestratorProps) {
   const {
     cart,
     isLoading,
+    hasHydrated,
     isUpdatingLine,
     isRemovingLine,
     isClearing,
@@ -44,7 +45,27 @@ function CartOrchestrator({ initialCart }: CartOrchestratorProps) {
     couponMessage,
   } = useCart(initialCart);
 
+  // ─── Loading State (initial client refetch) ─────────────
+  // The SSR may return an empty cart because the guest token isn't
+  // available server-side. We show a skeleton while the client-side
+  // refetch reconciles with the real backend data.
+  if (isLoading && !hasHydrated) {
+    return (
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-10 animate-pulse">
+        <div className="lg:col-span-2 space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-4 rounded-2xl bg-muted/50 p-4 h-28" />
+          ))}
+        </div>
+        <div className="lg:col-span-1">
+          <div className="rounded-2xl bg-muted/50 p-6 h-64" />
+        </div>
+      </div>
+    );
+  }
+
   // ─── Empty Cart State ────────────────────────────────────
+  // Only shown AFTER client-side hydration confirms the cart is truly empty.
   if (cart.isEmpty) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-5 page-enter">
