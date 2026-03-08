@@ -335,11 +335,11 @@ export default function TermsPage() {
             <Sub title="8.2 Retrait (payout)">
               <p>Les vendeurs peuvent demander un retrait sous conditions :</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Montant minimum : <strong>10 000 FCFA</strong></li>
+                <li>Montant minimum : <strong>5 000 FCFA</strong></li>
                 <li>Montant maximum par retrait : <strong>5 000 000 FCFA</strong></li>
                 <li>Limite journalière : <strong>10 000 000 FCFA</strong></li>
                 <li>Maximum <strong>3 demandes de retrait simultanées</strong> en attente</li>
-                <li>Frais de retrait : <strong>1%</strong> du montant</li>
+                <li>Frais de retrait : <strong>gratuit</strong> (inclus dans la commission de vente de 5%)</li>
                 <li>Délai de traitement : <strong>24 à 48 heures ouvrées</strong></li>
               </ul>
             </Sub>
