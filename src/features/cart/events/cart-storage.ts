@@ -5,10 +5,13 @@
  *
  * The backend returns X-Cart-Token in response headers.
  * We store it locally so subsequent requests (GET /cart) include it.
+ * We also mirror the token to a first-party cookie so that Next.js
+ * Server Components (SSR) can forward it to the backend API.
  * We also store optimistic items for instant display after page refresh.
  */
 
 import type { CartItemPreview } from "./cart-events";
+import { setCartCookie, clearCartCookie } from "../utils/cart-cookie";
 
 const TOKEN_KEY = "sugu:cart-token";
 const ITEMS_KEY = "sugu:cart-items";
@@ -23,11 +26,15 @@ export function getCartToken(): string | null {
 export function setCartToken(token: string) {
   if (typeof window === "undefined") return;
   localStorage.setItem(TOKEN_KEY, token);
+  // Mirror to first-party cookie so Next.js SSR can read it
+  setCartCookie(token);
 }
 
 export function clearCartToken() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
+  // Also remove the first-party cookie
+  clearCartCookie();
 }
 
 // ─── Optimistic Items ─────────────────────────────────────

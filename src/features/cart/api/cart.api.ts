@@ -119,13 +119,23 @@ export async function fetchCart(signal?: AbortSignal): Promise<CartUI> {
 /**
  * Fetch cart for SSR (Server Component).
  * Forwards cookies from the incoming request.
+ *
+ * @param cookieHeader - Raw `Cookie` header from the incoming request (for auth).
+ * @param cartToken    - Guest cart token extracted from the frontend-domain cookie
+ *                       `sugu_cart_token`. When present, sent as `X-Cart-Token` so
+ *                       the backend's CartResolver can identify the guest cart.
+ *                       Without this, cross-domain SSR requests result in a new
+ *                       empty cart being created every time.
  */
-export async function fetchCartSSR(cookieHeader?: string): Promise<CartUI> {
+export async function fetchCartSSR(cookieHeader?: string, cartToken?: string | null): Promise<CartUI> {
   const url = v1Url("cart");
 
   const headers: Record<string, string> = {};
   if (cookieHeader) {
     headers["Cookie"] = cookieHeader;
+  }
+  if (cartToken) {
+    headers["X-Cart-Token"] = cartToken;
   }
 
   const { data } = await api.get(url, {
