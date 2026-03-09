@@ -15,6 +15,8 @@ import {
   Trash2,
   Sparkles,
   LogOut,
+  ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,8 @@ import {
   clearRecentSearches,
 } from "../state/recentSearches.cookie";
 import { getAuthUser, logout, type AuthUser } from "@/lib/api/auth";
+import { useSearchSuggestions } from "../hooks/useSearchSuggestions";
+import { formatPrice } from "@/lib/constants";
 
 // ─── Nav Links ───────────────────────────────────────────────
 
@@ -184,6 +188,24 @@ export default function MarketplaceHeaderClient({
   const handleMobileClearRecent = useCallback(() => {
     setMobileRecentSearches(clearRecentSearches());
   }, []);
+
+  // ── Mobile live suggestions ──
+  const {
+    suggestions: mobileSuggestions,
+    isLoading: mobileSuggestionsLoading,
+    clear: clearMobileSuggestions,
+  } = useSearchSuggestions(mobileSearchOpen ? mobileSearchQuery : "");
+
+  const handleMobileSelectProduct = useCallback(
+    (slug: string) => {
+      const trimmed = mobileSearchQuery.trim();
+      if (trimmed) addRecentSearch(trimmed);
+      setMobileSearchOpen(false);
+      clearMobileSuggestions();
+      router.push(`/product/${slug}`);
+    },
+    [mobileSearchQuery, router, clearMobileSuggestions]
+  );
 
   return (
     <header
@@ -432,71 +454,159 @@ export default function MarketplaceHeaderClient({
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto px-5 py-5">
-            {/* Recent Searches */}
-            {mobileRecentSearches.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-foreground">
-                    Recherches récentes
-                  </h4>
-                  <button
-                    onClick={handleMobileClearRecent}
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
-                    title="Tout effacer"
-                    aria-label="Effacer toutes les recherches récentes"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {mobileRecentSearches.map((term) => (
-                    <span
-                      key={term}
-                      className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3.5 py-2 text-sm font-medium text-foreground/80 transition-all duration-200 hover:border-primary/30 hover:bg-primary-50"
-                    >
-                      <button
-                        onClick={() => handleMobileSearchSelect(term)}
-                        className="outline-none"
-                      >
-                        {term}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMobileRemoveRecent(term);
-                        }}
-                        className="text-muted-foreground hover:text-primary transition-colors duration-150 outline-none"
-                        aria-label={`Supprimer ${term}`}
-                      >
-                        <X size={14} strokeWidth={2.5} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Popular Searches */}
-            {popularSearches.length > 0 && (
+            {/* ── Live Suggestions (when typing ≥ 2 chars) ── */}
+            {mobileSearchQuery.trim().length >= 2 ? (
               <div>
-                <div className="flex items-center gap-1.5 mb-3">
-                  <h4 className="text-sm font-semibold text-foreground">
-                    Recherches populaires
-                  </h4>
-                  <Sparkles size={14} className="text-accent" />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {popularSearches.map((term) => (
+                {/* Loading */}
+                {mobileSuggestionsLoading && mobileSuggestions.length === 0 && (
+                  <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                    <Loader2 size={16} className="animate-spin text-primary" />
+                    <span>Recherche en cours…</span>
+                  </div>
+                )}
+
+                {/* Product suggestions */}
+                {mobileSuggestions.length > 0 && (
+                  <div>
+                    <h4 className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Produits suggérés
+                    </h4>
+                    <ul className="space-y-1">
+                      {mobileSuggestions.map((product) => (
+                        <li key={product.id}>
+                          <button
+                            onClick={() => handleMobileSelectProduct(product.slug)}
+                            className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-all duration-200 hover:bg-primary-50 active:scale-[0.98] group"
+                          >
+                            <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                              <img
+                                src={product.thumbnail || undefined}
+                                alt={product.name}
+                                className="h-full w-full object-contain p-0.5"
+                                loading="lazy"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              {product.highlightName ? (
+                                <p
+                                  className="text-sm font-medium text-foreground truncate [&_mark]:font-bold [&_mark]:text-primary [&_mark]:bg-transparent"
+                                  dangerouslySetInnerHTML={{ __html: product.highlightName }}
+                                />
+                              ) : (
+                                <p className="text-sm font-medium text-foreground truncate">
+                                  {product.name}
+                                </p>
+                              )}
+                              <p className="text-xs font-semibold text-primary mt-0.5">
+                                {formatPrice(product.price)}
+                              </p>
+                            </div>
+                            <ArrowRight
+                              size={14}
+                              className="flex-shrink-0 text-muted-foreground"
+                            />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* See all results */}
                     <button
-                      key={term}
-                      onClick={() => handleMobileSearchSelect(term)}
-                      className="rounded-full border border-border bg-white px-3.5 py-2 text-sm font-medium text-foreground/80 transition-all duration-200 hover:border-primary/40 hover:bg-primary-50 hover:text-primary active:scale-95"
+                      onClick={() => handleMobileSearchSelect(mobileSearchQuery.trim())}
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm font-semibold text-primary transition-all duration-200 hover:bg-primary-50 active:scale-[0.98]"
                     >
-                      {term}
+                      <Search size={14} />
+                      Voir tous les résultats
                     </button>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* No results */}
+                {!mobileSuggestionsLoading && mobileSuggestions.length === 0 && (
+                  <div className="flex flex-col items-center gap-2 py-8 text-center">
+                    <Search size={24} className="text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Aucun produit trouvé
+                    </p>
+                    <button
+                      onClick={() => handleMobileSearchSelect(mobileSearchQuery.trim())}
+                      className="mt-1 text-sm font-medium text-primary underline underline-offset-2"
+                    >
+                      Lancer la recherche complète
+                    </button>
+                  </div>
+                )}
               </div>
+            ) : (
+              /* ── Idle mode: Recent + Popular ── */
+              <>
+                {/* Recent Searches */}
+                {mobileRecentSearches.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-foreground">
+                        Recherches récentes
+                      </h4>
+                      <button
+                        onClick={handleMobileClearRecent}
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
+                        title="Tout effacer"
+                        aria-label="Effacer toutes les recherches récentes"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {mobileRecentSearches.map((term) => (
+                        <span
+                          key={term}
+                          className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3.5 py-2 text-sm font-medium text-foreground/80 transition-all duration-200 hover:border-primary/30 hover:bg-primary-50"
+                        >
+                          <button
+                            onClick={() => handleMobileSearchSelect(term)}
+                            className="outline-none"
+                          >
+                            {term}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMobileRemoveRecent(term);
+                            }}
+                            className="text-muted-foreground hover:text-primary transition-colors duration-150 outline-none"
+                            aria-label={`Supprimer ${term}`}
+                          >
+                            <X size={14} strokeWidth={2.5} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Popular Searches */}
+                {popularSearches.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <h4 className="text-sm font-semibold text-foreground">
+                        Recherches populaires
+                      </h4>
+                      <Sparkles size={14} className="text-accent" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {popularSearches.map((term) => (
+                        <button
+                          key={term}
+                          onClick={() => handleMobileSearchSelect(term)}
+                          className="rounded-full border border-border bg-white px-3.5 py-2 text-sm font-medium text-foreground/80 transition-all duration-200 hover:border-primary/40 hover:bg-primary-50 hover:text-primary active:scale-95"
+                        >
+                          {term}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

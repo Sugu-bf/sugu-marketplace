@@ -10,17 +10,17 @@ import { z } from "zod";
 // ─── Product Store (embedded) ────────────────────────────────
 
 const ApiProductStoreSchema = z.object({
-  id: z.union([z.string(), z.number()]).transform(String),
+  id: z.union([z.string(), z.number()]).transform(String).optional(),
   name: z.string(),
-  slug: z.string().default(""),
+  slug: z.string().default("").optional(),
 });
 
 // ─── Product Category (embedded) ─────────────────────────────
 
 const ApiProductCategorySchema = z.object({
-  id: z.union([z.string(), z.number()]).transform(String),
+  id: z.union([z.string(), z.number()]).transform(String).optional(),
   name: z.string(),
-  slug: z.string(),
+  slug: z.string().optional(),
 });
 
 // ─── Product Item ────────────────────────────────────────────

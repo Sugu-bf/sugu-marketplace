@@ -22,6 +22,8 @@ export interface SearchSuggestion {
   thumbnail: string | null;
   price: number;
   currency: string;
+  /** Typesense highlight with <mark> tags (e.g. "Manette <mark>Ps</mark>4") */
+  highlightName?: string;
 }
 
 interface UseSearchSuggestionsReturn {
@@ -33,7 +35,7 @@ interface UseSearchSuggestionsReturn {
 
 // ─── Constants ───────────────────────────────────────────────
 
-const DEBOUNCE_MS = 300;
+const DEBOUNCE_MS = 200;
 const MIN_QUERY_LENGTH = 2;
 const MAX_RESULTS = 5;
 const FALLBACK_THUMBNAIL = "https://cdn.sugu.pro/s/theme/fallback-product.png";
@@ -118,6 +120,7 @@ export function useSearchSuggestions(query: string): UseSearchSuggestionsReturn 
               thumbnail: (p.thumbnail as string) || FALLBACK_THUMBNAIL,
               price: Number(p.price ?? 0),
               currency: String(p.currency ?? "XOF"),
+              highlightName: p.highlight_name ? String(p.highlight_name) : undefined,
             }));
 
           setSuggestions(items);

@@ -82,13 +82,14 @@ export async function fetchCartPreview(): Promise<CartPreviewData | null> {
     const { getCartToken } = await import("@/features/cart/events/cart-storage");
     const cartToken = getCartToken();
 
-    // Build URL with token as query param (fallback for cookie issues)
-    let url = v1Url("cart");
+    // Build URL — SEC: token ONLY via header, never in query params.
+    // VULN-08 FIX: Query params leak into access logs, CDN cache keys,
+    // referrer headers, and browser history.
+    const url = v1Url("cart");
     const headers: Record<string, string> = {};
 
     if (cartToken) {
       headers["X-Cart-Token"] = cartToken;
-      url += `?guest_cart=${encodeURIComponent(cartToken)}`;
     }
 
     const { data } = await api.get(url, {

@@ -115,9 +115,18 @@ export default function SearchDropdown({
                       </div>
                       {/* Product info */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-150">
-                          {highlightMatch(product.name, query)}
-                        </p>
+                        {product.highlightName ? (
+                          /* Typesense native highlight — <mark> tags, XSS-sanitized by backend */
+                          <p
+                            className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-150 [&_mark]:font-bold [&_mark]:text-primary [&_mark]:bg-transparent"
+                            dangerouslySetInnerHTML={{ __html: product.highlightName }}
+                          />
+                        ) : (
+                          /* Client-side fallback highlight */
+                          <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-150">
+                            {highlightMatch(product.name, query)}
+                          </p>
+                        )}
                         <p className="text-xs font-semibold text-primary mt-0.5">
                           {formatPrice(product.price)}
                         </p>
