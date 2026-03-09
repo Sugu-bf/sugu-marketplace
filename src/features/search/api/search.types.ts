@@ -89,6 +89,8 @@ export interface ApiProductItem {
   total_stock: number;
   sales_count: number;
   discount_percent: number | null;
+  /** Typesense highlight with <mark> tags */
+  highlight_name?: string;
   store: ApiProductStore | null;
   primary_category: ApiProductCategory | null;
 }
@@ -102,12 +104,20 @@ export interface ApiSearchPagination {
   to: number | null;
 }
 
+export interface ApiFacetValue {
+  value: string;
+  count: number;
+  label?: string;
+}
+
 export interface ApiSearchResponse {
   success: boolean;
   message: string;
   data: {
     products: ApiProductItem[];
     pagination: ApiSearchPagination;
+    /** Typesense native facets */
+    facets?: Record<string, ApiFacetValue[]>;
     filters_applied: Record<string, unknown>;
   };
 }
@@ -118,6 +128,8 @@ export interface SearchProductItem {
   id: string;
   slug: string;
   name: string;
+  /** Typesense highlighted name with <mark> tags (XSS-sanitized) */
+  highlightName?: string;
   price: number;
   originalPrice: number | null;
   discount: number | null;

@@ -704,9 +704,16 @@ function SearchListItem({ product }: { product: SearchProductItem }) {
       </div>
       {/* Info */}
       <div className="flex flex-1 flex-col justify-center gap-1.5">
-        <h3 className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary line-clamp-2">
-          {product.name}
-        </h3>
+        {product.highlightName ? (
+          <h3
+            className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary line-clamp-2 [&_mark]:font-bold [&_mark]:text-primary [&_mark]:bg-transparent"
+            dangerouslySetInnerHTML={{ __html: product.highlightName }}
+          />
+        ) : (
+          <h3 className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary line-clamp-2">
+            {product.name}
+          </h3>
+        )}
         {product.vendorName && (
           <p className="text-xs text-muted-foreground">{product.vendorName}</p>
         )}

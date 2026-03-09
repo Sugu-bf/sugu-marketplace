@@ -40,6 +40,7 @@ function normalizeProduct(raw: ApiProduct): SearchProductItem {
     id: String(raw.id),
     slug: raw.slug,
     name: raw.name,
+    highlightName: raw.highlight_name || undefined,
     price: effectivePrice,
     originalPrice: hasDiscount ? comparePrice : null,
     discount: raw.discount_percent ?? (hasDiscount && comparePrice
@@ -66,7 +67,7 @@ export interface SearchResultData {
     total: number;
   };
   filtersApplied: Record<string, unknown>;
-  /** Category facets derived from returned products */
+  /** Category facets — from Typesense native facets (accurate across ALL results) */
   categoryFacets: FilterCategoryFacet[];
 }
 
@@ -106,22 +107,36 @@ export async function fetchSearchResults(
 
   const products = data.data.products.map(normalizeProduct);
 
-  // Derive category facets from products (since backend doesn't return facets separately)
-  const categoryMap = new Map<string, { name: string; count: number }>();
-  for (const p of products) {
-    if (p.categoryName) {
-      const slug = slugify(p.categoryName);
-      const existing = categoryMap.get(slug);
-      if (existing) {
-        existing.count++;
-      } else {
-        categoryMap.set(slug, { name: p.categoryName, count: 1 });
+  // ── Category facets: use Typesense native facets (accurate across ALL results)
+  //    Falls back to client-side counting if facets aren't returned (browse mode)
+  let categoryFacets: FilterCategoryFacet[];
+
+  const backendCategoryFacets = data.data.facets?.category_name;
+  if (backendCategoryFacets && backendCategoryFacets.length > 0) {
+    // Typesense native facets — accurate counts across ALL matching products
+    categoryFacets = backendCategoryFacets.map((f) => ({
+      slug: slugify(f.value),
+      name: f.label || f.value,
+      count: f.count,
+    }));
+  } else {
+    // Fallback: derive from current page products (browse mode, no Typesense)
+    const categoryMap = new Map<string, { name: string; count: number }>();
+    for (const p of products) {
+      if (p.categoryName) {
+        const slug = slugify(p.categoryName);
+        const existing = categoryMap.get(slug);
+        if (existing) {
+          existing.count++;
+        } else {
+          categoryMap.set(slug, { name: p.categoryName, count: 1 });
+        }
       }
     }
+    categoryFacets = Array.from(categoryMap.entries())
+      .map(([slug, { name, count }]) => ({ slug, name, count }))
+      .sort((a, b) => b.count - a.count);
   }
-  const categoryFacets: FilterCategoryFacet[] = Array.from(categoryMap.entries())
-    .map(([slug, { name, count }]) => ({ slug, name, count }))
-    .sort((a, b) => b.count - a.count);
 
   return {
     products,

@@ -40,6 +40,8 @@ const ApiProductItemSchema = z.object({
   total_stock: z.number().default(0),
   sales_count: z.number().default(0),
   discount_percent: z.number().nullable().optional(),
+  /** Typesense highlight with <mark> tags (search only) */
+  highlight_name: z.string().optional(),
   store: ApiProductStoreSchema.nullable().optional(),
   primary_category: ApiProductCategorySchema.nullable().optional(),
 });
@@ -55,6 +57,19 @@ const ApiSearchPaginationSchema = z.object({
   to: z.number().nullable(),
 });
 
+// ─── Facet Value ─────────────────────────────────────────────
+
+const ApiFacetValueSchema = z.object({
+  value: z.string(),
+  count: z.number(),
+  label: z.string().optional(),
+});
+
+const ApiFacetsSchema = z.record(
+  z.string(),
+  z.array(ApiFacetValueSchema)
+).optional();
+
 // ─── Full Search Response ────────────────────────────────────
 
 export const SearchResponseSchema = z.object({
@@ -63,6 +78,8 @@ export const SearchResponseSchema = z.object({
   data: z.object({
     products: z.array(ApiProductItemSchema),
     pagination: ApiSearchPaginationSchema,
+    /** Typesense native facets (category_name, brand_name, price) */
+    facets: ApiFacetsSchema,
     filters_applied: z.record(z.string(), z.unknown()).optional(),
   }),
 });
