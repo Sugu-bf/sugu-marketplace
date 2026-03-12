@@ -1,16 +1,25 @@
+import { redirect } from "next/navigation";
 import { Container } from "@/components/ui";
+import { getAuthUser } from "@/lib/api/auth";
 import { queryAccountPageData } from "@/features/account";
 import { AccountSidebar } from "@/features/account/components/AccountSidebar";
 
 /**
  * Shared layout for all /account/* pages.
  * Renders the sidebar once, each sub-page fills the content area.
+ * Auth guard: redirects to login if not authenticated.
  */
 export default async function AccountLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // ── Auth guard ──
+  const user = await getAuthUser();
+  if (!user) {
+    redirect("/login?redirect=/account");
+  }
+
   const data = await queryAccountPageData();
 
   return (

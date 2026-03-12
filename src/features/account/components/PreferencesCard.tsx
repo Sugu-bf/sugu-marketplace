@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { Globe, Coins } from "lucide-react";
-import { CURRENCY } from "@/lib/constants";
+import { updatePreferences } from "@/features/account";
 import type { UserPreferences } from "@/features/account";
 
 interface PreferencesCardProps {
@@ -14,19 +14,54 @@ interface PreferencesCardProps {
 
 /**
  * User preferences card — toggles for notifications + language/currency selects.
- * Client component — handles toggle interactions.
+ * Client component — handles toggle interactions and calls API.
+ * Debounces API calls to avoid rapid-fire requests.
  */
 function PreferencesCard({
   initialPreferences,
   className,
 }: PreferencesCardProps) {
   const [prefs, setPrefs] = useState(initialPreferences);
+  const [saving, setSaving] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const persistPref = useCallback(
+    (key: string, value: boolean | string) => {
+      // Debounce API calls
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(async () => {
+        try {
+          setSaving(true);
+          await updatePreferences({ [key]: value });
+        } catch (error) {
+          console.error("[Preferences] Failed to save:", error);
+          // Revert on error would be complex, log for now
+        } finally {
+          setSaving(false);
+        }
+      }, 500);
+    },
+    []
+  );
 
   const updatePref = <K extends keyof UserPreferences>(
     key: K,
     value: UserPreferences[K]
   ) => {
     setPrefs((prev) => ({ ...prev, [key]: value }));
+
+    // Map camelCase UI key to snake_case API key
+    const apiKeyMap: Record<string, string> = {
+      newsletterSubscribed: "newsletter_subscribed",
+      pushNotifications: "push_notifications",
+      smsNotifications: "sms_notifications",
+      language: "language",
+      currency: "currency",
+    };
+
+    persistPref(apiKeyMap[key] ?? key, value);
   };
 
   return (
@@ -36,7 +71,14 @@ function PreferencesCard({
         className
       )}
     >
-      <h2 className="text-base font-bold text-foreground mb-5">Préférences</h2>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-base font-bold text-foreground">Préférences</h2>
+        {saving && (
+          <span className="text-xs text-muted-foreground animate-pulse">
+            Enregistrement...
+          </span>
+        )}
+      </div>
 
       <div className="space-y-4">
         {/* Newsletter */}
@@ -82,9 +124,9 @@ function PreferencesCard({
               transition-all duration-200 cursor-pointer"
             aria-label="Langue"
           >
-            <option value="Français">Français</option>
-            <option value="English">English</option>
-            <option value="العربية">العربية</option>
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+            <option value="ar">العربية</option>
           </select>
         </div>
 
@@ -104,9 +146,9 @@ function PreferencesCard({
               transition-all duration-200 cursor-pointer"
             aria-label="Devise"
           >
-            <option value={CURRENCY.label}>{CURRENCY.label}</option>
-            <option value="EUR (€)">EUR (€)</option>
-            <option value="USD ($)">USD ($)</option>
+            <option value="XOF">FCFA (XOF)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="USD">USD ($)</option>
           </select>
         </div>
       </div>

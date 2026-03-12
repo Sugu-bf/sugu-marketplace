@@ -15,17 +15,18 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "primary" | "succe
   shipped: { label: "En livraison", variant: "primary" },
   delivered: { label: "Livrée", variant: "success" },
   cancelled: { label: "Annulée", variant: "danger" },
+  canceled: { label: "Annulée", variant: "danger" },
 };
 
 export default async function OrdersPage() {
-  const orders = await queryOrders();
+  const { orders, pagination } = await queryOrders();
 
   return (
     <div className="space-y-4 lg:space-y-6">
       <div>
         <Breadcrumb items={[{ label: "Mon compte", href: "/account" }, { label: "Mes commandes" }]} />
         <h1 className="text-lg font-bold text-foreground lg:text-2xl mt-3">Mes commandes</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{orders.length} commande{orders.length > 1 ? "s" : ""}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{pagination.total} commande{pagination.total > 1 ? "s" : ""}</p>
       </div>
 
       {orders.length === 0 ? (
@@ -40,16 +41,14 @@ export default async function OrdersPage() {
       ) : (
         <div className="space-y-3 lg:space-y-4">
           {orders.map((order) => {
-            const config = STATUS_CONFIG[order.status];
+            const config = STATUS_CONFIG[order.statusCode ?? ""] ?? STATUS_CONFIG.pending;
             return (
               <div key={order.id} className="rounded-2xl border border-border-light bg-background p-4 lg:p-6 transition-all duration-200 active:bg-white/40 lg:hover:shadow-sm">
                 {/* Order header */}
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3 lg:gap-3 lg:mb-4">
                   <div>
-                    <p className="text-sm font-bold text-foreground">{order.id}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {new Date(order.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                    </p>
+                    <p className="text-sm font-bold text-foreground">{order.displayId}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{order.date}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={config.variant} size="sm" pill>{config.label}</Badge>
@@ -61,14 +60,19 @@ export default async function OrdersPage() {
 
                 {/* Items preview */}
                 <div className="space-y-2.5">
-                  {order.items.map((item) => (
-                    <div key={item.productId} className="flex items-center gap-2 lg:gap-3">
+                  {order.items.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 lg:gap-3">
                       <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg bg-muted lg:h-10 lg:w-10">
-                        <Image src={item.thumbnail} alt={item.name} fill className="object-contain p-1" sizes="40px" />
+                        {item.image ? (
+                          <Image src={item.image} alt={item.name} fill className="object-contain p-1" sizes="40px" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                            <Package size={16} />
+                          </div>
+                        )}
                       </div>
                       <p className="text-xs text-foreground flex-1 truncate lg:text-sm">{item.name}</p>
                       <span className="text-xs text-muted-foreground">×{item.quantity}</span>
-                      <span className="text-xs font-semibold text-foreground lg:text-sm">{formatPrice(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -76,7 +80,7 @@ export default async function OrdersPage() {
                 {/* Total */}
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-light lg:mt-4">
                   <span className="text-sm text-muted-foreground">Total</span>
-                  <span className="text-base font-bold text-primary">{formatPrice(order.total)}</span>
+                  <span className="text-base font-bold text-primary">{formatPrice(order.totalAmount)}</span>
                 </div>
               </div>
             );
