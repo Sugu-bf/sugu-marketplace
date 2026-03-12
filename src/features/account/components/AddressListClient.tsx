@@ -90,9 +90,9 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
   const openEditForm = (addr: Address) => {
     setEditingAddress(addr);
     setLabel(addr.label);
-    setFullName(addr.fullName);
-    setPhone(addr.phone);
-    setAddressLine(addr.addressLine);
+    setFullName(addr.fullName ?? "");
+    setPhone(addr.phone ?? "");
+    setAddressLine(addr.addressLine ?? "");
     setAddressComplement(addr.addressComplement ?? "");
     setCity(addr.city);
     setState(addr.state ?? "");
@@ -287,12 +287,16 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
                 </div>
               </div>
 
-              <p className="text-sm font-medium text-foreground">
-                {addr.fullName}
-              </p>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {addr.addressLine}
-              </p>
+              {addr.fullName && (
+                <p className="text-sm font-medium text-foreground">
+                  {addr.fullName}
+                </p>
+              )}
+              {addr.addressLine && (
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {addr.addressLine}
+                </p>
+              )}
               {addr.addressComplement && (
                 <p className="text-sm text-muted-foreground">
                   {addr.addressComplement}
@@ -302,9 +306,11 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
                 {addr.city}
                 {addr.state ? `, ${addr.state}` : ""}
               </p>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
-                <Phone size={12} /> {addr.phone}
-              </div>
+              {addr.phone && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
+                  <Phone size={12} /> {addr.phone}
+                </div>
+              )}
             </div>
           ))}
         </div>

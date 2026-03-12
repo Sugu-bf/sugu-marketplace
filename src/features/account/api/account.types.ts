@@ -73,9 +73,9 @@ export interface AccountPageData {
 export interface Address {
   id: string;
   label: string;
-  fullName: string;
-  phone: string;
-  addressLine: string;
+  fullName: string | null;
+  phone: string | null;
+  addressLine: string | null;
   addressComplement: string | null;
   city: string;
   state: string | null;

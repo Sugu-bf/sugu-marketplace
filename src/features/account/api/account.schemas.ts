@@ -55,9 +55,9 @@ export const ApiAccountPageResponseSchema = z.object({
 export const ApiAddressSchema = z.object({
   id: z.string(),
   label: z.string(),
-  full_name: z.string(),
-  phone: z.string(),
-  address_line: z.string(),
+  full_name: z.string().nullable(),
+  phone: z.string().nullable(),
+  address_line: z.string().nullable(),
   address_complement: z.string().nullable(),
   city: z.string(),
   state: z.string().nullable(),
@@ -148,7 +148,7 @@ export const ApiNotificationListResponseSchema = z.object({
 export const ApiReferredUserSchema = z.object({
   name: z.string(),
   date: z.string(),
-  status: z.string(),
+  status: z.union([z.string(), z.number()]).transform(String),
 });
 
 export const ApiReferralResponseSchema = z.object({

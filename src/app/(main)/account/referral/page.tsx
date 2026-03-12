@@ -81,8 +81,8 @@ export default async function ReferralPage() {
                     </p>
                   </div>
                 </div>
-                <Badge variant={user.status === "completed" ? "success" : "secondary"} size="xs" pill>
-                  {user.status === "completed" ? "Complété" : "En attente"}
+                <Badge variant={user.status === "completed" || user.status === "1" ? "success" : "secondary"} size="xs" pill>
+                  {user.status === "completed" || user.status === "1" ? "Complété" : "En attente"}
                 </Badge>
               </div>
             ))}
