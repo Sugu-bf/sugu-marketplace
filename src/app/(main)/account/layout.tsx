@@ -4,6 +4,9 @@ import { getAuthUser } from "@/lib/api/auth";
 import { queryAccountPageData } from "@/features/account";
 import { AccountSidebar } from "@/features/account/components/AccountSidebar";
 
+/** All /account pages require auth → never static-renderable */
+export const dynamic = "force-dynamic";
+
 /**
  * Shared layout for all /account/* pages.
  * Renders the sidebar once, each sub-page fills the content area.
