@@ -69,14 +69,14 @@ export const ProductListingItemSchema = z.object({
   total_stock: z.number().default(0),
   sales_count: z.number().default(0),
   store: z.object({
-    id: z.string(),
+    id: z.string().optional(),
     name: z.string(),
     slug: z.string().default(""),
   }).nullable().optional(),
   primary_category: z.object({
-    id: z.string(),
+    id: z.string().optional(),
     name: z.string(),
-    slug: z.string(),
+    slug: z.string().optional(),
   }).nullable().optional(),
   images: z.array(z.object({
     id: z.union([z.string(), z.number()]),
