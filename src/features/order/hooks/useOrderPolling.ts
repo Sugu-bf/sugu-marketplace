@@ -83,7 +83,9 @@ export function useOrderPolling(
         if (
           prev.status === mapped.status &&
           prev.timeline.length === mapped.timeline.length &&
-          prev.deliveryProgress === mapped.deliveryProgress
+          prev.deliveryProgress === mapped.deliveryProgress &&
+          prev.driver?.name === mapped.driver?.name &&
+          prev.estimatedDate === mapped.estimatedDate
         ) {
           return prev; // No rerender
         }

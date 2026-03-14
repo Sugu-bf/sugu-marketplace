@@ -23,6 +23,7 @@ export async function queryTrackedOrder(
     cache: "no-store",
     revalidate: false, // Force no-store for Next.js SSR
     timeout: 8_000,
+    skipCredentials: true, // Public endpoint — no auth needed
   });
 
   return mapApiToTrackedOrder(data.data.order);
@@ -43,7 +44,9 @@ export async function queryTrackedOrderRaw(
   const { data } = await api.get(url, {
     schema: OrderTrackingResponseSchema,
     timeout: 6_000,
+    skipCredentials: true, // Public endpoint — no auth needed
   });
 
   return data.data.order;
 }
+

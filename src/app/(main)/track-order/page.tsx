@@ -78,13 +78,14 @@ function TrackingError({
 // ─── Page Component (Server) ─────────────────────────────────
 
 interface TrackOrderPageProps {
-  searchParams: Promise<{ order?: string }>;
+  searchParams: Promise<{ order?: string; id?: string }>;
 }
 
 export default async function TrackOrderPage({
   searchParams,
 }: TrackOrderPageProps) {
-  const { order: orderId } = await searchParams;
+  const params = await searchParams;
+  const orderId = params.order || params.id;
 
   // ─ Validate token presence ─────────────────────────────────
   if (!orderId || orderId.trim().length === 0) {
