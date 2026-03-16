@@ -112,6 +112,7 @@ export function ChatRoom({
     if (!allMessages.length) return;
     const lastMsg = allMessages[allMessages.length - 1];
     if (!lastMsg || lastMsg.is_own) return;
+    if (!lastMsg.id) return; // Guard: skip if id is missing
     // Skip if already marked this message or mutation in-flight
     if (lastMsg.id === lastMarkedIdRef.current) return;
     if (markAsReadMut.isPending) return;
