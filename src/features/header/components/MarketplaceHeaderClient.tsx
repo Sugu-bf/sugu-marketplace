@@ -17,6 +17,7 @@ import {
   LogOut,
   ArrowRight,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -310,6 +311,7 @@ export default function MarketplaceHeaderClient({
                       {[
                         { label: "Mon compte", href: "/account", Icon: User },
                         { label: "Mes commandes", href: "/account/orders", Icon: Package },
+                        { label: "Messages", href: "/messages", Icon: MessageSquare },
                         { label: "Mes adresses", href: "/account/addresses", Icon: MapPin },
                         { label: "Mes coupons", href: "/account/coupons", Icon: Ticket },
                         { label: "Suivre ma commande", href: "/track-order", Icon: Truck },
@@ -350,6 +352,7 @@ export default function MarketplaceHeaderClient({
                       {[
                         { label: "Mon compte", href: "/account", Icon: User },
                         { label: "Mes commandes", href: "/account/orders", Icon: Package },
+                        { label: "Messages", href: "/messages", Icon: MessageSquare },
                         { label: "Mes adresses", href: "/account/addresses", Icon: MapPin },
                         { label: "Mes coupons", href: "/account/coupons", Icon: Ticket },
                         { label: "Suivre ma commande", href: "/track-order", Icon: Truck },

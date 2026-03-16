@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button, QuantitySelector } from "@/components/ui";
 import { AssuranceBadge } from "@/components/ui/assurance-badge";
 import { ShoppingCart, Zap, Truck, RotateCcw, ShieldCheck, Loader2 } from "lucide-react";
+import { ContactSellerButton } from "@/features/messaging/components/ContactSellerButton";
 import { formatPrice } from "@/lib/constants";
 import type { Product } from "@/features/product";
 import { addToCart, type ApiProductDetail } from "@/features/product";
@@ -318,6 +319,16 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
           {isBuyingNow ? "Traitement en cours…" : "Acheter Maintenant"}
         </Button>
       </div>
+
+      {/* Contact seller button */}
+      {apiData?.seller && (
+        <ContactSellerButton
+          storeId={String(apiData.seller.id)}
+          variant="outline"
+          label="Contacter le vendeur"
+          className="w-full justify-center"
+        />
+      )}
 
       {/* Assurance badges */}
       <div className="grid grid-cols-3 gap-3">

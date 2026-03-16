@@ -1,8 +1,9 @@
 import Image from "next/image";
-import { MapPin, MessageCircle, Star, CalendarDays } from "lucide-react";
+import { MapPin, Star, CalendarDays } from "lucide-react";
 import { Container } from "@/components/ui";
 import type { Store } from "../models/store";
 import FollowButton from "./FollowButton";
+import { ContactSellerButton } from "@/features/messaging/components/ContactSellerButton";
 
 interface StoreHeroBannerProps {
   store: Store;
@@ -155,10 +156,7 @@ export default function StoreHeroBanner({ store, storeId, isFollowed }: StoreHer
 
             {/* Action Buttons — right */}
             <div className="flex items-center gap-3 flex-shrink-0">
-              <button className="inline-flex items-center gap-2 rounded-full border border-border px-4 sm:px-5 py-2 text-sm font-medium text-foreground transition-all duration-200 hover:border-primary/40 hover:bg-primary-50 hover:text-primary">
-                <MessageCircle size={16} />
-                Contacter
-              </button>
+              <ContactSellerButton storeId={storeId} variant="outline" />
               <FollowButton
                 storeId={storeId}
                 initialIsFollowed={isFollowed}

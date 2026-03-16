@@ -10,6 +10,7 @@ import {
   MapPin,
   Bell,
   Gift,
+  MessageSquare,
   Settings,
   HelpCircle,
   LogOut,
@@ -34,6 +35,7 @@ const MAIN_NAV: NavItem[] = [
   { label: "Mon panier", href: "/cart", icon: <ShoppingCart size={18} /> },
   { label: "Mes adresses", href: "/account/addresses", icon: <MapPin size={18} /> },
   { label: "Notifications", href: "/account/notifications", icon: <Bell size={18} /> },
+  { label: "Messages", href: "/messages", icon: <MessageSquare size={18} /> },
   { label: "Parrainer un ami", href: "/account/referral", icon: <Gift size={18} /> },
 ];
 

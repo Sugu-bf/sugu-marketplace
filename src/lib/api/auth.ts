@@ -114,6 +114,17 @@ export async function isAuthenticated(): Promise<boolean> {
  * Logout — revoke the backend token and clear the auth_token cookie.
  */
 export async function logout(): Promise<void> {
+  // Disconnect WebSocket FIRST (before clearing token)
+  // so messages stop arriving immediately on shared computers
+  if (typeof window !== "undefined") {
+    try {
+      const { disconnectEcho } = await import("@/lib/echo");
+      disconnectEcho();
+    } catch {
+      // Echo may not be initialized — ignore
+    }
+  }
+
   try {
     await initCsrf();
     await api.post(buildApiUrl("/api/v1/web-auth/logout"));
