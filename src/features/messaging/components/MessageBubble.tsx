@@ -41,9 +41,10 @@ export function MessageBubble({
   const isOwn = message.is_own;
 
   // Avatar initials fallback
-  const initials = message.sender_name
+  const initials = (message.sender_name ?? "")
     .split(" ")
     .map((w) => w[0])
+    .filter(Boolean)
     .join("")
     .toUpperCase()
     .slice(0, 2);

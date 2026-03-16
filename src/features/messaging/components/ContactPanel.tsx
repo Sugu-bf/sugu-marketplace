@@ -29,9 +29,10 @@ export function ContactPanel({ conversationId }: ContactPanelProps) {
   const isOnline = sellerPresence?.is_online ?? store.is_online;
   const lastActive = sellerPresence?.last_active;
 
-  const initials = store.name
+  const initials = (store.name ?? "")
     .split(" ")
     .map((w) => w[0])
+    .filter(Boolean)
     .join("")
     .toUpperCase()
     .slice(0, 2);

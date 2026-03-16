@@ -68,9 +68,10 @@ export function ConversationCard({
   const totalUnread = conversation.unread_count + extraUnread;
   const roleBadge = getRoleBadge(conversation);
 
-  const initials = displayName
+  const initials = (displayName ?? "")
     .split(" ")
     .map((w) => w[0])
+    .filter(Boolean)
     .join("")
     .toUpperCase()
     .slice(0, 2);
