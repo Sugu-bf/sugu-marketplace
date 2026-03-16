@@ -38,6 +38,11 @@ function buildAuthEndpoint(): string {
 export function getEcho(): Echo<"reverb"> {
   if (echoInstance) return echoInstance;
 
+  // Guard: don't init Echo if REVERB env vars are missing
+  if (!process.env.NEXT_PUBLIC_REVERB_APP_KEY || !process.env.NEXT_PUBLIC_REVERB_HOST) {
+    throw new Error("Echo: REVERB env vars not configured");
+  }
+
   // Security guard: don't open a WS connection without authentication
   const currentToken = getAuthToken();
   if (!currentToken) {
