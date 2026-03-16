@@ -15,8 +15,10 @@ interface MessageBubbleProps {
   avatarUrl?: string | null;
 }
 
-function formatTime(dateStr: string): string {
+function formatTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
   return date.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",

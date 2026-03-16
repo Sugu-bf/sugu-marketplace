@@ -9,7 +9,9 @@ interface DateSeparatorProps {
 }
 
 function formatDateLabel(dateStr: string): string {
+  if (!dateStr) return "";
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());

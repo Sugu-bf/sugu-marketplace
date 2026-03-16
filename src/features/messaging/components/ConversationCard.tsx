@@ -12,8 +12,10 @@ interface ConversationCardProps {
   onClick: (id: string) => void;
 }
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffSec = Math.floor(diffMs / 1000);
@@ -118,7 +120,7 @@ export function ConversationCard({
           <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
             {lastMessage
               ? formatRelativeTime(lastMessage.created_at)
-              : formatRelativeTime(conversation.updated_at)}
+              : formatRelativeTime(conversation.updated_at ?? conversation.created_at)}
           </span>
         </div>
 
