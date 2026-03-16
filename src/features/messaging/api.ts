@@ -86,14 +86,14 @@ export async function fetchMessages(
   params?: { before_id?: string; limit?: number }
 ): Promise<{ messages: Message[]; has_more: boolean }> {
   const { data } = await api.get<
-    ApiEnvelope<Message[]> & { meta: { has_more: boolean } }
+    ApiEnvelope<{ messages: Message[]; has_more: boolean }>
   >(
     meUrl(`conversations/${conversationId}/messages`, {
       ...(params?.before_id ? { before_id: params.before_id } : {}),
       limit: params?.limit ?? 30,
     })
   );
-  return { messages: data.data, has_more: data.meta?.has_more ?? false };
+  return { messages: data.data.messages, has_more: data.data.has_more };
 }
 
 export async function sendMessage(
