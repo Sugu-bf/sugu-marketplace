@@ -80,6 +80,9 @@ export function MessagingPage({ user }: MessagingPageProps) {
 
   const handleMessageRead = useCallback(
     (payload: MessageReadPayload) => {
+      // RT4: Skip own read receipts — no need to refetch for our own action
+      if (payload.user_id === user.id) return;
+
       const currentActiveId = activeConvRef.current;
       if (payload.conversation_id === currentActiveId) {
         queryClient.invalidateQueries({
@@ -90,7 +93,7 @@ export function MessagingPage({ user }: MessagingPageProps) {
         queryKey: messagingKeys.conversations(),
       });
     },
-    [queryClient]
+    [user.id, queryClient]
   );
 
   const handleUserTyping = useCallback(

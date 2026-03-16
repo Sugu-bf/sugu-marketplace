@@ -324,6 +324,7 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
       {apiData?.seller && (
         <ContactSellerButton
           storeId={String(apiData.seller.id)}
+          productId={apiData?.id ? String(apiData.id) : undefined}
           variant="outline"
           label="Contacter le vendeur"
           className="w-full justify-center"

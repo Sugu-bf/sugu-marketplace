@@ -55,7 +55,8 @@ export async function fetchConversations(params?: {
 export async function startConversation(
   storeId: string,
   orderId?: string,
-  type?: string
+  type?: string,
+  productId?: string,
 ): Promise<Conversation> {
   const { data } = await api.post<ApiEnvelope<Conversation>>(
     meUrl("conversations/start"),
@@ -64,6 +65,7 @@ export async function startConversation(
         store_id: storeId,
         ...(orderId ? { order_id: orderId } : {}),
         ...(type ? { type } : {}),
+        ...(productId ? { product_id: productId } : {}),
       },
     }
   );

@@ -197,9 +197,6 @@ export function MessageBubble({
             <span className="text-[10px] text-muted-foreground">
               {formatTime(message.created_at)}
             </span>
-            {isOwn && (
-              <ReadReceipt status={message.is_flagged ? "read" : "sent"} />
-            )}
           </div>
         </div>
 

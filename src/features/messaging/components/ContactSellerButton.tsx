@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface ContactSellerButtonProps {
   storeId: string;
+  productId?: string;
   variant?: "outline" | "primary" | "compact";
   label?: string;
   className?: string;
@@ -21,6 +22,7 @@ interface ContactSellerButtonProps {
  */
 export function ContactSellerButton({
   storeId,
+  productId,
   variant = "outline",
   label = "Contacter",
   className,
@@ -31,7 +33,7 @@ export function ContactSellerButton({
   const handleClick = useCallback(async () => {
     setIsPending(true);
     try {
-      const conversation = await startConversation(storeId);
+      const conversation = await startConversation(storeId, undefined, undefined, productId);
       router.push(`/messages/${conversation.id}`);
     } catch (err: unknown) {
       // 401 = not authenticated → redirect to login
@@ -46,7 +48,7 @@ export function ContactSellerButton({
     } finally {
       setIsPending(false);
     }
-  }, [storeId, router]);
+  }, [storeId, productId, router]);
 
   if (variant === "primary") {
     return (
