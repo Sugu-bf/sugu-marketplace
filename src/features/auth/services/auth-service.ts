@@ -312,3 +312,43 @@ export function getAuthErrorMessage(error: unknown): string {
 
   return "Une erreur inattendue est survenue.";
 }
+
+// ─── Google Sign-In ───────────────────────────────────────────
+
+export interface GoogleSignInParams {
+  /** Google ID token (credential) retourné par GIS */
+  credential: string;
+  /** SHA-256 du nonce généré par le frontend — jamais le nonce brut */
+  nonce_hash: string;
+}
+
+export interface GoogleSignInResult {
+  user: AuthUserProfile;
+  token: string;
+  is_new_user: boolean;
+}
+
+/**
+ * Google Sign-In pour le web.
+ *
+ * SÉCURITÉ :
+ * - Le credential (Google ID token) n'est JAMAIS stocké — envoyé directement au backend
+ * - Le nonce_hash est SHA-256(nonce), pas le nonce brut
+ * - Le backend valide : JWK signature, aud, iss, iat <= 5min, email_verified, nonce
+ */
+export async function googleSignIn(
+  params: GoogleSignInParams
+): Promise<GoogleSignInResult> {
+  const { data } = await api.post<ApiSuccessResponse<GoogleSignInResult>>(
+    buildApiUrl("/api/v1/web-auth/google"),
+    { body: params, retries: 0 } // Jamais retenter — credential expiré après 1re tentative
+  );
+
+  const result = data?.data;
+  if (!result?.token) {
+    throw new Error("Réponse Google invalide du serveur.");
+  }
+
+  return result;
+}
+

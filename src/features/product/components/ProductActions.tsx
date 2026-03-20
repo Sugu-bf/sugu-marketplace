@@ -147,6 +147,24 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
       const payload = getCartPayload();
       const result = await addToCart(payload);
 
+      // P3 — Facebook Pixel: AddToCart event
+      if (typeof window !== "undefined" && window.fbq) {
+        const variantId = resolvedApiVariant
+          ? String(resolvedApiVariant.id)
+          : apiData?.default_variant_id
+            ? String(apiData.default_variant_id)
+            : String(apiData?.id ?? product.id);
+
+        window.fbq("track", "AddToCart", {
+          content_ids: [variantId],
+          content_type: "product",
+          content_name: product.name,
+          value: unitPrice,
+          currency: "XOF",
+          num_items: quantity,
+        });
+      }
+
       // Show success toast + refresh header badge
       setActionSuccess("Ajouté au panier !");
       toast.success(`${product.name} ajouté au panier !`, {

@@ -4,6 +4,10 @@ export const SITE_TAGLINE = "La plus grande plateforme de vente en ligne";
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sugu.pro";
 export const CDN_URL = "https://cdn.sugu.pro";
 
+// ─── Analytics ───────────────────────────────────────────────
+/** Facebook / Meta Pixel ID. Set NEXT_PUBLIC_META_PIXEL_ID in .env.local */
+export const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
+
 // ─── Contact ─────────────────────────────────────────────────
 export const CONTACT = {
   phone: "+226 00 00 00 00",

@@ -131,6 +131,14 @@ export const ApiSeoSchema = z.object({
   title: z.string(),
   description: z.string(),
   canonical: z.string(),
+  /** Optional Facebook catalogue data returned by buildSeo() in ProductDetailService */
+  facebook: z
+    .object({
+      item_id: z.string(),
+      condition: z.string().default("new"),
+      availability: z.string(),
+    })
+    .optional(),
 });
 
 export const ApiMediaSchema = z.object({

@@ -19,6 +19,7 @@ import {
   forgotPassword,
   resetPassword,
   resendOtp,
+  verifyOtp,
   OTP_TYPE,
   getAuthErrorMessage,
 } from "../services/auth-service";
@@ -31,7 +32,8 @@ function ForgotPasswordPageClient() {
   // Step management
   const [step, setStep] = useState<ForgotStep>("email");
   const [emailValue, setEmailValue] = useState("");
-  const [otpCode, setOtpCode] = useState("");
+  // otpCode est stocké uniquement après vérification serveur réussie
+  const [verifiedOtpCode, setVerifiedOtpCode] = useState("");
 
   // New password fields
   const [newPassword, setNewPassword] = useState("");
@@ -45,7 +47,7 @@ function ForgotPasswordPageClient() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // ─── Step 1: Send Reset Email ──────────────────────────────
+  // ─── Step 1: Envoyer l'email de réinitialisation ───────────
   const handleSendEmail = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -73,18 +75,39 @@ function ForgotPasswordPageClient() {
     [emailValue]
   );
 
-  // ─── Step 2: Verify OTP ────────────────────────────────────
+  // ─── Step 2: Vérifier l'OTP IMMÉDIATEMENT côté serveur ─────
+  //
+  // CORRECTION P3 : On vérifie le code OTP via /web-auth/verify-otp
+  // AVANT de passer à l'étape "nouveau mot de passe". Ainsi l'utilisateur
+  // reçoit un retour immédiat si son code est invalide, sans avoir à remplir
+  // un nouveau mot de passe pour rien.
+  //
+  // Note : /web-auth/verify-otp avec type=PASSWORD_RESET marque l'OTP comme
+  // vérifié côté backend. On conserve le code pour l'envoyer dans resetPassword
+  // (le backend re-vérifiera avec le code — comportement idempotent si non révoqué).
   const handleVerifyOtp = useCallback(
     async (code: string) => {
-      setOtpCode(code);
       setError("");
-      // Don't verify yet — just save the code and go to password step
-      setStep("new-password");
+      setLoading(true);
+      try {
+        await verifyOtp({
+          identifier: emailValue.trim(),
+          code,
+          type: OTP_TYPE.PASSWORD_RESET,
+        });
+        // OTP valide → on conserve le code et on passe à l'étape suivante
+        setVerifiedOtpCode(code);
+        setStep("new-password");
+      } catch (err) {
+        setError(getAuthErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
     },
-    []
+    [emailValue]
   );
 
-  // ─── Step 3: Reset Password ────────────────────────────────
+  // ─── Step 3: Réinitialiser le mot de passe ─────────────────
   const handleResetPassword = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -107,17 +130,18 @@ function ForgotPasswordPageClient() {
       try {
         await resetPassword({
           email: emailValue.trim(),
-          code: otpCode,
+          code: verifiedOtpCode,
           password: newPassword,
           password_confirmation: confirmPassword,
         });
         setStep("success");
       } catch (err) {
         const msg = getAuthErrorMessage(err);
-        // If OTP is invalid, go back to OTP step
-        if (msg.includes("invalide") || msg.includes("expiré")) {
+        // Si le code a expiré entre l'étape 2 et 3 (rare), retour à l'OTP
+        if (msg.toLowerCase().includes("invalide") || msg.toLowerCase().includes("expiré")) {
           setStep("otp");
-          setError(msg);
+          setVerifiedOtpCode("");
+          setError("Le code a expiré. Veuillez en saisir un nouveau.");
         } else {
           setError(msg);
         }
@@ -125,10 +149,10 @@ function ForgotPasswordPageClient() {
         setLoading(false);
       }
     },
-    [emailValue, otpCode, newPassword, confirmPassword]
+    [emailValue, verifiedOtpCode, newPassword, confirmPassword]
   );
 
-  // ─── Resend OTP ────────────────────────────────────────────
+  // ─── Renvoyer l'OTP ────────────────────────────────────────
   const handleResend = useCallback(async () => {
     if (resendCooldown > 0) return;
     setError("");
@@ -155,7 +179,7 @@ function ForgotPasswordPageClient() {
     }
   }, [emailValue, resendCooldown]);
 
-  // ─── Success Step ──────────────────────────────────────────
+  // ─── Étape Succès ──────────────────────────────────────────
   if (step === "success") {
     return (
       <div className="page-enter space-y-6 text-center">
@@ -181,7 +205,7 @@ function ForgotPasswordPageClient() {
     );
   }
 
-  // ─── New Password Step ─────────────────────────────────────
+  // ─── Étape : Nouveau mot de passe ──────────────────────────
   if (step === "new-password") {
     return (
       <div className="page-enter space-y-6">
@@ -229,6 +253,7 @@ function ForgotPasswordPageClient() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={showPassword ? "Masquer" : "Afficher"}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -276,6 +301,7 @@ function ForgotPasswordPageClient() {
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={showConfirmPassword ? "Masquer" : "Afficher"}
               >
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -310,7 +336,7 @@ function ForgotPasswordPageClient() {
     );
   }
 
-  // ─── OTP Step ──────────────────────────────────────────────
+  // ─── Étape OTP ─────────────────────────────────────────────
   if (step === "otp") {
     return (
       <div className="page-enter space-y-6">
@@ -349,6 +375,14 @@ function ForgotPasswordPageClient() {
           />
         </div>
 
+        {/* Loading pendant vérification OTP */}
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Vérification du code...</span>
+          </div>
+        )}
+
         {error && (
           <p className="text-xs text-error" role="alert">
             {error}
@@ -376,7 +410,7 @@ function ForgotPasswordPageClient() {
     );
   }
 
-  // ─── Email Step ────────────────────────────────────────────
+  // ─── Étape Email ───────────────────────────────────────────
   return (
     <div className="page-enter space-y-6">
       <Link

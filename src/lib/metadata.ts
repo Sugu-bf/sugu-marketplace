@@ -7,6 +7,13 @@ interface PageMetadataOptions {
   path?: string;
   image?: string;
   noIndex?: boolean;
+  /**
+   * og:type override.
+   * Note: Next.js OpenGraph API only accepts "website" | "article".
+   * For "product" pages, pass type: "website" here and inject
+   * `og:type = product` manually via metadata.other in the page.
+   */
+  type?: "website" | "article";
 }
 
 /**
@@ -25,6 +32,7 @@ export function createMetadata({
   path = "/",
   image,
   noIndex = false,
+  type,
 }: PageMetadataOptions): Metadata {
   const url = `${SITE_URL}${path}`;
   const ogImage = image ?? `${SITE_URL}/og-default.png`;
@@ -42,7 +50,7 @@ export function createMetadata({
       url,
       siteName: SITE_NAME,
       locale: SEO.locale,
-      type: SEO.type as "website",
+      type: (type ?? SEO.type) as "website" | "article",
       images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
     },
     twitter: {

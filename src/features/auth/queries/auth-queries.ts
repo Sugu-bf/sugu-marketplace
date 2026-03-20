@@ -24,9 +24,10 @@ export async function querySocialProviders(): Promise<SocialProviderConfig[]> {
 
 /**
  * Query the default country code.
+ * Par défaut : Burkina Faso (marché principal Sugu).
  */
 export async function queryDefaultCountryCode(): Promise<CountryCode> {
-  return mockCountryCodes[0]; // US by default
+  return mockCountryCodes[0]; // Burkina Faso
 }
 
 /**

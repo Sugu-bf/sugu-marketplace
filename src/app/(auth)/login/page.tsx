@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { createMetadata } from "@/lib/metadata";
 import { querySocialProviders } from "@/features/auth";
 import { LoginPageClient } from "@/features/auth/components/LoginPageClient";
+import LoginLoading from "./loading";
 
 export const metadata = createMetadata({
   title: "Connexion",
@@ -12,10 +14,15 @@ export const metadata = createMetadata({
 
 /**
  * Login page — Server Component.
- * Fetches social providers and passes to client shell.
+ * Le Suspense est requis car LoginPageClient utilise useSearchParams()
+ * pour lire le redirect param (Next.js 15).
  */
 export default async function LoginPage() {
   const socialProviders = await querySocialProviders();
 
-  return <LoginPageClient socialProviders={socialProviders} />;
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginPageClient socialProviders={socialProviders} />
+    </Suspense>
+  );
 }

@@ -21,10 +21,11 @@ export const LoginSchema = z.discriminatedUnion("method", [
   LoginPhoneSchema,
 ]);
 
-// ─── OTP Verification ───────────────────────────────────────
+// ─── OTP Verification ─────────────────────────────────────────
+// Web: 6 chiffres (email OTP) | Mobile: 4-6 chiffres (SMS Ikoddi)
 export const OtpVerificationSchema = z.object({
-  code: z.string().length(4, "Le code doit contenir 4 chiffres"),
-  destination: z.string(), // email or phone number
+  code: z.string().length(6, "Le code doit contenir 6 chiffres"),
+  destination: z.string(), // email ou numéro de téléphone
   method: AuthMethodSchema,
 });
 
@@ -42,10 +43,10 @@ export const CountryCodeSchema = z.object({
 export type CountryCode = z.infer<typeof CountryCodeSchema>;
 
 // ─── Register ────────────────────────────────────────────────
+// Aligné sur le backend : un seul champ "name" (nom complet)
 export const RegisterSchema = z
   .object({
-    firstName: z.string().min(2, "Prénom requis"),
-    lastName: z.string().min(2, "Nom requis"),
+    name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
     email: z.string().email("Email invalide"),
     phone: z.string().min(8, "Numéro de téléphone invalide"),
     password: z
@@ -60,13 +61,26 @@ export const RegisterSchema = z
 
 // ─── User ────────────────────────────────────────────────────
 export const UserSchema = z.object({
-  id: z.number(),
-  firstName: z.string(),
-  lastName: z.string(),
-  email: z.string().email(),
-  phone: z.string(),
-  avatar: z.string().optional(),
-  createdAt: z.string(),
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email().nullable(),
+  phone_e164: z.string().nullable().optional(),
+  avatar_url: z.string().nullable().optional(),
+  email_verified: z.boolean().optional(),
+  phone_verified: z.boolean().optional(),
+  status: z.string().optional(),
+  user_type: z.string().optional(),
+  roles: z.array(z.string()).optional(),
+  store: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      slug: z.string(),
+      logo_url: z.string().nullable(),
+    })
+    .nullable()
+    .optional(),
+  created_at: z.string(),
 });
 
 // ─── Inferred types ──────────────────────────────────────────
