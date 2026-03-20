@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SectionHeader, ProductCard, ViewAllButton } from "@/components/ui";
 import type { ProductListItem } from "@/features/product";
 
@@ -10,6 +9,9 @@ interface RelatedProductsProps {
 /**
  * Related products section — horizontal scrollable product cards.
  * Server Component — purely presentational.
+ *
+ * NOTE: ProductCard is itself a <Link>. Do NOT wrap it in another <Link>,
+ * as that would create invalid nested <a> tags and cause a hydration error.
  */
 function RelatedProducts({ products, className }: RelatedProductsProps) {
   if (!products.length) return null;
@@ -25,13 +27,10 @@ function RelatedProducts({ products, className }: RelatedProductsProps) {
 
       <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
         {products.map((product) => (
-          <Link
-            key={product.id}
-            href={`/product/${product.slug}`}
-            className="flex-shrink-0"
-          >
+          // ProductCard contains its own <Link> — no outer Link wrapper needed
+          <div key={product.id} className="flex-shrink-0">
             <ProductCard product={product} showSaleBadge />
-          </Link>
+          </div>
         ))}
       </div>
     </section>

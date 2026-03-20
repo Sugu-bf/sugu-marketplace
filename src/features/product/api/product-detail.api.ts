@@ -40,6 +40,10 @@ import {
 /**
  * Fetch product detail from the real API.
  * Used in SSR (Server Component) — cached with tags.
+ *
+ * IMPORTANT: skipCredentials=true prevents cookies() from being called,
+ * which would force Next.js to render this page dynamically and break ISR.
+ * Product detail is fully public — no auth needed to read it.
  */
 export async function fetchProductDetail(slug: string): Promise<ApiProductDetail | null> {
   try {
@@ -47,6 +51,7 @@ export async function fetchProductDetail(slug: string): Promise<ApiProductDetail
       schema: ProductDetailResponseSchema,
       revalidate: RevalidatePresets.frequent, // 120s — prices/stock change often
       tags: [CacheTags.product(slug), CacheTags.products()],
+      skipCredentials: true, // public endpoint — do NOT read cookies (breaks ISR)
     });
     return data.product;
   } catch (error) {
@@ -66,6 +71,7 @@ export async function fetchRelatedProducts(slug: string, limit = 12): Promise<Ap
       schema: RelatedProductsResponseSchema,
       revalidate: RevalidatePresets.frequent,
       tags: [CacheTags.product(slug)],
+      skipCredentials: true, // public endpoint — do NOT read cookies (breaks ISR)
     });
     return data.items;
   } catch (error) {
@@ -92,6 +98,7 @@ export async function fetchProductReviews(
       schema: ReviewsResponseSchema,
       revalidate: RevalidatePresets.frequent,
       tags: [CacheTags.product(slug)],
+      skipCredentials: true, // public endpoint — do NOT read cookies (breaks ISR)
     });
     return { reviews: data.reviews, meta: data.meta };
   } catch (error) {
