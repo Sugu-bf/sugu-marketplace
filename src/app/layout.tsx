@@ -6,6 +6,7 @@ import { BrandingProvider } from "@/components/BrandingProvider";
 import BrandingHead from "@/components/BrandingHead";
 import { ToastContainer } from "@/features/toast/ToastContainer";
 import { QueryProvider } from "@/lib/query-provider";
+import { TokenRefreshProvider } from "@/components/TokenRefreshProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -49,9 +50,11 @@ export default async function RootLayout({
       <body className={`${fontInter.variable} font-sans antialiased`} suppressHydrationWarning>
         <BrandingProvider branding={branding}>
           <QueryProvider>
-            <BrandingHead />
-            {children}
-            <ToastContainer />
+            <TokenRefreshProvider>
+              <BrandingHead />
+              {children}
+              <ToastContainer />
+            </TokenRefreshProvider>
           </QueryProvider>
         </BrandingProvider>
       </body>

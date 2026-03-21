@@ -36,9 +36,13 @@ export {
   loginUser,
   registerUser,
   verifyOtp,
+  verifyPhone,
   resendOtp,
   forgotPassword,
+  forgotPasswordByPhone,
   resetPassword,
+  sendPhoneOtp,
+  guestEntry,
   getAuthErrorMessage,
   OTP_TYPE,
 } from "./services/auth-service";
@@ -47,8 +51,11 @@ export type {
   LoginParams,
   RegisterParams,
   VerifyOtpParams,
+  VerifyPhoneParams,
+  SendPhoneOtpParams,
   ResendOtpParams,
   ResetPasswordParams,
+  GuestEntryResult,
   AuthUserProfile,
 } from "./services/auth-service";
 

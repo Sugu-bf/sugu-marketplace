@@ -1,14 +1,8 @@
 /**
  * Auth Service — handles all auth API calls to the Laravel backend.
  *
- * All OTPs are sent by email from the backend.
- * Backend expects:
- *  - login:    { login_field, password, require_otp? }
- *  - register: { name, email, phone_e164, password, password_confirmation, user_type }
- *  - verify-otp: { identifier, code (6 digits), type (int) }
- *  - resend-otp: { identifier, type (int) }
- *  - forgot-password: { email }
- *  - reset-password: { email, code, password, password_confirmation }
+ * Register accepte email OU téléphone (plus besoin des deux).
+ * Backend: /api/v1/web-auth/*
  */
 
 import { api } from "@/lib/api/client";
@@ -29,8 +23,8 @@ export const OTP_TYPE = {
 export interface AuthUserProfile {
   id: string;
   name: string;
-  email: string;
-  phone_e164: string;
+  email: string | null;
+  phone_e164: string | null;
   email_verified: boolean;
   phone_verified: boolean;
   status: string;
@@ -87,6 +81,119 @@ interface ForgotPasswordData {
   expires_in: number;
 }
 
+// ─── Cookie helpers (SEC-06 — HttpOnly via Route Handler) ────
+
+/**
+ * Stocker le token Sanctum en cookie HttpOnly via le Route Handler Next.js.
+ * Le cookie est posé côté serveur → invisible à document.cookie → XSS-safe.
+ */
+export async function setAuthTokenCookie(token: string, expiresAt?: string): Promise<void> {
+  try {
+    await fetch("/api/auth/set-session", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        token,
+        expires_at: expiresAt ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      }),
+    });
+  } catch {
+    // Non bloquant : si le Route Handler est down, l'auth échouera au prochain appel protégé
+    console.warn("[auth] Failed to set HttpOnly cookie via /api/auth/set-session");
+  }
+}
+
+/**
+ * Vérifier si l'user est connecté.
+ * NOTE : le cookie auth_token est HttpOnly → document.cookie ne le voit PAS.
+ * On vérifie le cookie NON-httpOnly "auth_token_expires_at" comme indicateur de présence.
+ */
+export function getAuthTokenCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  // On ne peut pas lire auth_token (HttpOnly) — on vérifie auth_token_expires_at
+  const match = document.cookie.match(/(?:^|;\s*)auth_token_expires_at=([^;]*)/);
+  // Si le cookie d'expiration existe → l'user est probablement connecté
+  return match ? "present" : null;
+}
+
+/** Stocker la date d'expiration (visible JS — non sensible) */
+export function setTokenExpiry(expiresAt: string): void {
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("auth_token_expires_at", expiresAt);
+  }
+}
+
+/** Lire la date d'expiration du token */
+export function getTokenExpiry(): Date | null {
+  if (typeof localStorage === "undefined") return null;
+  const val = localStorage.getItem("auth_token_expires_at");
+  if (!val) return null;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/** Nombre de jours restants avant expiration du token */
+export function tokenDaysRemaining(): number {
+  const expiry = getTokenExpiry();
+  if (!expiry) return 0;
+  return Math.floor((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
+/** Déconnecter : efface le cookie HttpOnly via le Route Handler */
+export async function clearAuthTokenCookie(): Promise<void> {
+  try {
+    await fetch("/api/auth/set-session", { method: "DELETE" });
+  } catch {
+    console.warn("[auth] Failed to clear HttpOnly cookie");
+  }
+}
+
+// ─── Refresh Token (zéro SMS) ────────────────────────────────
+
+export async function refreshToken(): Promise<{ token: string; expires_at: string }> {
+  await initCsrf();
+
+  const { data } = await api.post<ApiSuccessResponse<{ token: string; expires_at: string; ttl_days: number }>>(
+    buildApiUrl("/api/v1/web-auth/refresh-token"),
+    {}
+  );
+
+  if (!data.success || !data.data) {
+    throw new ApiError({ status: 401, code: "UNAUTHORIZED", message: data.message || "Session expirée." });
+  }
+
+  // Mettre à jour le cookie HttpOnly + expiry
+  await setAuthTokenCookie(data.data.token, data.data.expires_at);
+  setTokenExpiry(data.data.expires_at);
+
+  return data.data;
+}
+
+// ─── Check Phone (Smart Login) ───────────────────────────────
+// Étape 1 du login téléphone : vérifie si le numéro existe
+// et retourne la méthode d'auth disponible
+
+export interface CheckPhoneResult {
+  exists: boolean;
+  /** "pin" = l'user a un PIN, "otp" = compte Google (pas de PIN), null = n'existe pas */
+  auth_method: "pin" | "otp" | null;
+  /** true = vendeur/agence → rediriger vers pro.sugu.pro */
+  redirect_to_pro: boolean;
+}
+
+export async function checkPhone(phone_e164: string): Promise<CheckPhoneResult> {
+  const { data } = await api.post<ApiSuccessResponse<CheckPhoneResult>>(
+    buildApiUrl("/api/v1/web-auth/check-phone"),
+    { body: { phone_e164 } }
+  );
+
+  if (!data.success || !data.data) {
+    throw new ApiError({ status: 422, code: "VALIDATION_ERROR", message: data.message || "Numéro invalide." });
+  }
+
+  return data.data;
+}
+
 // ─── Login ───────────────────────────────────────────────────
 
 export interface LoginParams {
@@ -122,7 +229,6 @@ export async function loginUser(params: LoginParams): Promise<{
 
   const d = resp.data!;
 
-  // Check if OTP verification is required
   if ("verification_required" in d && d.verification_required) {
     return {
       type: "otp_required",
@@ -131,7 +237,6 @@ export async function loginUser(params: LoginParams): Promise<{
     };
   }
 
-  // Direct login success
   const loginData = d as LoginSuccessData;
   return {
     type: "success",
@@ -144,11 +249,20 @@ export async function loginUser(params: LoginParams): Promise<{
 
 export interface RegisterParams {
   name: string;
-  email: string;
-  phone_e164: string;
-  password: string;
-  password_confirmation: string;
-  user_type: "buyer" | "seller" | "both";
+  /** Obligatoire si méthode email */
+  email?: string;
+  /** Obligatoire si méthode téléphone */
+  phone_e164?: string;
+  /** PIN 4 chiffres — méthode téléphone (remplacé password) */
+  pin?: string;
+  /** Mot de passe ≥8 chars — méthode email uniquement */
+  password?: string;
+  password_confirmation?: string;
+  /** Toujours "buyer" sur la marketplace. Les vendeurs ont pro.sugu.pro */
+  user_type?: "buyer";
+  referral_code?: string;
+  /** SEC-01 : token OTP SMS one-use (30 min) — obligatoire si inscription par téléphone */
+  phone_verified_token?: string;
 }
 
 export async function registerUser(params: RegisterParams): Promise<{
@@ -174,7 +288,70 @@ export async function registerUser(params: RegisterParams): Promise<{
   return data.data!;
 }
 
-// ─── Verify OTP ──────────────────────────────────────────────
+// ─── Send Phone OTP (SMS via Ikoddi) ─────────────────────────
+
+export interface SendPhoneOtpParams {
+  phone_e164: string;
+}
+
+export async function sendPhoneOtp(paramsOrPhone: SendPhoneOtpParams | string): Promise<{
+  cooldown_seconds: number;
+  expires_in: number;
+}> {
+  const body = typeof paramsOrPhone === "string"
+    ? { phone_e164: paramsOrPhone }
+    : paramsOrPhone;
+
+  const { data } = await api.post<ApiSuccessResponse<{ cooldown_seconds: number; expires_in: number }>>(
+    buildApiUrl("/api/v1/web-auth/send-otp"),
+    { body }
+  );
+
+  if (!data.success) {
+    throw new ApiError({
+      status: 422,
+      code: "VALIDATION_ERROR",
+      message: data.message || "Erreur lors de l'envoi du SMS.",
+    });
+  }
+
+  return data.data ?? { cooldown_seconds: 60, expires_in: 300 };
+}
+
+// ─── Verify Phone OTP ────────────────────────────────────────
+
+export interface VerifyPhoneParams {
+  phone_e164: string;
+  code: string;
+}
+
+export async function verifyPhone(params: VerifyPhoneParams): Promise<{
+  verified: boolean;
+  /** SEC-01 : token one-use à envoyer lors du POST /register */
+  verified_token?: string;
+  user?: AuthUserProfile;
+}> {
+  const { data } = await api.post<ApiSuccessResponse<{ verified: boolean; verified_token?: string; user?: AuthUserProfile }>>(
+    buildApiUrl("/api/v1/web-auth/verify-phone"),
+    { body: params }
+  );
+
+  if (!data.success) {
+    throw new ApiError({
+      status: 422,
+      code: "VALIDATION_ERROR",
+      message: data.message || "Code invalide.",
+    });
+  }
+
+  return {
+    verified: true,
+    verified_token: data.data?.verified_token,
+    user: data.data?.user,
+  };
+}
+
+// ─── Verify OTP (email or phone, general) ────────────────────
 
 export interface VerifyOtpParams {
   identifier: string;
@@ -242,7 +419,7 @@ export async function resendOtp(params: ResendOtpParams): Promise<{
   return data.data!;
 }
 
-// ─── Forgot Password ────────────────────────────────────────
+// ─── Forgot Password (email) ────────────────────────────────
 
 export async function forgotPassword(email: string): Promise<ForgotPasswordData> {
   await initCsrf();
@@ -250,6 +427,25 @@ export async function forgotPassword(email: string): Promise<ForgotPasswordData>
   const { data } = await api.post<ApiSuccessResponse<ForgotPasswordData>>(
     buildApiUrl("/api/v1/web-auth/forgot-password"),
     { body: { email } }
+  );
+
+  if (!data.success) {
+    throw new ApiError({
+      status: 422,
+      code: "VALIDATION_ERROR",
+      message: data.message || "Erreur.",
+    });
+  }
+
+  return data.data!;
+}
+
+// ─── Forgot Password by Phone (SMS) ─────────────────────────
+
+export async function forgotPasswordByPhone(phone_e164: string): Promise<ForgotPasswordData> {
+  const { data } = await api.post<ApiSuccessResponse<ForgotPasswordData>>(
+    buildApiUrl("/api/v1/web-auth/forgot-password-phone"),
+    { body: { phone_e164 } }
   );
 
   if (!data.success) {
@@ -291,26 +487,25 @@ export async function resetPassword(params: ResetPasswordParams): Promise<string
   return data.message;
 }
 
-// ─── Helper: extract error message ──────────────────────────
+// ─── Guest Entry ─────────────────────────────────────────────
 
-export function getAuthErrorMessage(error: unknown): string {
-  if (isApiError(error)) {
-    // Check for field-level validation errors
-    if (error.details?.errors) {
-      const fieldErrors = error.details.errors as Record<string, string[]>;
-      const firstField = Object.keys(fieldErrors)[0];
-      if (firstField && fieldErrors[firstField]?.[0]) {
-        return fieldErrors[firstField][0];
-      }
-    }
-    return error.message;
+export interface GuestEntryResult {
+  token: string;
+  user: AuthUserProfile;
+}
+
+export async function guestEntry(): Promise<GuestEntryResult> {
+  const { data } = await api.post<ApiSuccessResponse<GuestEntryResult>>(
+    buildApiUrl("/api/v1/web-auth/guest"),
+    { body: {} }
+  );
+
+  const result = data?.data;
+  if (!result?.token) {
+    throw new Error("Erreur lors de la création du compte invité.");
   }
 
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Une erreur inattendue est survenue.";
+  return result;
 }
 
 // ─── Google Sign-In ───────────────────────────────────────────
@@ -341,7 +536,7 @@ export async function googleSignIn(
 ): Promise<GoogleSignInResult> {
   const { data } = await api.post<ApiSuccessResponse<GoogleSignInResult>>(
     buildApiUrl("/api/v1/web-auth/google"),
-    { body: params, retries: 0 } // Jamais retenter — credential expiré après 1re tentative
+    { body: params, retries: 0 }
   );
 
   const result = data?.data;
@@ -352,3 +547,23 @@ export async function googleSignIn(
   return result;
 }
 
+// ─── Helper: extract error message ──────────────────────────
+
+export function getAuthErrorMessage(error: unknown): string {
+  if (isApiError(error)) {
+    if (error.details?.errors) {
+      const fieldErrors = error.details.errors as Record<string, string[]>;
+      const firstField = Object.keys(fieldErrors)[0];
+      if (firstField && fieldErrors[firstField]?.[0]) {
+        return fieldErrors[firstField][0];
+      }
+    }
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Une erreur inattendue est survenue.";
+}
