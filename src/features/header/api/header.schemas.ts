@@ -9,12 +9,6 @@ import { z } from "zod";
 
 // ─── Category Schemas ────────────────────────────────────────
 
-export const CategoryIconSchema = z.object({
-  provider: z.string().nullable().optional(),
-  name: z.string().nullable().optional(),
-  url: z.string().nullable().optional(),
-});
-
 export const HeaderSubCategorySchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -33,7 +27,7 @@ export const HeaderCategorySchema: z.ZodType<HeaderCategory> = z.lazy(() =>
     parent_id: z.string().nullable().optional(),
     depth: z.number().optional(),
     product_count: z.number().optional(),
-    icon: CategoryIconSchema.optional(),
+    icon_url: z.string().nullable().optional(),
     children: z.array(HeaderCategorySchema).optional(),
   })
 );
@@ -147,11 +141,7 @@ export interface HeaderCategory {
   parent_id?: string | null;
   depth?: number;
   product_count?: number;
-  icon?: {
-    provider?: string | null;
-    name?: string | null;
-    url?: string | null;
-  };
+  icon_url?: string | null;
   children?: HeaderCategory[];
 }
 

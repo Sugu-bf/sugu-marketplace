@@ -12,12 +12,6 @@ import { api, v1Url, CacheTags, RevalidatePresets } from "@/lib/api";
 
 // ─── Zod Schemas ─────────────────────────────────────────────
 
-const CategoryIconSchema = z.object({
-  provider: z.string().nullable().optional(),
-  name: z.string().nullable().optional(),
-  url: z.string().nullable().optional(),
-});
-
 const ApiCategorySchema: z.ZodType<ApiCategory> = z.lazy(() =>
   z.object({
     id: z.string(),
@@ -28,7 +22,7 @@ const ApiCategorySchema: z.ZodType<ApiCategory> = z.lazy(() =>
     parent_id: z.string().nullable().optional(),
     depth: z.number().optional(),
     product_count: z.number().optional(),
-    icon: CategoryIconSchema.optional(),
+    icon_url: z.string().nullable().optional(),
     children: z.array(ApiCategorySchema).optional(),
   })
 );
@@ -57,11 +51,7 @@ export interface ApiCategory {
   parent_id?: string | null;
   depth?: number;
   product_count?: number;
-  icon?: {
-    provider?: string | null;
-    name?: string | null;
-    url?: string | null;
-  };
+  icon_url?: string | null;
   children?: ApiCategory[];
 }
 

@@ -23,7 +23,7 @@ export function mapApiCategoryToCategory(api: ApiCategoryDetail): Category {
     slug: api.slug,
     name: api.name,
     description: api.description ?? undefined,
-    image: api.image ?? api.icon?.url ?? "",
+    image: api.image ?? api.icon_url ?? "",
     parentId: api.parent ? parseInt(api.parent.id, 10) || null : null,
     productCount: api.product_count,
   };
@@ -39,7 +39,7 @@ export function mapApiChildToSubcategory(
     id: parseInt(child.id, 10) || 0,
     slug: child.slug,
     name: child.name,
-    image: child.icon?.url ?? "",
+    image: child.icon_url ?? "",
     productCount: child.product_count,
     parentSlug,
   };

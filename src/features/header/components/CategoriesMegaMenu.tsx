@@ -7,66 +7,10 @@ import {
   Menu,
   ChevronRight,
   Tag,
-  ShoppingBag,
-  Shirt,
-  Laptop,
-  Home,
-  Dumbbell,
-  Heart,
-  Utensils,
-  Baby,
-  Car,
-  Sparkles,
-  BookOpen,
-  Music,
-  Gamepad2,
-  PawPrint,
-  Wrench,
-  Package,
-  Smartphone,
-  Tv,
-  Headphones,
-  Watch,
   Camera,
-  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { HeaderCategory } from "../api/header.schemas";
-
-/**
- * Map of Lucide icon names (kebab-case, as stored in the DB) to components.
- * Fallback: Tag icon.
- */
-const ICON_MAP: Record<string, LucideIcon> = {
-  tag: Tag,
-  "shopping-bag": ShoppingBag,
-  shirt: Shirt,
-  laptop: Laptop,
-  home: Home,
-  dumbbell: Dumbbell,
-  heart: Heart,
-  utensils: Utensils,
-  baby: Baby,
-  car: Car,
-  sparkles: Sparkles,
-  "book-open": BookOpen,
-  music: Music,
-  gamepad: Gamepad2,
-  "paw-print": PawPrint,
-  wrench: Wrench,
-  package: Package,
-  smartphone: Smartphone,
-  tv: Tv,
-  headphones: Headphones,
-  watch: Watch,
-  camera: Camera,
-};
-
-function getCategoryIcon(cat: HeaderCategory): LucideIcon {
-  const name = cat.icon?.name;
-  if (name && ICON_MAP[name]) return ICON_MAP[name];
-  return Tag;
-}
 
 interface CategoriesMegaMenuProps {
   categories: HeaderCategory[];
@@ -166,8 +110,6 @@ export default function CategoriesMegaMenu({ categories }: CategoriesMegaMenuPro
                 >
                   {categories.map((cat) => {
                     const isActive = cat.id === activeCatId;
-                    const iconUrl = cat.icon?.url;
-                    const IconComponent = getCategoryIcon(cat);
 
                     return (
                       <button
@@ -183,9 +125,9 @@ export default function CategoriesMegaMenu({ categories }: CategoriesMegaMenuPro
                         aria-selected={isActive}
                         role="tab"
                       >
-                        {iconUrl ? (
+                        {cat.icon_url ? (
                           <Image
-                            src={iconUrl}
+                            src={cat.icon_url}
                             alt=""
                             width={16}
                             height={16}
@@ -193,7 +135,7 @@ export default function CategoriesMegaMenu({ categories }: CategoriesMegaMenuPro
                             unoptimized
                           />
                         ) : (
-                          <IconComponent
+                          <Tag
                             size={16}
                             strokeWidth={1.5}
                             className={cn(

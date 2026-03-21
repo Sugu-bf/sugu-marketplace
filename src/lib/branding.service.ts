@@ -18,9 +18,9 @@ export const BRANDING_FALLBACK: BrandingData = {
     support_phone: "+226 00 00 00 00",
   },
   logos: {
-    light_url: null,
-    dark_url: null,
-    footer_url: null,
+    light_url: "https://cdn.sugu.pro/p/logo-sugu.avif",
+    dark_url: "https://cdn.sugu.pro/p/logo-sugu.avif",
+    footer_url: "https://cdn.sugu.pro/p/logo-sugu.avif",
     favicon_url: null,
     apple_touch_icon_url: null,
   },

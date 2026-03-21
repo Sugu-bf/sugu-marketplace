@@ -10,18 +10,12 @@ import { z } from "zod";
 
 // ─── Category Detail (from /api/v1/categories/{slug}) ────────
 
-const CategoryIconSchema = z.object({
-  provider: z.string().nullable().optional(),
-  name: z.string().nullable().optional(),
-  url: z.string().nullable().optional(),
-});
-
 const CategoryChildSchema = z.object({
   id: z.string(),
   slug: z.string(),
   name: z.string(),
   product_count: z.number().default(0),
-  icon: CategoryIconSchema.optional(),
+  icon_url: z.string().nullable().optional(),
 });
 
 const CategoryParentSchema = z.object({
@@ -36,7 +30,7 @@ export const CategoryDetailApiSchema = z.object({
   name: z.string(),
   description: z.string().nullable().optional(),
   image: z.string().nullable().optional(),
-  icon: CategoryIconSchema.optional(),
+  icon_url: z.string().nullable().optional(),
   parent: CategoryParentSchema.nullable().optional(),
   children: z.array(CategoryChildSchema).default([]),
   product_count: z.number().default(0),

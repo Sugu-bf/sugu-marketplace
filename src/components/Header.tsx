@@ -402,7 +402,7 @@ export default function Header() {
           {/* Logo */}
           <a href="/" className="flex items-center gap-2 group flex-shrink-0">
             <div className="relative h-10 w-10 overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-110 bg-white/10 p-0.5">
-              <Image src="/logo.png" alt="Sugu" fill className="object-contain" />
+              <Image src="https://cdn.sugu.pro/p/logo-sugu.avif" alt="Sugu" fill className="object-contain" unoptimized />
             </div>
           </a>
 

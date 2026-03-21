@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import {
   Phone,
   Mail,
@@ -146,8 +147,15 @@ export default function Footer() {
           <div className="lg:col-span-2 mb-6 md:mb-0">
             {/* Logo */}
             <div className="flex items-center gap-2 mb-4">
-              <div className="h-7 w-7 rounded-lg bg-[#F15412] flex items-center justify-center">
-                <span className="text-white text-xs font-black">S</span>
+              <div className="relative h-8 w-8 flex-shrink-0">
+                <Image
+                  src="https://cdn.sugu.pro/p/logo-sugu.avif"
+                  alt="Sugu"
+                  fill
+                  className="object-contain"
+                  unoptimized
+                  sizes="32px"
+                />
               </div>
               <span className="text-lg font-extrabold text-gray-900 tracking-tight">
                 SUGU
@@ -212,8 +220,15 @@ export default function Footer() {
           </p>
 
           {/* Center — mini logo (hidden on mobile) */}
-          <div className="hidden sm:flex h-6 w-6 rounded-md bg-gray-100 items-center justify-center">
-            <span className="text-[10px] font-black text-gray-400">S</span>
+          <div className="hidden sm:flex relative h-6 w-6 flex-shrink-0">
+            <Image
+              src="https://cdn.sugu.pro/p/logo-sugu.avif"
+              alt="Sugu"
+              fill
+              className="object-contain"
+              unoptimized
+              sizes="24px"
+            />
           </div>
 
           {/* Right — payment methods */}

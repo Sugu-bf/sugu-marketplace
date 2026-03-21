@@ -46,7 +46,7 @@ describe("header.schemas", () => {
       parent_id: null,
       depth: 0,
       product_count: 42,
-      icon: { provider: "lucide", name: "monitor", url: null },
+      icon_url: "https://cdn.sugu.pro/category-icons/abc123/icon/monitor.svg",
       children: [
         {
           id: "def456",
