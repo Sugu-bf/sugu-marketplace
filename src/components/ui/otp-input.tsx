@@ -57,7 +57,11 @@ function OtpInput({
       setValues(newValues);
       const code = newValues.join("");
       onChange?.(code);
-      if (code.length === length && !code.includes("")) {
+      // BUG FIX : !code.includes("") est toujours false en JS
+      // car "".includes("") === true (chaîne vide incluse dans toute string)
+      // → onComplete ne se déclenchait JAMAIS
+      // Fix : vérifier que chaque case individuelle est non-vide
+      if (newValues.length === length && newValues.every((v) => v !== "")) {
         onComplete?.(code);
       }
     },
