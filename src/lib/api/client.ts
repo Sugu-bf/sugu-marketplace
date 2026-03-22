@@ -102,38 +102,27 @@ function sleep(ms: number): Promise<void> {
  */
 
 /**
- * Read the auth_token cookie for Bearer token auth.
+ * Read the auth_token for Bearer token auth.
  *
- * CLIENT: reads document.cookie directly.
- * SERVER: delegates to server-auth.ts via dynamic import.
+ * CLIENT-SIDE : Le cookie auth_token est désormais HttpOnly → document.cookie
+ * ne le voit plus. Le navigateur le transmet AUTOMATIQUEMENT via
+ * credentials: "include" en tant que Cookie header. PAS besoin de lire la valeur.
+ * → On retourne null côté client pour ne PAS injecter Authorization: Bearer,
+ *   c'est le Cookie header natif qui authentifie la requête.
  *
- * CRITICAL — WHY dynamic import?
- * next/headers (cookies/headers) is a "dynamic API" that opts any route
- * into dynamic rendering, disabling ISR/Full Route Cache.
- * Placing `require("next/headers")` directly in this module — even behind
- * a runtime condition — is detected by Next.js static analysis and breaks ISR
- * for ALL routes that import this module (i.e. every page with a fetch call).
- *
- * Dynamic import defers resolution to runtime and avoids static detection.
- * ISR public pages always pass skipCredentials=true so this branch is never
- * reached; only user-specific pages (cart, account…) call it.
+ * SERVER-SIDE (SSR / Server Components) : le cookie est lisible via next/headers
+ * (accès à la requête entrante). On l'injecte en Authorization: Bearer car
+ * les fetch serveur ne transmettent pas de cookies navigateur.
  */
 async function getAuthToken(): Promise<string | null> {
-  // Client-side: read from document.cookie
+  // Client-side : NE PAS lire document.cookie (auth_token est HttpOnly)
+  // Le navigateur l'envoie automatiquement via credentials:"include"
   if (typeof document !== "undefined") {
-    const match = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("auth_token="));
-
-    if (match) {
-      return decodeURIComponent(match.split("=")[1]);
-    }
-    return null;
+    return null; // Bearer header inutile côté browser — Cookie header suffisant
   }
 
-  // Server-side: delegate to isolated server-auth module.
-  // Dynamic import avoids static analysis detection of next/headers,
-  // which would break ISR on all pages importing this module.
+  // Server-side : lire le cookie depuis next/headers (requête entrante SSR)
+  // Dynamic import évite la détection statique de next/headers qui casserait l'ISR
   try {
     const { getServerAuthToken } = await import("./server-auth");
     return await getServerAuthToken();
