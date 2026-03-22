@@ -103,8 +103,20 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Read the auth_token cookie for Bearer token auth.
- * Falls back to server-side cookie reading via Next.js headers if available.
- * Must be async because Next.js 15 cookies() returns a Promise.
+ *
+ * CLIENT: reads document.cookie directly.
+ * SERVER: delegates to server-auth.ts via dynamic import.
+ *
+ * CRITICAL — WHY dynamic import?
+ * next/headers (cookies/headers) is a "dynamic API" that opts any route
+ * into dynamic rendering, disabling ISR/Full Route Cache.
+ * Placing `require("next/headers")` directly in this module — even behind
+ * a runtime condition — is detected by Next.js static analysis and breaks ISR
+ * for ALL routes that import this module (i.e. every page with a fetch call).
+ *
+ * Dynamic import defers resolution to runtime and avoids static detection.
+ * ISR public pages always pass skipCredentials=true so this branch is never
+ * reached; only user-specific pages (cart, account…) call it.
  */
 async function getAuthToken(): Promise<string | null> {
   // Client-side: read from document.cookie
@@ -116,21 +128,18 @@ async function getAuthToken(): Promise<string | null> {
     if (match) {
       return decodeURIComponent(match.split("=")[1]);
     }
+    return null;
   }
 
-  // Server-side: try to read from Next.js cookie (async in Next.js 15)
-  if (typeof document === "undefined") {
-    try {
-      const { cookies } = require("next/headers");
-      const cookieStore = await cookies();
-      const token = cookieStore.get("auth_token");
-      return token?.value ?? null;
-    } catch {
-      return null;
-    }
+  // Server-side: delegate to isolated server-auth module.
+  // Dynamic import avoids static analysis detection of next/headers,
+  // which would break ISR on all pages importing this module.
+  try {
+    const { getServerAuthToken } = await import("./server-auth");
+    return await getServerAuthToken();
+  } catch {
+    return null;
   }
-
-  return null;
 }
 
 async function safeParseJson(response: Response): Promise<unknown> {

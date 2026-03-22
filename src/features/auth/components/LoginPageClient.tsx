@@ -104,6 +104,9 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
   const [loading,  setLoading]  = useState(false);
   const [error,     setError]     = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  // Incrémenté à chaque erreur OTP → force le reset (remontage) de l'OtpInput
+  // Empêche onComplete de refirer si l'user corrige un chiffre sur les cases encore remplies
+  const [otpAttemptKey, setOtpAttemptKey] = useState(0);
 
   // ─── Helpers ──────────────────────────────────────────────
   const formatPhoneE164 = (raw: string): string => {
@@ -230,6 +233,9 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
       }
     } catch (err) {
       setError(getAuthErrorMessage(err));
+      // Reset l'OtpInput : l'user doit re-saisir le code complet
+      // Empêche onComplete de refirer si l'user corrige un seul chiffre
+      setOtpAttemptKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -387,7 +393,15 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
         </div>
 
         <div className="flex justify-start">
-          <OtpInput length={6} onChange={() => setError("")} onComplete={handleVerifyOtp} error={!!error} disabled={loading} />
+          {/* key change → React remonte OtpInput → cases vides (évite onComplete fantôme) */}
+          <OtpInput
+            key={otpAttemptKey}
+            length={6}
+            onChange={() => setError("")}
+            onComplete={handleVerifyOtp}
+            error={!!error}
+            disabled={loading}
+          />
         </div>
 
         {error      && <p className="text-xs text-error"   role="alert">{error}</p>}
