@@ -158,7 +158,7 @@ function GoogleSignInButton({ onSuccess, onError, className }: GoogleSignInButto
         if (result.token) {
           const expiresAt = result.expires_at
             ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-          await setAuthTokenCookie(result.token, expiresAt);
+          setAuthTokenCookie(result.token, expiresAt);
           setTokenExpiry(expiresAt);
         }
 
@@ -168,8 +168,10 @@ function GoogleSignInButton({ onSuccess, onError, className }: GoogleSignInButto
 
         onSuccess?.(result.is_new_user ?? false);
 
-        router.push(safeRedirect);
-        router.refresh();
+        // Hard navigation → force rechargement complet du navigateur
+        // Nécessaire : le Header fait checkAuth() uniquement au mount.
+        // router.push() (navigation douce) ne remonte pas le Header.
+        window.location.href = safeRedirect;
       } catch (err) {
         const msg = getAuthErrorMessage(err);
         setError(msg);

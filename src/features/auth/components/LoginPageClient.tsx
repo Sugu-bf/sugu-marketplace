@@ -123,16 +123,17 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
 
   const handleSuccess = async (token: string, user: AuthUserProfile) => {
     const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-    await setAuthTokenCookie(token, expiresAt); // SEC-06 : HttpOnly via Route Handler
+    setAuthTokenCookie(token, expiresAt);
     setTokenExpiry(expiresAt);
-    // Vendeur ou agence → espace dédié (pro.sugu.pro)
+    // Hard navigation → force rechargement complet du navigateur
+    // Nécessaire : MarketplaceHeaderClient fait checkAuth() uniquement au mount.
+    // router.push() (navigation douce) ne remonte pas le Header → pas de checkAuth → user semble déconnecté.
     const roles = user.roles ?? [];
     if (roles.includes("seller") || roles.includes("partner")) {
       window.location.href = "https://pro.sugu.pro";
-      return;
+    } else {
+      window.location.href = safeRedirect;
     }
-    router.push(safeRedirect);
-    router.refresh();
   };
 
   // ─── ÉTAPE 1 : Vérification numéro ───────────────────────
@@ -227,7 +228,7 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
         // Utiliser expires_at du backend si disponible, sinon 90j par défaut
         const expiresAt = result.expires_at
           ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-        await setAuthTokenCookie(result.token, expiresAt);
+        setAuthTokenCookie(result.token, expiresAt);
         setTokenExpiry(expiresAt);
         handleSuccess(result.token, result.user);
       }

@@ -116,10 +116,10 @@ function RegisterPageClient() {
 
   const onSuccess = async (token: string) => {
     const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-    await setAuthTokenCookie(token, expiresAt); // SEC-06 : HttpOnly via Route Handler
+    setAuthTokenCookie(token, expiresAt);
     setTokenExpiry(expiresAt);
-    router.push(safeRedirect);
-    router.refresh();
+    // Hard navigation → force rechargement complet (header remonte + checkAuth refired)
+    window.location.href = safeRedirect;
   };
 
   const startResendCooldown = () => {

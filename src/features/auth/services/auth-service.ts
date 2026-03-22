@@ -81,42 +81,63 @@ interface ForgotPasswordData {
   expires_in: number;
 }
 
-// ─── Cookie helpers (SEC-06 — HttpOnly via Route Handler) ────
+// ─── Cookie helpers ────────────────────────────────────────────
+
+/** Durée de vie du token : 90 jours en secondes */
+const TOKEN_MAX_AGE = 90 * 24 * 60 * 60;
 
 /**
- * Stocker le token Sanctum en cookie HttpOnly via le Route Handler Next.js.
- * Le cookie est posé côté serveur → invisible à document.cookie → XSS-safe.
+ * Stocker le token Sanctum dans le cookie `auth_token`.
+ *
+ * STRATÉGIE DOUBLE :
+ * 1. document.cookie direct (primaire) — immédiat et fiable.
+ *    Nécessaire : l'API Laravel utilise uniquement Authorization: Bearer
+ *    (pas le mode cookie stateful de Sanctum — incompatible cross-domain).
+ *    client.ts lit `auth_token` depuis document.cookie → Bearer header.
+ *
+ * 2. Route Handler /api/auth/set-session (secondaire, async) — bonus SSR.
+ *    Si le Route Handler échoue, le cookie JS suffira pour le client.
+ *    On ne bloque PAS la navigation sur ce call.
+ *
+ * NOTE sécurité CSRF : cookie SameSite=Lax + Bearer token.
+ * Un attaquant cross-domain ne peut pas forger Authorization: Bearer.
  */
-export async function setAuthTokenCookie(token: string, expiresAt?: string): Promise<void> {
-  try {
-    await fetch("/api/auth/set-session", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        token,
-        expires_at: expiresAt ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      }),
-    });
-  } catch {
-    // Non bloquant : si le Route Handler est down, l'auth échouera au prochain appel protégé
-    console.warn("[auth] Failed to set HttpOnly cookie via /api/auth/set-session");
-  }
+export function setAuthTokenCookie(token: string, expiresAt?: string): void {
+  if (typeof document === "undefined") return;
+
+  const isHttps = window.location.protocol === "https:";
+  const secure  = isHttps ? "; Secure" : "";
+
+  // ── 1. Cookie direct (synchrone — garanti avant navigation) ──
+  document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; max-age=${TOKEN_MAX_AGE}; SameSite=Lax${secure}`;
+
+  // ── 2. Route Handler en arrière-plan (pour SSR cookie) ────────
+  const expiresAtStr = expiresAt ?? new Date(Date.now() + TOKEN_MAX_AGE * 1000).toISOString();
+  document.cookie = `auth_token_expires_at=${encodeURIComponent(expiresAtStr)}; path=/; max-age=${TOKEN_MAX_AGE}; SameSite=Lax${secure}`;
+
+  // Appel async non-bloquant au Route Handler (pour le rendu SSR)
+  fetch("/api/auth/set-session", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ token, expires_at: expiresAtStr }),
+  }).catch(() => {
+    // Non bloquant — le cookie JS est déjà posé, auth client OK
+  });
 }
 
 /**
- * Vérifier si l'user est connecté.
- * NOTE : le cookie auth_token est HttpOnly → document.cookie ne le voit PAS.
- * On vérifie le cookie NON-httpOnly "auth_token_expires_at" comme indicateur de présence.
+ * Vérifier si l'user a un token en cookie.
+ * Lit directement auth_token depuis document.cookie.
  */
 export function getAuthTokenCookie(): string | null {
   if (typeof document === "undefined") return null;
-  // On ne peut pas lire auth_token (HttpOnly) — on vérifie auth_token_expires_at
-  const match = document.cookie.match(/(?:^|;\s*)auth_token_expires_at=([^;]*)/);
-  // Si le cookie d'expiration existe → l'user est probablement connecté
-  return match ? "present" : null;
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("auth_token="));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
 }
 
-/** Stocker la date d'expiration (visible JS — non sensible) */
+/** Stocker la date d'expiration en localStorage (pour useTokenRefresh) */
 export function setTokenExpiry(expiresAt: string): void {
   if (typeof localStorage !== "undefined") {
     localStorage.setItem("auth_token_expires_at", expiresAt);
@@ -139,12 +160,15 @@ export function tokenDaysRemaining(): number {
   return Math.floor((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
-/** Déconnecter : efface le cookie HttpOnly via le Route Handler */
-export async function clearAuthTokenCookie(): Promise<void> {
-  try {
-    await fetch("/api/auth/set-session", { method: "DELETE" });
-  } catch {
-    console.warn("[auth] Failed to clear HttpOnly cookie");
+/** Déconnecter : efface le cookie */
+export function clearAuthTokenCookie(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+  document.cookie = "auth_token_expires_at=; path=/; max-age=0; SameSite=Lax";
+  // Nettoyage via Route Handler (supprime le cookie côté serveur aussi)
+  fetch("/api/auth/set-session", { method: "DELETE" }).catch(() => {});
+  if (typeof localStorage !== "undefined") {
+    localStorage.removeItem("auth_token_expires_at");
   }
 }
 
