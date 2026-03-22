@@ -30,21 +30,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Token invalide." }, { status: 400 });
     }
 
+    // ARCHITECTURE NOTE : cookie intentionnellement NON-HttpOnly
+    // L'API Laravel (api.mysugu.com) utilise UNIQUEMENT Authorization: Bearer,
+    // pas le mode cookie stateful de Sanctum (incompatible cross-domain).
+    // Le client.ts doit pouvoir lire auth_token depuis document.cookie
+    // pour construire le header Authorization: Bearer à chaque requête.
+    //
+    // Sécurité CSRF : garantie par Bearer token + CORS strict (sugu.pro → api.mysugu.com).
+    // Un attaquant cross-origin ne peut pas forger Authorization: Bearer depuis un
+    // site tiers — c'est une protection équivalente à CSRF token pour les SPA.
+    //
+    // X-Source de système : le token Sanctum a une durée de vie (90j) et peut
+    // être révoqué côté backend à tout instant (table personal_access_tokens).
+
     const cookieStore = await cookies();
 
-    // auth_token : HttpOnly → invisible JS → XSS safe
+    // auth_token : lisible par JS (non-HttpOnly) — nécessaire pour Bearer token
     cookieStore.set("auth_token", token, {
-      httpOnly: true,            // ← clé : invisible à document.cookie
+      httpOnly: false,           // ← Volontaire : doit être lu par client.ts pour Bearer
       secure:   IS_PROD,        // HTTPS only en production
       sameSite: "lax",          // Protège CSRF sans casser navigation normale
       maxAge:   TOKEN_MAX_AGE,
       path:     "/",
     });
 
-    // expires_at : visible JS (non sensible) → utilisé par useTokenRefresh
+    // expires_at : visible JS (non sensible) — utilisé par useTokenRefresh
     if (expires_at && typeof expires_at === "string") {
       cookieStore.set("auth_token_expires_at", expires_at, {
-        httpOnly: false,  // Doit être lisible JS pour le hook de refresh
+        httpOnly: false,
         secure:   IS_PROD,
         sameSite: "lax",
         maxAge:   TOKEN_MAX_AGE,

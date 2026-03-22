@@ -104,24 +104,30 @@ function sleep(ms: number): Promise<void> {
 /**
  * Read the auth_token for Bearer token auth.
  *
- * CLIENT-SIDE : Le cookie auth_token est désormais HttpOnly → document.cookie
- * ne le voit plus. Le navigateur le transmet AUTOMATIQUEMENT via
- * credentials: "include" en tant que Cookie header. PAS besoin de lire la valeur.
- * → On retourne null côté client pour ne PAS injecter Authorization: Bearer,
- *   c'est le Cookie header natif qui authentifie la requête.
+ * CLIENT-SIDE : lit document.cookie directement.
+ * Le cookie auth_token est intentionnellement lisible par JS (non HttpOnly)
+ * car l'API Laravel utilise UNIQUEMENT Authorization: Bearer — pas le mode
+ * cookie stateful de Sanctum (incompatible cross-domain sugu.pro → api.mysugu.com).
  *
- * SERVER-SIDE (SSR / Server Components) : le cookie est lisible via next/headers
- * (accès à la requête entrante). On l'injecte en Authorization: Bearer car
- * les fetch serveur ne transmettent pas de cookies navigateur.
+ * Sécurité CSRF : garantie par Bearer token + CORS strict (pas par HttpOnly).
+ * Un attaquant cross-origin ne peut pas forger le header Authorization.
+ *
+ * SERVER-SIDE : délègue à server-auth.ts via dynamic import pour éviter que
+ * next/headers soit détecté statiquement et casse l'ISR sur les pages publiques.
  */
 async function getAuthToken(): Promise<string | null> {
-  // Client-side : NE PAS lire document.cookie (auth_token est HttpOnly)
-  // Le navigateur l'envoie automatiquement via credentials:"include"
+  // Client-side : lire auth_token depuis document.cookie (non HttpOnly, volontaire)
   if (typeof document !== "undefined") {
-    return null; // Bearer header inutile côté browser — Cookie header suffisant
+    const match = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("auth_token="));
+    if (match) {
+      return decodeURIComponent(match.split("=")[1]);
+    }
+    return null;
   }
 
-  // Server-side : lire le cookie depuis next/headers (requête entrante SSR)
+  // Server-side : lire depuis next/headers (requête entrante SSR)
   // Dynamic import évite la détection statique de next/headers qui casserait l'ISR
   try {
     const { getServerAuthToken } = await import("./server-auth");
