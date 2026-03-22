@@ -220,7 +220,14 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
         code,
         type: OTP_TYPE.LOGIN_VERIFICATION,
       });
-      if (result.token && result.user) handleSuccess(result.token, result.user);
+      if (result.token && result.user) {
+        // Utiliser expires_at du backend si disponible, sinon 90j par défaut
+        const expiresAt = result.expires_at
+          ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+        await setAuthTokenCookie(result.token, expiresAt);
+        setTokenExpiry(expiresAt);
+        handleSuccess(result.token, result.user);
+      }
     } catch (err) {
       setError(getAuthErrorMessage(err));
     } finally {

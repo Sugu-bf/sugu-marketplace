@@ -363,6 +363,7 @@ export async function verifyOtp(params: VerifyOtpParams): Promise<{
   verified: boolean;
   user?: AuthUserProfile;
   token?: string;
+  expires_at?: string;
 }> {
   await initCsrf();
 
@@ -371,6 +372,7 @@ export async function verifyOtp(params: VerifyOtpParams): Promise<{
     type?: string;
     user?: AuthUserProfile;
     token?: string;
+    expires_at?: string;
   }>>(
     buildApiUrl("/api/v1/web-auth/verify-otp"),
     { body: params }
@@ -388,6 +390,7 @@ export async function verifyOtp(params: VerifyOtpParams): Promise<{
     verified: true,
     user: data.data?.user,
     token: data.data?.token,
+    expires_at: data.data?.expires_at,
   };
 }
 
@@ -520,6 +523,8 @@ export interface GoogleSignInParams {
 export interface GoogleSignInResult {
   user: AuthUserProfile;
   token: string;
+  /** ISO 8601 — date d'expiration du token Sanctum (90j par défaut) */
+  expires_at?: string;
   is_new_user: boolean;
 }
 

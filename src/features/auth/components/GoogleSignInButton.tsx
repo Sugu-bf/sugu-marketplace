@@ -4,8 +4,12 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
-import { googleSignIn } from "../services/auth-service";
-import { getAuthErrorMessage } from "../services/auth-service";
+import {
+  googleSignIn,
+  getAuthErrorMessage,
+  setAuthTokenCookie,
+  setTokenExpiry,
+} from "../services/auth-service";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -65,17 +69,7 @@ function generateNonce(): string {
   return crypto.randomUUID();
 }
 
-/**
- * Stocke le token auth dans un cookie sécurisé.
- */
-function setAuthCookie(token: string): void {
-  if (typeof document === "undefined") return;
-  const isHttps = window.location.protocol === "https:";
-  const secure = isHttps ? "; Secure" : "";
-  document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; max-age=${
-    60 * 60 * 24 * 7
-  }; SameSite=Lax${secure}`;
-}
+// (setAuthCookie local supprimé — on utilise setAuthTokenCookie centralisé et HttpOnly)
 
 /**
  * Charge le script Google Identity Services de façon paresseuse.
@@ -159,9 +153,13 @@ function GoogleSignInButton({ onSuccess, onError, className }: GoogleSignInButto
           nonce_hash: nonceHashRef.current,
         });
 
-        // Stocker le Sanctum token en cookie
+        // SEC-06 : poser le cookie Sanctum en HttpOnly via le Route Handler
+        // (setAuthCookie local supprimé — était document.cookie en clair)
         if (result.token) {
-          setAuthCookie(result.token);
+          const expiresAt = result.expires_at
+            ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+          await setAuthTokenCookie(result.token, expiresAt);
+          setTokenExpiry(expiresAt);
         }
 
         // Invalider le nonce après usage (single-use)
