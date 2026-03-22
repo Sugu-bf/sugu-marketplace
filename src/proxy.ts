@@ -128,7 +128,7 @@ function maybeEvict(): void {
 
 const SKIP_PREFIXES = ["/_next", "/api", "/favicon", "/robots.txt", "/sitemap", "/__nextjs"];
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // Skip infrastructure paths

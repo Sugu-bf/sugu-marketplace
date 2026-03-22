@@ -1,18 +1,19 @@
 /**
  * server-auth.ts — Server-only auth token reader.
  *
- * IMPORTANT: This file reads cookies() from next/headers.
- * It MUST only be imported from Server Components / Route Handlers.
+ * Reads the auth_token cookie via next/headers (Next.js server context).
+ * ONLY imported via dynamic import from lib/api/client.ts to prevent
+ * Next.js static analysis from detecting cookies() usage in the shared
+ * fetch client, which would break ISR on all pages.
  *
- * Calling cookies() opts a route into dynamic rendering.
- * That's why this is isolated here and NOT inside client.ts,
- * which is reachable from every fetch call (including ISR pages).
+ * Protection:
+ * - Dynamic import from client.ts → only resolved at runtime, not statically bundled
+ * - Only called when typeof document === "undefined" (server-side)
+ * - Only called when skipCredentials=false (user-specific pages, never ISR pages)
  *
- * Usage: imported lazily only when skipCredentials=false
- * (i.e. never on public/ISR pages, only on user-specific pages).
+ * NOTE: `import "server-only"` intentionally omitted — Turbopack statically
+ * pre-processes dynamic imports and would throw at build time.
  */
-
-import "server-only";
 
 /**
  * Read the auth_token from the incoming request cookies.
