@@ -27,38 +27,56 @@ export default function StoreHeroBanner({ store, storeId, isFollowed }: StoreHer
     .toUpperCase()
     .slice(0, 2);
 
+  // Identify if a custom cover was provided, or if it's the default system fallback
+  const hasCustomCover =
+    store.coverUrl && !store.coverUrl.includes("fallback-store-cover");
+
   return (
     <section>
       {/* ─── Cover Image ──────────────────────────────────────── */}
       <Container>
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-900 via-blue-800 to-teal-600 h-[180px] sm:h-[240px]">
-          {/* Decorative pattern overlay */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.2)_0%,transparent_60%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.15)_0%,transparent_50%)]" />
-          </div>
+        <div
+          className={`relative h-[180px] overflow-hidden rounded-2xl sm:h-[240px] ${
+            hasCustomCover
+              ? "bg-muted"
+              : "bg-gradient-to-r from-blue-900 via-blue-800 to-teal-600"
+          }`}
+        >
+          {/* Decorative pattern overlay (only for fallback) */}
+          {!hasCustomCover && (
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.2)_0%,transparent_60%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.15)_0%,transparent_50%)]" />
+            </div>
+          )}
 
-          {/* Cover image if available */}
+          {/* Cover image */}
           {store.coverUrl && (
             <Image
               src={store.coverUrl}
               alt={`Couverture ${store.name}`}
               fill
-              className="object-cover mix-blend-overlay opacity-30"
+              className={
+                hasCustomCover
+                  ? "object-cover"
+                  : "object-cover mix-blend-overlay opacity-30"
+              }
               sizes="(max-width: 1400px) 100vw, 1400px"
               priority
             />
           )}
 
-          {/* Title overlay */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase">
-              {store.name}
-            </h1>
-            <p className="mt-2 text-sm sm:text-base text-white/70 font-medium">
-              Votre partenaire tech de confiance
-            </p>
-          </div>
+          {/* Title overlay (only if no custom cover) */}
+          {!hasCustomCover && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+              <h1 className="text-2xl font-black uppercase tracking-tight text-white sm:text-4xl lg:text-5xl">
+                {store.name}
+              </h1>
+              <p className="mt-2 text-sm font-medium text-white/70 sm:text-base">
+                Votre partenaire de confiance
+              </p>
+            </div>
+          )}
         </div>
       </Container>
 
@@ -69,13 +87,17 @@ export default function StoreHeroBanner({ store, storeId, isFollowed }: StoreHer
           <div className="flex flex-col sm:flex-row sm:items-start gap-4">
             {/* Logo — overlaps cover on desktop */}
             <div className="relative -mt-14 sm:-mt-16 flex-shrink-0 self-start">
-              <div className="relative h-[80px] w-[80px] sm:h-[90px] sm:w-[90px] rounded-full border-4 border-white shadow-lg bg-primary flex items-center justify-center overflow-hidden">
+              <div
+                className={`relative flex h-[80px] w-[80px] flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-lg sm:h-[90px] sm:w-[90px] ${
+                  store.logoUrl ? "bg-white" : "bg-primary"
+                }`}
+              >
                 {store.logoUrl ? (
                   <Image
                     src={store.logoUrl}
                     alt={store.name}
                     fill
-                    className="object-cover"
+                    className="object-contain p-2"
                     sizes="90px"
                   />
                 ) : (

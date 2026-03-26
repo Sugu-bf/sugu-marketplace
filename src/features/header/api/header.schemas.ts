@@ -14,6 +14,7 @@ export const HeaderSubCategorySchema = z.object({
   name: z.string(),
   slug: z.string(),
   image: z.string().nullable().optional(),
+  icon_url: z.string().nullable().optional(),
   product_count: z.number().optional(),
 });
 

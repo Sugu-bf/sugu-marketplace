@@ -14,12 +14,10 @@ const footerColumns = [
   {
     title: "À Propos",
     links: [
-      { label: "Profil de l'entreprise", href: "#" },
       { label: "Tous nos magasins", href: "/stores" },
       { label: "Nos fournisseurs", href: "/fournisseurs" },
-      { label: "Espace vendeur", href: "#" },
-      { label: "Programme d'affiliation", href: "#" },
-      { label: "Contactez-nous", href: "#" },
+      { label: "Espace vendeur", href: "https://pro.sugu.pro/" },
+      { label: "Contactez-nous", href: "/help" },
     ],
   },
   {
@@ -27,9 +25,9 @@ const footerColumns = [
     links: [
       { label: "Centre d'aide", href: "/help" },
       { label: "Chat Support", href: "/support-chat" },
-      { label: "Contactez-nous", href: "#" },
-      { label: "Signaler un abus", href: "#" },
-      { label: "Soumettre un litige", href: "#" },
+      { label: "Contactez-nous", href: "/help" },
+      { label: "Signaler un abus", href: "/help" },
+      { label: "Soumettre un litige", href: "/help" },
       { label: "Livraison & Retours", href: "/politique-livraison-retours" },
     ],
   },
@@ -42,7 +40,7 @@ const footerColumns = [
       { label: "Mes adresses", href: "/account/addresses" },
       { label: "Mes paiements", href: "/account/payments" },
       { label: "Mes coupons", href: "/account/coupons" },
-      { label: "Liste de souhaits", href: "#" },
+      { label: "Liste de souhaits", href: "/account/wishlist" },
     ],
   },
   {
@@ -52,19 +50,24 @@ const footerColumns = [
       { label: "Politique de confidentialité", href: "/politique-de-confidentialite" },
       { label: "Livraison & Retours", href: "/politique-livraison-retours" },
       { label: "Politique anti-fraude", href: "/politique-anti-fraude" },
-      { label: "Devenir vendeur", href: "#" },
+      { label: "Devenir vendeur", href: "https://pro.sugu.pro/" },
     ],
   },
 ];
 
 const socialLinks = [
-  { name: "Facebook", icon: "f" },
-  { name: "Twitter", icon: "𝕏" },
-  { name: "Google", icon: "G" },
-  { name: "LinkedIn", icon: "in" },
+  { name: "Facebook", icon: "f", href: "https://facebook.com/sugu" },
+  { name: "Twitter", icon: "𝕏", href: "https://twitter.com/sugu" },
+  { name: "Google", icon: "G", href: "https://google.com/search?q=sugu" },
+  { name: "LinkedIn", icon: "in", href: "https://linkedin.com/company/sugu" },
 ];
 
-const paymentMethods = ["AM", "VISA", "MC", "CB", "PP"];
+const paymentMethods = [
+  { name: "Wave", src: "/payments/wave.png" },
+  { name: "Orange Money", src: "/payments/orange.png" },
+  { name: "Moov Money", src: "/payments/moov.png" },
+  { name: "Telecel Money", src: "/payments/telecel.png" },
+];
 
 /* ── Collapsible Link Column (mobile accordion) ── */
 
@@ -147,18 +150,8 @@ export default function Footer() {
           <div className="lg:col-span-2 mb-6 md:mb-0">
             {/* Logo */}
             <div className="flex items-center gap-2 mb-4">
-              <div className="relative h-8 w-8 flex-shrink-0">
-                <Image
-                  src="https://cdn.sugu.pro/p/logo-sugu.avif"
-                  alt="Sugu"
-                  fill
-                  className="object-contain"
-                  unoptimized
-                  sizes="32px"
-                />
-              </div>
               <span className="text-lg font-extrabold text-gray-900 tracking-tight">
-                SUGU
+                Sugu
               </span>
             </div>
 
@@ -170,7 +163,7 @@ export default function Footer() {
             <div className="space-y-2.5">
               <div className="flex items-center gap-2.5">
                 <Phone size={14} className="text-[#F15412] flex-shrink-0" />
-                <span className="text-sm text-gray-600">+226 00 00 00 00</span>
+                <span className="text-sm text-gray-600">+226 64 52 89 58</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail size={14} className="text-[#F15412] flex-shrink-0" />
@@ -189,7 +182,7 @@ export default function Footer() {
               {socialLinks.map((social) => (
                 <a
                   key={social.name}
-                  href="#"
+                  href={social.href}
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F15412] text-white text-xs font-bold transition-all duration-200 hover:bg-[#d94a0f] hover:scale-110 active:scale-95"
                   title={social.name}
                 >
@@ -216,31 +209,33 @@ export default function Footer() {
         <div className="mx-auto max-w-[1400px] px-4 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Left — copyright */}
           <p className="text-xs text-gray-400 text-center sm:text-left">
-            sugu © 2026. Tous droits réservés
+            Sugu © 2026. Tous droits réservés
           </p>
 
-          {/* Center — mini logo (hidden on mobile) */}
-          <div className="hidden sm:flex relative h-6 w-6 flex-shrink-0">
-            <Image
-              src="https://cdn.sugu.pro/p/logo-sugu.avif"
-              alt="Sugu"
-              fill
-              className="object-contain"
-              unoptimized
-              sizes="24px"
-            />
-          </div>
+          {/* Center — (Logo removed) */}
+          {/* <div className="hidden sm:flex relative flex-shrink-0">
+            <span className="text-sm font-extrabold text-gray-900 tracking-tight">
+              Sugu
+            </span>
+          </div> */}
 
           {/* Right — payment methods */}
           <div className="flex items-center gap-2 flex-wrap justify-center">
             <span className="text-xs text-gray-400">Nous acceptons</span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {paymentMethods.map((pm) => (
                 <div
-                  key={pm}
-                  className="flex h-6 w-9 items-center justify-center rounded bg-gray-100 text-[9px] font-bold text-gray-500"
+                  key={pm.name}
+                  className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:scale-110 hover:border-[#F15412]/30"
+                  title={pm.name}
                 >
-                  {pm}
+                  <Image
+                    src={pm.src}
+                    alt={pm.name}
+                    fill
+                    className="object-contain p-1.5"
+                    sizes="40px"
+                  />
                 </div>
               ))}
             </div>

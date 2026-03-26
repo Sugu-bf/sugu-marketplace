@@ -19,10 +19,10 @@ export default function BestSeller({ products }: BestSellerProps) {
     >
       {/* Section Header */}
       <SectionHeader
-        title="Best Seller"
+        title="Meilleures Ventes"
         action={
           <div className="flex items-center gap-3">
-            <ViewAllButton label="View All" count={40} />
+            <ViewAllButton label="Voir tout" count={40} />
             <div className="hidden sm:block">
               <ScrollArrows scrollRef={scrollRef} />
             </div>

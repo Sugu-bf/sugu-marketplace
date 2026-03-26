@@ -22,10 +22,10 @@ export default function TrendingStores({ tags, products }: TrendingStoresProps) 
     >
       {/* Section Header */}
       <SectionHeader
-        title="Trending Store Favorites"
+        title="Favoris des Boutiques"
         action={
           <div className="flex items-center gap-3">
-            <ViewAllButton label="View All" />
+            <ViewAllButton label="Voir tout" />
             <div className="hidden sm:block">
               <ScrollArrows scrollRef={productScrollRef} />
             </div>

@@ -227,12 +227,12 @@ export default function MarketplaceHeaderClient({
           >
             <div className="relative h-10 w-10 overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-110 bg-white/10 p-0.5">
               <Image
-                src="https://cdn.sugu.pro/p/logo-sugu.avif"
-                alt="Sugu"
+                src="https://cdn.sugu.pro/p/logo-sugu.png"
+                alt="Logo Sugu"
                 fill
                 className="object-contain"
                 priority
-                sizes="40px"
+                sizes="50px"
                 unoptimized
               />
             </div>

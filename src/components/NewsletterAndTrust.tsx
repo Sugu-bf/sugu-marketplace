@@ -69,15 +69,15 @@ export default function NewsletterAndTrust({ trustBadges }: NewsletterAndTrustPr
     >
       {/* ── Newsletter Banner ── */}
       <div
-        className="relative overflow-hidden rounded-2xl mb-6"
+        className="relative overflow-hidden rounded-2xl mb-6 isolate"
         style={{
           background: "#EDEAE6",
           animation: "fadeSlideUp 0.5s ease-out 150ms both",
         }}
       >
-        <div className="flex flex-col md:flex-row items-center">
+        <div className="flex flex-col md:flex-row items-stretch">
           {/* Left content */}
-          <div className="flex-1 p-5 sm:p-8 md:p-10 lg:p-12">
+          <div className="flex-1 flex flex-col justify-center p-5 sm:p-8 md:p-10 lg:p-12">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground leading-snug mb-4 sm:mb-6">
               Restez chez vous et recevez vos besoins quotidiens de notre boutique
             </h2>
@@ -133,13 +133,13 @@ export default function NewsletterAndTrust({ trustBadges }: NewsletterAndTrustPr
           </div>
 
           {/* Right image — hidden on mobile */}
-          <div className="relative hidden sm:block w-full sm:w-[240px] md:w-[320px] lg:w-[380px] h-[180px] sm:h-[220px] md:h-[260px] flex-shrink-0">
+          <div className="relative hidden sm:block w-full md:w-[320px] lg:w-[400px] h-[220px] md:h-auto flex-shrink-0 sm:rounded-b-2xl md:rounded-none md:rounded-r-2xl overflow-hidden isolate">
             <Image
               src="/promos/newsletter-grocery.png"
               alt="Panier de courses"
               fill
-              className="object-contain object-center md:object-right-bottom"
-              sizes="380px"
+              className="object-cover object-center"
+              sizes="(max-width: 768px) 100vw, 400px"
             />
           </div>
         </div>

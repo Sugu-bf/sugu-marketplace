@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { fontInter } from "@/lib/fonts";
+import { fontQuicksand } from "@/lib/fonts";
 import { SEO, SITE_NAME, SITE_URL } from "@/lib/constants";
 import { fetchBranding } from "@/lib/branding.service";
 import { BrandingProvider } from "@/components/BrandingProvider";
@@ -47,7 +47,7 @@ export default async function RootLayout({
 
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${fontInter.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className={`${fontQuicksand.variable} font-sans antialiased`} suppressHydrationWarning>
         <BrandingProvider branding={branding}>
           <QueryProvider>
             <TokenRefreshProvider>

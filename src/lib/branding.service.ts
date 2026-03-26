@@ -15,7 +15,7 @@ export const BRANDING_FALLBACK: BrandingData = {
     name: "SUGU",
     tagline: "La plus grande plateforme de vente en ligne",
     support_email: "contact@sugu.pro",
-    support_phone: "+226 00 00 00 00",
+    support_phone: "+226 64 52 89 58",
   },
   logos: {
     light_url: "https://cdn.sugu.pro/p/logo-sugu.avif",
@@ -29,10 +29,10 @@ export const BRANDING_FALLBACK: BrandingData = {
     secondary: null,
     accent: "#F5C451",
     background: "#FFFFFF",
-    text: "#171717",
+    text: "#1D1D1F",
   },
   typography: {
-    font_family: "Inter",
+    font_family: "Quicksand",
     heading_font_family: null,
     base_font_size: 16,
   },

@@ -23,9 +23,9 @@
 
   /* ── Neutrals ── */
   --color-background: #FFFFFF;
-  --color-foreground: #171717;
+  --color-foreground: #1D1D1F;
   --color-muted: #F5F5F5;
-  --color-muted-foreground: #737373;
+  --color-muted-foreground: #1D1D1F;
   --color-border: #E5E5E5;
   --color-border-light: #F0F0F0;
 
@@ -79,7 +79,7 @@
   --color-warning: var(--color-warning);
   --color-error: var(--color-error);
   --color-info: var(--color-info);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-quicksand);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -91,6 +91,7 @@ body {
   background: var(--color-background);
   color: var(--color-foreground);
   overflow-x: hidden;
+  font-weight: 500;
 }
 
 /* Focus ring — accessible & on-brand */
@@ -101,8 +102,15 @@ body {
 
 /* Selection */
 ::selection {
-  background-color: rgba(241, 84, 18, 0.15);
-  color: #F15412;
+  background-color: var(--color-primary);
+  color: var(--color-background);
+}
+
+/* Inverser les couleurs de sélection sur les fonds orange pour qu'on puisse voir le texte */
+.bg-primary ::selection,
+.bg-primary::selection {
+  background-color: var(--color-background);
+  color: var(--color-primary);
 }
 
 /* Smooth scrolling */

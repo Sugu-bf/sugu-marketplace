@@ -91,7 +91,7 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
         {/* Sale badge (hover reveal) */}
         {showSaleBadge && hasDiscount && (
           <div className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-white shadow-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-            SALE
+            PROMO
           </div>
         )}
         {/* Quick add button */}

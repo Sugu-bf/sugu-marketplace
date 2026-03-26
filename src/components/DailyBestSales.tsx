@@ -69,14 +69,14 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
       {/* Product Info */}
       <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
         {/* Price */}
-        <div className="flex items-baseline gap-2 mb-1">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-1">
           <span className="text-xs text-muted-foreground line-through">
             {formatPrice(product.originalPrice)}
           </span>
           <span className="text-sm font-bold text-primary">
             {formatPrice(product.price)}
           </span>
-          <span className="text-[10px] text-muted-foreground">/Qty</span>
+          <span className="text-[10px] text-muted-foreground">/Qté</span>
         </div>
 
         {/* Rating */}
@@ -92,9 +92,9 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
         </p>
 
         {/* Store */}
-        <div className="flex items-center gap-1 mb-1.5">
-          <ShoppingBag size={11} className="text-primary" />
-          <span className="text-[11px] text-muted-foreground">Par {product.store}</span>
+        <div className="flex items-center gap-1 mb-1.5 min-w-0">
+          <ShoppingBag size={11} className="text-primary flex-shrink-0" />
+          <span className="text-[11px] text-muted-foreground truncate">Par {product.store}</span>
         </div>
 
         {/* Sold progress */}

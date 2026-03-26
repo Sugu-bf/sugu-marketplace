@@ -50,10 +50,10 @@ export const mockCategoryPills: CategoryPill[] = [
 // ─── Fresh Categories ───────────────────────────────────────
 
 export const mockFreshCategories: FreshCategory[] = [
-  { id: 1, title: "Everyday Fresh", subtitle: "Viande", price: 6099, image: "/categories/meat.png", bgColor: "#E8EDF3" },
-  { id: 2, title: "Daily Fresh", subtitle: "Légumes", price: 6099, image: "/categories/vegetables.png", bgColor: "#EAF0E4" },
-  { id: 3, title: "Everyday Fresh", subtitle: "Lait", price: 100, image: "/categories/milk.png", bgColor: "#E3EEF0" },
-  { id: 4, title: "Everyday Fresh", subtitle: "Fruits", price: 6099, image: "/categories/fruits.png", bgColor: "#F0EDE3" },
+  { id: 1, title: "Frais Tous les Jours", subtitle: "Viande", price: 6099, image: "/categories/meat.png", bgColor: "#E8EDF3" },
+  { id: 2, title: "Frais Quotidien", subtitle: "Légumes", price: 6099, image: "/categories/vegetables.png", bgColor: "#EAF0E4" },
+  { id: 3, title: "Frais Tous les Jours", subtitle: "Lait", price: 100, image: "/categories/milk.png", bgColor: "#E3EEF0" },
+  { id: 4, title: "Frais Tous les Jours", subtitle: "Fruits", price: 6099, image: "/categories/fruits.png", bgColor: "#F0EDE3" },
 ];
 
 // ─── Promotional Deals ──────────────────────────────────────
@@ -96,8 +96,8 @@ export const mockTrendingTags: Tag[] = [
 
 export const mockDailyDealCard: DailyDealCard = {
   category: "Équipement médical",
-  title: "Deals of the day",
-  subtitle: "Save up to 50% off on your first order",
+  title: "Offres du jour",
+  subtitle: "Économisez jusqu'à 50% sur votre première commande",
   expiry: "Offre expirée — actualisation...",
   image: "/promos/grocery-basket.png",
 };

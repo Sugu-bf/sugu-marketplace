@@ -20,10 +20,10 @@ export default function ShopByBrands({ brands }: ShopByBrandsProps) {
     >
       {/* Header */}
       <SectionHeader
-        title="Shop by Brands"
+        title="Vos Marques Préférées"
         action={
           <div className="flex items-center gap-3">
-            <ViewAllButton label="View All Deals" />
+            <ViewAllButton label="Voir toutes les offres" />
             <ScrollArrows scrollRef={scrollRef} size="sm" />
           </div>
         }

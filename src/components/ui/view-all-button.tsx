@@ -16,7 +16,7 @@ interface ViewAllButtonProps {
  * Renders as a link or button depending on presence of href/onClick.
  */
 function ViewAllButton({
-  label = "View All",
+  label = "Voir tout",
   count,
   href,
   onClick,

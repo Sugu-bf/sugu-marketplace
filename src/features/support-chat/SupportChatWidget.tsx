@@ -240,7 +240,7 @@ export default function SupportChatWidget() {
           className="fixed bottom-24 right-6 z-[9998] w-[380px] max-w-[calc(100vw-2rem)] shadow-2xl rounded-2xl overflow-hidden flex flex-col"
           style={{
             height: "min(540px, calc(100vh - 8rem))",
-            fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+            fontFamily: "'Quicksand', 'Segoe UI', system-ui, sans-serif",
           }}
         >
           {/* Header */}

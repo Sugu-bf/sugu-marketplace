@@ -118,7 +118,7 @@ export function useSearchSuggestions(query: string): UseSearchSuggestionsReturn 
               name: String(p.name ?? ""),
               slug: String(p.slug ?? ""),
               thumbnail: (p.thumbnail as string) || FALLBACK_THUMBNAIL,
-              price: Number(p.price ?? 0),
+              price: Math.round(Number(p.price ?? 0) / 100),
               currency: String(p.currency ?? "XOF"),
               highlightName: p.highlight_name ? String(p.highlight_name) : undefined,
             }));

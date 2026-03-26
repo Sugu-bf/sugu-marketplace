@@ -12,6 +12,63 @@ import {
 import { cn } from "@/lib/utils";
 import type { HeaderCategory } from "../api/header.schemas";
 
+/**
+ * Filtre CSS pour convertir un SVG noir (stroke="currentColor" → black)
+ * en couleur primary amber (#c2410c ≈ orange-700 pour Sugu).
+ * Généré via https://codepen.io/sosuke/pen/Pjoqqp
+ * Pour #ea580c (orange-600): brightness(0) + filtre couleur
+ */
+const LUCIDE_SVG_FILTER =
+  "brightness(0) saturate(100%) invert(38%) sepia(87%) saturate(600%) hue-rotate(5deg) brightness(98%) contrast(97%)";
+
+/**
+ * Affiche l'icône d'une catégorie :
+ * - icon_url (SVG R2 CDN) → <img> avec filtre CSS couleur
+ * - fallback → icône Lucide <Tag>
+ */
+function CategoryIcon({
+  iconUrl,
+  name,
+  size = 16,
+  className = "",
+  isActive = false,
+}: {
+  iconUrl?: string | null;
+  name: string;
+  size?: number;
+  className?: string;
+  isActive?: boolean;
+}) {
+  const [imgError, setImgError] = useState(false);
+
+  if (iconUrl && !imgError) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={iconUrl}
+        alt=""
+        width={size}
+        height={size}
+        className={cn("flex-shrink-0", className)}
+        style={{ filter: LUCIDE_SVG_FILTER }}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  return (
+    <Tag
+      size={size}
+      strokeWidth={1.5}
+      className={cn(
+        "flex-shrink-0 transition-colors duration-150",
+        isActive ? "text-primary" : "text-muted-foreground",
+        className
+      )}
+    />
+  );
+}
+
 interface CategoriesMegaMenuProps {
   categories: HeaderCategory[];
 }
@@ -125,25 +182,12 @@ export default function CategoriesMegaMenu({ categories }: CategoriesMegaMenuPro
                         aria-selected={isActive}
                         role="tab"
                       >
-                        {cat.icon_url ? (
-                          <Image
-                            src={cat.icon_url}
-                            alt=""
-                            width={16}
-                            height={16}
-                            className="flex-shrink-0"
-                            unoptimized
-                          />
-                        ) : (
-                          <Tag
-                            size={16}
-                            strokeWidth={1.5}
-                            className={cn(
-                              "flex-shrink-0 transition-colors duration-150",
-                              isActive ? "text-primary" : "text-muted-foreground"
-                            )}
-                          />
-                        )}
+                        <CategoryIcon
+                          iconUrl={cat.icon_url}
+                          name={cat.name}
+                          size={16}
+                          isActive={isActive}
+                        />
                         <span className="text-sm leading-snug truncate">{cat.name}</span>
                         <ChevronRight
                           size={14}
@@ -185,8 +229,23 @@ export default function CategoriesMegaMenu({ categories }: CategoriesMegaMenuPro
                             className="group flex flex-col items-center gap-2 text-center"
                             onClick={() => setOpen(false)}
                           >
-                            <div className="w-[72px] h-[72px] rounded-full bg-muted flex items-center justify-center transition-all duration-200 group-hover:bg-primary-50 group-hover:shadow-md overflow-hidden">
-                              {child.image ? (
+                            <div className="w-[72px] h-[72px] rounded-full bg-muted flex items-center justify-center transition-all duration-200 group-hover:bg-orange-50 group-hover:shadow-md overflow-hidden">
+                              {child.icon_url ? (
+                                // SVG Lucide depuis R2 — filtre CSS pour coloriser
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={child.icon_url}
+                                  alt=""
+                                  width={32}
+                                  height={32}
+                                  className="object-contain transition-all duration-200 group-hover:scale-110"
+                                  style={{ filter: LUCIDE_SVG_FILTER }}
+                                  onError={(e) => {
+                                    // Fallback silencieux si l'image ne charge pas
+                                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : child.image ? (
                                 <Image
                                   src={child.image}
                                   alt={child.name}

@@ -22,8 +22,8 @@ export function mapApiProductToProduct(api: ApiProductDetail): Product {
     slug: api.slug,
     name: api.name,
     description: api.description_html || api.short_description || "",
-    price: api.pricing.price,
-    originalPrice: api.pricing.compare_at_price ?? undefined,
+    price: Math.round(api.pricing.price / 100),
+    originalPrice: api.pricing.compare_at_price ? Math.round(api.pricing.compare_at_price / 100) : undefined,
     currency: api.pricing.currency || "F",
     discount: api.pricing.discount_percent || undefined,
     images: mapImages(api),
@@ -41,7 +41,7 @@ export function mapApiProductToProduct(api: ApiProductDetail): Product {
     isFeatured: false,
     createdAt: new Date().toISOString(),
     promoPrice: api.pricing.compare_at_price && api.pricing.compare_at_price > api.pricing.price
-      ? api.pricing.price
+      ? Math.round(api.pricing.price / 100)
       : undefined,
     promoEndsAt: api.pricing.promo_ends_at ?? undefined,
     bulkPrices: mapBulkPrices(api.bulkPrices),
@@ -82,7 +82,7 @@ function mapBulkPrices(bulkPrices: ApiBulkPrice[]): BulkPriceTier[] | undefined 
     return {
       minQty: tier.minQty,
       maxQty,
-      unitPrice: tier.price,
+      unitPrice: Math.round(tier.price / 100),
       label,
     };
   });
@@ -149,8 +149,8 @@ export function mapApiRelatedToListItem(rel: ApiRelatedProduct): ProductListItem
     id: String(rel.id),
     slug: rel.slug,
     name: rel.name,
-    price: rel.pricing.price,
-    originalPrice: rel.pricing.compare_at_price ?? undefined,
+    price: Math.round(rel.pricing.price / 100),
+    originalPrice: rel.pricing.compare_at_price ? Math.round(rel.pricing.compare_at_price / 100) : undefined,
     discount: undefined,
     thumbnail: rel.image.url,
     rating: rel.rating.avg,
