@@ -21,6 +21,11 @@ export const SupplierVendorContactSchema = z.object({
   phone: z.string(),
 });
 
+export const SupplierVendorStatsSchema = z.object({
+  total_products: z.number(),
+  total_sales: z.number(),
+});
+
 export const SupplierVendorCardSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -29,6 +34,8 @@ export const SupplierVendorCardSchema = z.object({
   logo: SupplierVendorImageSchema,
   rating: SupplierVendorRatingSchema,
   contact: SupplierVendorContactSchema,
+  stats: SupplierVendorStatsSchema,
+  member_since: z.string().nullable(),
   is_followed: z.boolean(),
 });
 

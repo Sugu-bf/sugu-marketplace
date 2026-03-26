@@ -179,7 +179,7 @@ export default function SuppliersPageClient({
           className="mt-8 animate-fade-slide-up"
           style={{ animationDelay: "0.1s" }}
         >
-          <SectionHeader title="⭐ Fournisseurs vedettes" />
+          <SectionHeader title="Fournisseurs vedettes" />
           <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
             {featuredSuppliers.map((supplier) => (
               <FeaturedSupplierCard key={supplier.id} supplier={supplier} />

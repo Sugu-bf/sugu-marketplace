@@ -80,12 +80,12 @@ export function mapVendorToSupplier(
     location: item.contact.address_line,
     country: country.name,
     countryFlag: country.flag,
-    memberSince: "2023", // Backend doesn't return created_at in listing
+    memberSince: item.member_since || "2023",
     tagline: "",         // MVP — empty, could be enriched later
     rating: item.rating.avg,
     reviewCount: item.rating.count,
-    totalProducts: 0,    // Not in listing API — placeholder
-    totalSales: 0,       // Not in listing API — placeholder
+    totalProducts: item.stats.total_products,
+    totalSales: item.stats.total_sales,
     isFeatured: featured,
     sectors: [],         // Not in listing API — placeholder
   };

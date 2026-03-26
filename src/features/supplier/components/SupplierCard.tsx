@@ -45,7 +45,7 @@ export default function SupplierCard({ supplier, className }: SupplierCardProps)
           <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
             <MapPin size={12} className="flex-shrink-0" />
             <span className="truncate">
-              {supplier.countryFlag} {supplier.location}
+              {supplier.location}
             </span>
           </div>
 

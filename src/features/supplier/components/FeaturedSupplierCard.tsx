@@ -44,7 +44,7 @@ export default function FeaturedSupplierCard({ supplier }: FeaturedSupplierCardP
       {/* Logo */}
       <div className="flex flex-col items-center px-4 pb-4">
         <div
-          className="-mt-7 h-[56px] w-[56px] rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white font-black text-base"
+          className="relative z-10 -mt-7 h-[56px] w-[56px] rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white font-black text-base"
           style={{ backgroundColor: supplier.logoColor }}
         >
           {supplier.logoInitials}
@@ -69,14 +69,15 @@ export default function FeaturedSupplierCard({ supplier }: FeaturedSupplierCardP
         <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-1">
           <MapPin size={10} className="flex-shrink-0" />
           <span className="truncate">
-            {supplier.countryFlag} {supplier.location}
+            {supplier.location}
           </span>
         </div>
 
         {/* Stats row */}
         <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground mt-1.5">
-          <span className="font-semibold text-foreground">
-            ⭐ {supplier.rating.toFixed(1)}
+          <span className="font-semibold text-foreground flex items-center justify-center gap-1">
+            <Star size={12} className="fill-yellow-400 text-yellow-400" />
+            {supplier.rating.toFixed(1)}
           </span>
           <span>{supplier.totalProducts.toLocaleString("fr-FR")} produits</span>
           <span>{supplier.totalSales.toLocaleString("fr-FR")} ventes</span>
