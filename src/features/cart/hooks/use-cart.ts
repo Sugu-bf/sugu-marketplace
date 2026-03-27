@@ -346,7 +346,7 @@ export function useCart(initialCart: CartUI): UseCartReturn {
         return placeOrder(
           {
             checkout_session_id: session.sessionId,
-            payment_method: "moneroo", // Backend expects "cod" or "moneroo"
+            payment_method: "cinetpay", // Backend expects "cod" or "cinetpay"
           },
           idempotencyKey
         );

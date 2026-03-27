@@ -25,7 +25,7 @@ interface CheckoutOrderSummaryProps {
   /** Remove coupon via API */
   onRemoveCoupon?: () => Promise<void>;
   /** Place order action */
-  onPlaceOrder?: (paymentMethod: "cod" | "moneroo") => Promise<void>;
+  onPlaceOrder?: (paymentMethod: "cod" | "cinetpay") => Promise<void>;
   /** Whether an order placement is in progress */
   isPlacingOrder?: boolean;
 }
@@ -100,7 +100,7 @@ function CheckoutOrderSummary({
   };
 
   // Payment method state
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "moneroo">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "cinetpay">("cod");
 
   const handlePlaceOrder = async () => {
     if (onPlaceOrder && !isPlacingOrder) {
@@ -279,22 +279,22 @@ function CheckoutOrderSummary({
               </div>
             </button>
 
-            {/* Moneroo (Mobile Money) option */}
+            {/* CinetPay (Mobile Money) option */}
             <button
               type="button"
               role="radio"
-              aria-checked={paymentMethod === "moneroo"}
-              onClick={() => setPaymentMethod("moneroo")}
+              aria-checked={paymentMethod === "cinetpay"}
+              onClick={() => setPaymentMethod("cinetpay")}
               className={cn(
                 "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all",
-                paymentMethod === "moneroo"
+                paymentMethod === "cinetpay"
                   ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                   : "border-border hover:border-primary/40 bg-background"
               )}
             >
               <div className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-lg",
-                paymentMethod === "moneroo" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                paymentMethod === "cinetpay" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               )}>
                 <Wallet size={18} />
               </div>
@@ -304,9 +304,9 @@ function CheckoutOrderSummary({
               </div>
               <div className={cn(
                 "h-4 w-4 rounded-full border-2 transition-colors",
-                paymentMethod === "moneroo" ? "border-primary bg-primary" : "border-border"
+                paymentMethod === "cinetpay" ? "border-primary bg-primary" : "border-border"
               )}>
-                {paymentMethod === "moneroo" && (
+                {paymentMethod === "cinetpay" && (
                   <div className="h-full w-full rounded-full bg-white scale-[0.4]" />
                 )}
               </div>

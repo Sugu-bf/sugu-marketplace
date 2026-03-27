@@ -9,7 +9,7 @@ export const metadata = createMetadata({ title: "Mes Paiements", description: "G
  * Payments page — placeholder.
  *
  * The backend doesn't support saved payment methods.
- * Payments are handled via redirect flow (Moneroo) or COD.
+ * Payments are handled via redirect flow (CinetPay) or COD.
  * This page informs users about the payment flow.
  */
 export default function PaymentsPage() {

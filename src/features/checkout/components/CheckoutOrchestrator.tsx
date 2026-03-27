@@ -127,7 +127,7 @@ function CheckoutOrchestrator({
   const [actionError, setActionError] = useState<string | null>(null);
 
   // Payment method state (WARN-01 fix)
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cod" | "moneroo">("cod");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cod" | "cinetpay">("cod");
 
   // Modal states
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
@@ -273,7 +273,7 @@ function CheckoutOrchestrator({
 
   // ─── Place Order handler ─────────────────────────────────
   const handlePlaceOrder = useCallback(
-    async (paymentMethod: "cod" | "moneroo" = "cod") => {
+    async (paymentMethod: "cod" | "cinetpay" = "cod") => {
       // Validation checks
       if (!hasAddress) {
         setActionError("Veuillez ajouter une adresse de livraison.");

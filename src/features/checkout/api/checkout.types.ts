@@ -79,7 +79,7 @@ export interface CheckoutPageState {
   /** Currently selected rate ID (shipping method) */
   selectedRateId: string | null;
   /** Selected payment method */
-  selectedPaymentMethod: "cod" | "moneroo" | null;
+  selectedPaymentMethod: "cod" | "cinetpay" | null;
 }
 
 // ─── Request Payloads ────────────────────────────────────────
@@ -96,7 +96,7 @@ export interface CreateCheckoutSessionPayload {
 
 export interface PlaceOrderPayload {
   checkout_session_id: string;
-  payment_method: "cod" | "moneroo";
+  payment_method: "cod" | "cinetpay";
 }
 
 export interface UpdateCheckoutSessionPayload {
@@ -113,5 +113,5 @@ export interface UpdateCheckoutSessionPayload {
   };
   shipping_partner_id?: string | null;
   shipping_rate_id?: string | null;
-  payment_method?: "cod" | "moneroo" | null;
+  payment_method?: "cod" | "cinetpay" | null;
 }
