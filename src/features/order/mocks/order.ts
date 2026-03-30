@@ -118,5 +118,7 @@ export function getMockTrackedOrder(): TrackedOrder {
     discount: 1200,
     total: 14800,
     paymentMethod: "Mobile Money",
+    paymentStatus: "paid",
+    codMixte: null,
   };
 }

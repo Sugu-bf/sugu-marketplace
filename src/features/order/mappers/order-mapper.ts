@@ -94,5 +94,23 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
     discount: api.pricing.discount,
     total: api.pricing.total,
     paymentMethod: api.pricing.paymentMethod,
+    paymentStatus: api.pricing.paymentStatus,
+
+    // COD Mixte split-payment data
+    codMixte: api.codMixte
+      ? {
+          isCodMixte: api.codMixte.isCodMixte,
+          deliveryFeePaid: api.codMixte.deliveryFeePaid,
+          productFeePaid: api.codMixte.productFeePaid,
+          deliveryFeeAmount: api.codMixte.deliveryFeeAmount,
+          productFeeAmount: api.codMixte.productFeeAmount,
+          deliveryFeePaidAt: api.codMixte.deliveryFeePaidAt,
+          productFeePaidAt: api.codMixte.productFeePaidAt,
+          vendorConfirmedAt: api.codMixte.vendorConfirmedAt,
+          payDeliveryFeeUrl: api.codMixte.payDeliveryFeeUrl,
+          payProductFeeUrl: api.codMixte.payProductFeeUrl,
+          currentStep: api.codMixte.currentStep,
+        }
+      : null,
   };
 }

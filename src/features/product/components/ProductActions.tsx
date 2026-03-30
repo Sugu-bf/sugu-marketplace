@@ -355,6 +355,23 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
         <AssuranceBadge icon={<RotateCcw size={18} />} label="Retours gratuits" />
         <AssuranceBadge icon={<ShieldCheck size={18} />} label="Qualité garantie" />
       </div>
+
+      {/* COD Mixte information */}
+      <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-3.5">
+        <div className="flex items-start gap-2.5">
+          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-amber-100">
+            <ShieldCheck size={14} className="text-amber-700" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-amber-800">
+              Paiement à la livraison disponible
+            </p>
+            <p className="text-[11px] text-amber-600 mt-0.5 leading-relaxed">
+              Payez les frais de livraison avant le déplacement du coursier, puis payez les produits après vérification.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

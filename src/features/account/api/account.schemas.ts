@@ -99,6 +99,12 @@ export const ApiOrderListItemSchema = z.object({
   paymentStatus: z.string().optional(),
   paymentMethod: z.string().optional(),
   shippingStatus: z.string().optional(),
+  // COD Mixte fields
+  is_cod: z.boolean().optional(),
+  cod_flow_type: z.enum(["mixte", "legacy"]).nullable().optional(),
+  delivery_fee_paid: z.boolean().optional(),
+  product_fee_paid: z.boolean().optional(),
+  cod_current_step: z.string().nullable().optional(),
 });
 
 export const ApiOrderListResponseSchema = z.object({

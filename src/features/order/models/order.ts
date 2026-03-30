@@ -112,9 +112,34 @@ export const OrderTrackingApiSchema = z.object({
     discount: z.number(),
     total: z.number(),
     currency: z.string(),
-    paymentStatus: z.enum(["paid", "pending", "failed"]),
+    paymentStatus: z.enum(["paid", "pending", "failed", "unpaid", "partial"]),
     paymentMethod: z.string(),
   }),
+
+  // ── COD Mixte split-payment data (optional — only for COD orders) ──
+  codMixte: z.object({
+    isCodMixte: z.boolean(),
+    deliveryFeePaid: z.boolean(),
+    productFeePaid: z.boolean(),
+    deliveryFeeAmount: z.number(),
+    productFeeAmount: z.number(),
+    deliveryFeePaidAt: z.string().nullable(),
+    productFeePaidAt: z.string().nullable(),
+    vendorConfirmedAt: z.string().nullable(),
+    payDeliveryFeeUrl: z.string().nullable(),
+    payProductFeeUrl: z.string().nullable(),
+    /** Current step in the COD Mixte flow */
+    currentStep: z.enum([
+      "awaiting_vendor",    // Waiting for vendor stock confirmation
+      "awaiting_negotiation", // Delivery fee negotiation in progress
+      "awaiting_delivery_payment", // Client must pay delivery fee
+      "awaiting_pickup",    // Courier en route to collect
+      "awaiting_inspection", // Client inspecting products
+      "awaiting_product_payment", // Client must pay product fee
+      "awaiting_code",      // Client received code, giving to courier
+      "completed",          // Both fees paid, delivery done
+    ]),
+  }).optional(),
 });
 
 /** The full API response wrapper */
@@ -153,6 +178,22 @@ export const TrackedOrderSchema = z.object({
   discount: z.number(),
   total: z.number(),
   paymentMethod: z.string(),
+  paymentStatus: z.enum(["paid", "pending", "failed", "unpaid", "partial"]),
+
+  // COD Mixte split-payment state
+  codMixte: z.object({
+    isCodMixte: z.boolean(),
+    deliveryFeePaid: z.boolean(),
+    productFeePaid: z.boolean(),
+    deliveryFeeAmount: z.number(),
+    productFeeAmount: z.number(),
+    deliveryFeePaidAt: z.string().nullable(),
+    productFeePaidAt: z.string().nullable(),
+    vendorConfirmedAt: z.string().nullable(),
+    payDeliveryFeeUrl: z.string().nullable(),
+    payProductFeeUrl: z.string().nullable(),
+    currentStep: z.string(),
+  }).nullable(),
 });
 
 // ─── Derived Types ───────────────────────────────────────────

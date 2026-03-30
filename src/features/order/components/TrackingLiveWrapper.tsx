@@ -44,6 +44,29 @@ export function TrackingLiveWrapper({
 
   // Determine map status message
   const mapStatusMessage = (() => {
+    // COD Mixte-specific messages
+    if (order.codMixte?.isCodMixte) {
+      switch (order.codMixte.currentStep) {
+        case "awaiting_vendor":
+          return "En attente de confirmation du vendeur";
+        case "awaiting_negotiation":
+          return "Négociation des frais de livraison en cours";
+        case "awaiting_delivery_payment":
+          return "Payez la livraison pour déclencher le déplacement";
+        case "awaiting_pickup":
+          return "Le coursier récupère vos produits";
+        case "awaiting_inspection":
+          return "Vérifiez les produits à la réception";
+        case "awaiting_product_payment":
+          return "Payez les produits pour recevoir votre code";
+        case "awaiting_code":
+          return "Communiquez le code au coursier";
+        case "completed":
+          return "Livraison terminée — Bonne réception !";
+      }
+    }
+
+    // Standard flow messages
     switch (order.status) {
       case "shipping":
         return "Votre livreur est en route";
@@ -122,6 +145,8 @@ export function TrackingLiveWrapper({
             discount={order.discount}
             total={order.total}
             paymentMethod={order.paymentMethod}
+            paymentStatus={order.paymentStatus}
+            codMixte={order.codMixte}
           />
 
           {/* Estimated Delivery */}

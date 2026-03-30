@@ -147,6 +147,12 @@ function mapApiOrderToUI(order: ApiOrderListItem): Order {
       quantity: item.quantity,
       image: item.image,
     })),
+    // COD Mixte fields
+    is_cod: order.is_cod,
+    cod_flow_type: order.cod_flow_type,
+    delivery_fee_paid: order.delivery_fee_paid,
+    product_fee_paid: order.product_fee_paid,
+    cod_current_step: order.cod_current_step,
   };
 }
 

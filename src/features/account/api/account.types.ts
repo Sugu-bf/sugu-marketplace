@@ -118,6 +118,12 @@ export interface Order {
   currency: string;
   itemCount: number;
   items: OrderItem[];
+  // COD Mixte fields
+  is_cod?: boolean;
+  cod_flow_type?: "mixte" | "legacy" | null;
+  delivery_fee_paid?: boolean;
+  product_fee_paid?: boolean;
+  cod_current_step?: string | null;
 }
 
 /** Paginated orders response */

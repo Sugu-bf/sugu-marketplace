@@ -85,7 +85,12 @@ export function useOrderPolling(
           prev.timeline.length === mapped.timeline.length &&
           prev.deliveryProgress === mapped.deliveryProgress &&
           prev.driver?.name === mapped.driver?.name &&
-          prev.estimatedDate === mapped.estimatedDate
+          prev.estimatedDate === mapped.estimatedDate &&
+          prev.paymentStatus === mapped.paymentStatus &&
+          // COD Mixte: track split payment state changes
+          prev.codMixte?.deliveryFeePaid === mapped.codMixte?.deliveryFeePaid &&
+          prev.codMixte?.productFeePaid === mapped.codMixte?.productFeePaid &&
+          prev.codMixte?.currentStep === mapped.codMixte?.currentStep
         ) {
           return prev; // No rerender
         }
