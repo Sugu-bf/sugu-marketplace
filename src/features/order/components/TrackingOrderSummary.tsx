@@ -401,7 +401,7 @@ function PaymentStatusBanner({
         <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2.5">
           <CheckCircle2 size={18} className="text-green-600 flex-shrink-0" />
           <span className="text-sm font-medium text-green-700">
-            Tout payé via CinetPay
+            Tout payé via Mobile Money
           </span>
         </div>
       );

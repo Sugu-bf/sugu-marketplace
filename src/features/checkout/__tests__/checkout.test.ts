@@ -202,7 +202,7 @@ describe("Checkout Zod Schemas", () => {
       expect(result.success).toBe(true);
     });
 
-    test("accepts CinetPay payment response", () => {
+    test("accepts LigdiCash payment response", () => {
       const data = {
         success: true,
         message: "Commande créée avec succès.",
@@ -221,12 +221,12 @@ describe("Checkout Zod Schemas", () => {
           },
           payment_transaction: {
             id: "ptx_456",
-            provider: "cinetpay",
+            provider: "ligdicash",
             status: "initiated",
             amount: 15000,
             currency: "XOF",
           },
-          payment_url: "https://checkout.cinetpay.com/xxx",
+          payment_url: "https://app.ligdicash.com/checkout/xxx",
           next_step: "redirect_to_payment",
         },
       };

@@ -25,7 +25,7 @@ interface CheckoutOrderSummaryProps {
   /** Remove coupon via API */
   onRemoveCoupon?: () => Promise<void>;
   /** Place order action */
-  onPlaceOrder?: (paymentMethod: "cod" | "cinetpay") => Promise<void>;
+  onPlaceOrder?: (paymentMethod: "cod" | "ligdicash") => Promise<void>;
   /** Whether an order placement is in progress */
   isPlacingOrder?: boolean;
 }
@@ -100,7 +100,7 @@ function CheckoutOrderSummary({
   };
 
   // Payment method state
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "cinetpay">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "ligdicash">("cod");
 
   const handlePlaceOrder = async () => {
     if (onPlaceOrder && !isPlacingOrder) {
@@ -279,22 +279,22 @@ function CheckoutOrderSummary({
               </div>
             </button>
 
-            {/* CinetPay (Mobile Money) option */}
+            {/* LigdiCash (Mobile Money) option */}
             <button
               type="button"
               role="radio"
-              aria-checked={paymentMethod === "cinetpay"}
-              onClick={() => setPaymentMethod("cinetpay")}
+              aria-checked={paymentMethod === "ligdicash"}
+              onClick={() => setPaymentMethod("ligdicash")}
               className={cn(
                 "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all",
-                paymentMethod === "cinetpay"
+                paymentMethod === "ligdicash"
                   ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                   : "border-border hover:border-primary/40 bg-background"
               )}
             >
               <div className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-lg",
-                paymentMethod === "cinetpay" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                paymentMethod === "ligdicash" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               )}>
                 <Wallet size={18} />
               </div>
@@ -304,9 +304,9 @@ function CheckoutOrderSummary({
               </div>
               <div className={cn(
                 "h-4 w-4 rounded-full border-2 transition-colors",
-                paymentMethod === "cinetpay" ? "border-primary bg-primary" : "border-border"
+                paymentMethod === "ligdicash" ? "border-primary bg-primary" : "border-border"
               )}>
-                {paymentMethod === "cinetpay" && (
+                {paymentMethod === "ligdicash" && (
                   <div className="h-full w-full rounded-full bg-white scale-[0.4]" />
                 )}
               </div>
