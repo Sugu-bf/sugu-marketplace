@@ -123,13 +123,23 @@ function CheckoutOrderSummary({
             <div key={item.productId} className="flex items-center gap-3">
               {/* Thumbnail */}
               <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                <Image
-                  src={item.thumbnail}
-                  alt={item.name}
-                  fill
-                  className="object-contain p-1"
-                  sizes="48px"
-                />
+                {item.thumbnail && item.thumbnail !== "/products/default.png" ? (
+                  <Image
+                    src={item.thumbnail}
+                    alt={item.name}
+                    fill
+                    className="object-contain p-1"
+                    sizes="48px"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-border">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="M21 15l-5-5L5 21" />
+                    </svg>
+                  </div>
+                )}
               </div>
 
               {/* Name + quantity */}
