@@ -75,7 +75,7 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
   const currentPrice = useMemo(() => {
     // If we have a resolved API variant, use its price (source of truth = backend)
     if (resolvedApiVariant) {
-      return resolvedApiVariant.pricing.price;
+      return Math.round(resolvedApiVariant.pricing.price / 100);
     }
 
     // Fallback: use legacy calculation from mock data

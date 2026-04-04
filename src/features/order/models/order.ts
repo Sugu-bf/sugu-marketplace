@@ -139,7 +139,7 @@ export const OrderTrackingApiSchema = z.object({
       "awaiting_code",      // Client received code, giving to courier
       "completed",          // Both fees paid, delivery done
     ]),
-  }).optional(),
+  }).nullable().optional(),
 });
 
 /** The full API response wrapper */
