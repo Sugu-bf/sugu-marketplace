@@ -54,7 +54,7 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
 
     timeline: api.timeline.map((event) => ({
       id: event.id,
-      date: formatTimelineDate(event.timestamp),
+      date: event.timestamp ? formatTimelineDate(event.timestamp) : "En attente",
       description: event.title + (event.description ? ` — ${event.description}` : ""),
       isLatest: event.isLatest,
     })),

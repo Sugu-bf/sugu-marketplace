@@ -40,8 +40,8 @@ export const TrackingStepSchema = z.object({
 export const ApiTimelineEventSchema = z.object({
   id: z.string(),
   title: z.string(),
-  description: z.string(),
-  timestamp: z.string(),
+  description: z.string().nullable(),
+  timestamp: z.string().nullable(),
   isLatest: z.boolean(),
 });
 
