@@ -128,6 +128,7 @@ export const OrderTrackingApiSchema = z.object({
     vendorConfirmedAt: z.string().nullable(),
     payDeliveryFeeUrl: z.string().nullable(),
     payProductFeeUrl: z.string().nullable(),
+    shipmentId: z.string().nullable().optional(),
     /** Current step in the COD Mixte flow */
     currentStep: z.enum([
       "awaiting_vendor",    // Waiting for vendor stock confirmation

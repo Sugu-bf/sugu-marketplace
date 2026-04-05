@@ -1,3 +1,6 @@
+"use client";
+
+import React from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button, Badge } from "@/components/ui";
@@ -339,6 +342,9 @@ function ProgressSegment({ label, filled }: { label: string; filled: boolean }) 
 // ─── COD Mixte Payment Actions ──────────────────────────────────
 
 function CodMixtePaymentActions({ codMixte }: { codMixte: NonNullable<TrackedOrder["codMixte"]> }) {
+  const [loading, setLoading] = React.useState<"delivery" | "product" | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
   const showDeliveryButton =
     codMixte.currentStep === "awaiting_delivery_payment" &&
     codMixte.payDeliveryFeeUrl &&
@@ -351,28 +357,65 @@ function CodMixtePaymentActions({ codMixte }: { codMixte: NonNullable<TrackedOrd
 
   if (!showDeliveryButton && !showProductButton) return null;
 
+  const handlePayment = async (url: string, type: "delivery" | "product") => {
+    setLoading(type);
+    setError(null);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+      });
+      const data = await res.json();
+      if (data.success && data.data?.payment_url) {
+        window.location.href = data.data.payment_url;
+      } else {
+        setError(data.message || "Erreur lors de l'initiation du paiement.");
+        setLoading(null);
+      }
+    } catch {
+      setError("Erreur réseau. Veuillez réessayer.");
+      setLoading(null);
+    }
+  };
+
   return (
     <div className="space-y-2">
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+          {error}
+        </div>
+      )}
+
       {showDeliveryButton && (
-        <a
-          href={codMixte.payDeliveryFeeUrl!}
-          className="flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0"
+        <button
+          onClick={() => handlePayment(codMixte.payDeliveryFeeUrl!, "delivery")}
+          disabled={loading !== null}
+          className="flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
-          <CreditCard size={16} />
-          Payer les frais de livraison — {formatPrice(codMixte.deliveryFeeAmount)}
-          <ArrowRight size={14} />
-        </a>
+          {loading === "delivery" ? (
+            <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+          ) : (
+            <CreditCard size={16} />
+          )}
+          {loading === "delivery" ? "Redirection..." : `Payer les frais de livraison — ${formatPrice(codMixte.deliveryFeeAmount)}`}
+          {loading !== "delivery" && <ArrowRight size={14} />}
+        </button>
       )}
 
       {showProductButton && (
-        <a
-          href={codMixte.payProductFeeUrl!}
-          className="flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0"
+        <button
+          onClick={() => handlePayment(codMixte.payProductFeeUrl!, "product")}
+          disabled={loading !== null}
+          className="flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
-          <CreditCard size={16} />
-          Payer les produits — {formatPrice(codMixte.productFeeAmount)}
-          <ArrowRight size={14} />
-        </a>
+          {loading === "product" ? (
+            <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+          ) : (
+            <CreditCard size={16} />
+          )}
+          {loading === "product" ? "Redirection..." : `Payer les produits — ${formatPrice(codMixte.productFeeAmount)}`}
+          {loading !== "product" && <ArrowRight size={14} />}
+        </button>
       )}
     </div>
   );
