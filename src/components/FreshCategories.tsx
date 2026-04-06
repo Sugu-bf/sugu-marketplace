@@ -45,7 +45,7 @@ export default function FreshCategories({ categories }: FreshCategoriesProps) {
               }}
             >
               {/* Background product image */}
-              <div className="absolute right-0 top-0 w-[55%] h-full">
+              <div className="absolute right-0 top-0 w-[70%] h-full">
                 <Image
                   src={category.image}
                   alt={category.subtitle}
@@ -53,11 +53,11 @@ export default function FreshCategories({ categories }: FreshCategoriesProps) {
                   className="object-cover object-center"
                   sizes="200px"
                 />
-                {/* Gradient blend */}
+                {/* Gradient blend — wider to eliminate the visible seam */}
                 <div
                   className="absolute inset-0"
                   style={{
-                    background: `linear-gradient(to right, ${category.bgColor} 0%, transparent 40%)`,
+                    background: `linear-gradient(to right, ${category.bgColor}ee 0%, ${category.bgColor}cc 25%, transparent 55%)`,
                   }}
                 />
               </div>

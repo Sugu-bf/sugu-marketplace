@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui";
+import { CheckCircle, Star } from "lucide-react";
 import type { Product } from "@/features/product";
 import { fetchProductReviews, type ApiReview } from "@/features/product";
 
@@ -146,7 +147,9 @@ function ProductDetailTabs({ product, slug, descriptionHtml }: ProductTabsProps)
                     <p className="text-sm font-semibold text-foreground">
                       {review.author}
                       {review.is_verified_purchase && (
-                        <span className="ml-1.5 text-[10px] font-medium text-green-600">✓ Achat vérifié</span>
+                        <span className="ml-1.5 text-[10px] font-medium text-green-600 inline-flex items-center gap-0.5">
+                          <CheckCircle size={10} /> Achat vérifié
+                        </span>
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground">{formatReviewDate(review.created_at)}</p>
@@ -154,12 +157,11 @@ function ProductDetailTabs({ product, slug, descriptionHtml }: ProductTabsProps)
                 </div>
                 <div className="flex items-center gap-0.5">
                   {Array.from({ length: 5 }, (_, i) => (
-                    <span
+                    <Star
                       key={i}
-                      className={`text-xs ${i < review.rating ? "text-amber-400" : "text-gray-200"}`}
-                    >
-                      ★
-                    </span>
+                      size={12}
+                      className={i < review.rating ? "text-amber-400 fill-amber-400" : "text-gray-200"}
+                    />
                   ))}
                 </div>
               </div>

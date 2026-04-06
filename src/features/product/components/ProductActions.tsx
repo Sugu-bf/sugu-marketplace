@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button, QuantitySelector } from "@/components/ui";
 import { AssuranceBadge } from "@/components/ui/assurance-badge";
-import { ShoppingCart, Zap, Truck, RotateCcw, ShieldCheck, Loader2 } from "lucide-react";
+import { ShoppingCart, Zap, Truck, RotateCcw, ShieldCheck, Loader2, XCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { ContactSellerButton } from "@/features/messaging/components/ContactSellerButton";
 import { formatPrice } from "@/lib/constants";
 import type { Product } from "@/features/product";
@@ -252,13 +252,13 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
       {/* Stock info */}
       <div className="flex items-center gap-4 text-sm">
         {!isInStock && (
-          <span className="text-error font-medium">
-            ❌ Rupture de stock
+          <span className="text-error font-medium inline-flex items-center gap-1.5">
+            <XCircle size={14} /> Rupture de stock
           </span>
         )}
         {isInStock && currentStock > 0 && currentStock <= 20 && (
-          <span className="text-error font-medium">
-            ⚠️ {currentStock} restant{currentStock > 1 ? "s" : ""} en stock
+          <span className="text-error font-medium inline-flex items-center gap-1.5">
+            <AlertTriangle size={14} /> {currentStock} restant{currentStock > 1 ? "s" : ""} en stock
           </span>
         )}
         {product.sold > 0 && (
@@ -294,8 +294,8 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
         </div>
       )}
       {actionSuccess && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-2.5 text-sm text-green-700" role="status">
-          ✅ {actionSuccess}
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-2.5 text-sm text-green-700 flex items-center gap-1.5" role="status">
+          <CheckCircle2 size={14} /> {actionSuccess}
         </div>
       )}
 

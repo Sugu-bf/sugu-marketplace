@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, StarRating } from "@/components/ui";
-import { Store, CheckCircle } from "lucide-react";
+import { Store, CheckCircle, Leaf } from "lucide-react";
 import type { Product } from "@/features/product";
 
 interface ProductInfoProps {
@@ -20,8 +20,8 @@ function ProductInfo({ product }: ProductInfoProps) {
       {/* Badges */}
       <div className="flex flex-wrap items-center gap-2">
         {product.tags.includes("bio") && (
-          <Badge variant="success" size="sm" pill>
-            🌿 Bio
+          <Badge variant="success" size="sm" pill className="gap-1">
+            <Leaf size={12} /> Bio
           </Badge>
         )}
         {hasDiscount && product.discount && (

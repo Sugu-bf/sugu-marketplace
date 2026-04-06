@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/constants";
-import { Star } from "lucide-react";
+import { Star, Package } from "lucide-react";
 import type { BulkPriceTier } from "@/features/product";
 
 interface BulkPriceTableProps {
@@ -20,7 +20,7 @@ function BulkPriceTable({ tiers, basePrice, className }: BulkPriceTableProps) {
     <div className={cn("rounded-xl border border-border overflow-hidden", className)}>
       <div className="bg-muted px-4 py-2.5 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-          📦 Remises sur volume
+          <Package size={14} /> Remises sur volume
         </h3>
       </div>
       <table className="w-full text-sm">
