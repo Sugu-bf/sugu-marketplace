@@ -131,13 +131,20 @@ function TrackingOrderSummary({
           {items.map((item) => (
             <div key={item.id} className="flex items-center gap-3">
               <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                <Image
-                  src={item.image || "/products/placeholder.png"}
-                  alt={item.name}
-                  fill
-                  className="object-contain p-1"
-                  sizes="48px"
-                />
+                {item.image ? (
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    className="object-contain p-1"
+                    sizes="48px"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Package size={20} className="text-muted-foreground/50" />
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
