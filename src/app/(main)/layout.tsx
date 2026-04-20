@@ -12,6 +12,10 @@ export const metadata: Metadata = {};
  * Main layout — wraps all public-facing pages with Header & Footer.
  * Auth pages (login/onboarding) use a separate layout without these.
  *
+ * When COMING_SOON_ENABLED=true, the layout renders children directly
+ * WITHOUT the marketplace chrome (header, footer, newsletter) because
+ * the ComingSoon component has its own branded nav & footer.
+ *
  * The MarketplaceHeader is a Server Component that fetches categories
  * and popular searches with ISR caching, then passes data to the
  * interactive client shell. Suspense boundary ensures no LCP degradation.
@@ -21,6 +25,12 @@ export default async function MainLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // ── Coming Soon bypass — skip marketplace chrome ──────────
+  if (process.env.COMING_SOON_ENABLED === "true") {
+    return <>{children}</>;
+  }
+
+  // ── Normal marketplace layout ─────────────────────────────
   const trustBadges = await queryTrustBadges();
 
   return (

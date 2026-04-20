@@ -126,22 +126,40 @@ function maybeEvict(): void {
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
-const SKIP_PREFIXES = ["/_next", "/api", "/favicon", "/robots.txt", "/sitemap", "/__nextjs"];
+const SKIP_PREFIXES = [
+  "/_next", 
+  "/api", 
+  "/icon", 
+  "/apple-icon",
+  "/favicon.ico",
+  "/robots.txt", 
+  "/sitemap", 
+  "/manifest", 
+  "/.well-known",
+  "/__nextjs"
+];
 
 export default async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  const isComingSoon = process.env.COMING_SOON_ENABLED === "true";
 
-  // Skip infrastructure paths
+  // 1. Skip infrastructure paths
   if (SKIP_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Skip static file extensions (.svg, .png, .webp, .ico…)
+  // 2. Skip static file extensions (.svg, .png, .webp, .ico…)
   if (/\.[a-zA-Z0-9]+$/.test(pathname)) {
     return NextResponse.next();
   }
 
-  // ── OPTIMISATION 1: Skip known app routes (zero API call) ────────────────
+  // ─── 3. COMING SOON WALL ──────────────────────────────────────────────────
+  // If coming soon is ON, we only allow access to the root "/"
+  if (isComingSoon && pathname !== "/") {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // ─── 4. OPTIMISATION: Skip known app routes (zero API call) ────────────────
   if (isKnownAppRoute(pathname)) {
     return NextResponse.next();
   }
@@ -216,6 +234,6 @@ export default async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|icon\\.|apple-icon\\.).*)",
+    "/((?!api|_next/static|_next/image|favicon\\.ico|icon\\.|apple-icon\\.).*)",
   ],
 };

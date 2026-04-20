@@ -156,25 +156,25 @@ export default function Footer() {
             </div>
 
             <p className="text-sm text-gray-500 leading-relaxed mb-5 max-w-[280px]">
-              Sugu est la plus grande plateforme de vente en ligne au Burkina Faso
+              Sugu est la plus grande plateforme de vente en ligne en Afrique
             </p>
 
             {/* Contact info */}
             <div className="space-y-2.5">
-              <div className="flex items-center gap-2.5">
+              {/* <div className="flex items-center gap-2.5">
                 <Phone size={14} className="text-[#F15412] flex-shrink-0" />
                 <span className="text-sm text-gray-600">+226 64 52 89 58</span>
-              </div>
+              </div> */}
               <div className="flex items-center gap-2.5">
                 <Mail size={14} className="text-[#F15412] flex-shrink-0" />
                 <span className="text-sm text-gray-600">contact@sugu.pro</span>
               </div>
-              <div className="flex items-start gap-2.5">
+              {/* <div className="flex items-start gap-2.5">
                 <MapPin size={14} className="text-[#F15412] flex-shrink-0 mt-0.5" />
                 <span className="text-sm text-gray-600 leading-relaxed">
                   3252 Bobo Dioula Avenue, Guimbi Ouattara koko, Burkina Faso
                 </span>
-              </div>
+              </div> */}
             </div>
 
             {/* Social Icons — below contact on mobile, separate row on md+ */}
