@@ -32,22 +32,12 @@ export async function generateMetadata(): Promise<Metadata> {
           "Quelque chose d'immense arrive. Découvrez des produits authentiques, une livraison rapide. Inscrivez-vous sur la liste VIP pour le lancement !",
         path: "/",
         image: "https://cdn.sugu.pro/p/sugu_logo.png",
-      }, {
-        icons: {
-          icon: "/favicon.ico",
-          apple: "/favicon.ico",
-        }
       })
     : createMetadata({
         title: "Accueil",
         description:
           "Découvrez des milliers de produits au meilleur prix sur Sugu. Livraison rapide, paiement sécurisé.",
         path: "/",
-      }, {
-        icons: {
-          icon: "/favicon.ico",
-          apple: "/favicon.ico",
-        }
       });
 }
 
