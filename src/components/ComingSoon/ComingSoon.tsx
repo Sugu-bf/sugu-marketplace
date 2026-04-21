@@ -33,7 +33,7 @@ export default function ComingSoon() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(20);
+  const [progress, setProgress] = useState(5);
 
   // Seller Modal State
   const [isSellerModalOpen, setIsSellerModalOpen] = useState(false);
@@ -173,9 +173,12 @@ export default function ComingSoon() {
           if (data.success) {
             setDynamicStats(data.data);
             
+            // Goal from API or fallback
+            const goal = data.data.goal || 50000;
+            
             // Calculate dynamic progress target (capped at 99% until launch)
-            const realPct = Math.min(Math.floor((data.data.leads / PROGRESS_GOAL) * 100), 99);
-            const finalPct = Math.max(realPct, 20); // Maintain a minimum visual baseline
+            const realPct = Math.min(Math.floor((data.data.leads / goal) * 100), 99);
+            const finalPct = Math.max(realPct, 5); // Maintain a subtle 5% baseline for credibility
             
             animateProgress(finalPct);
           }
