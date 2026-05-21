@@ -145,7 +145,7 @@ function RegisterPageClient() {
 
       <div>
         <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Créer un compte</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Rejoignez Sugu et commencez à acheter 🚀</p>
+        <p className="mt-2 text-sm text-muted-foreground">L&apos;aventure Sugu commence ici</p>
       </div>
 
 
