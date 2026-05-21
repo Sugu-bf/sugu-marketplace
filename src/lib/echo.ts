@@ -2,7 +2,6 @@
 
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
-import { API_BASE_URL } from "@/lib/api/config";
 
 // Pusher must be on window for Echo to find it
 if (typeof window !== "undefined") {
@@ -12,23 +11,18 @@ if (typeof window !== "undefined") {
 let echoInstance: Echo<"reverb"> | null = null;
 
 /**
- * Read the auth_token cookie (same logic as the API client).
+ * Read only the non-sensitive session hint. The real Sanctum token is HttpOnly
+ * and is injected by /api/broadcasting/auth server-side.
  */
-function getAuthToken(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie
+function hasSessionHint(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie
     .split("; ")
-    .find((row) => row.startsWith("auth_token="));
-  return match ? decodeURIComponent(match.split("=")[1]) : null;
+    .some((row) => row.startsWith("auth_token_expires_at="));
 }
 
-/**
- * Build the broadcasting auth endpoint from API_BASE_URL.
- * API_BASE_URL = "https://api.mysugu.com" → authEndpoint = "https://api.mysugu.com/api/broadcasting/auth"
- */
 function buildAuthEndpoint(): string {
-  const origin = new URL(API_BASE_URL).origin;
-  return `${origin}/api/broadcasting/auth`;
+  return "/api/broadcasting/auth";
 }
 
 /**
@@ -44,8 +38,7 @@ export function getEcho(): Echo<"reverb"> {
   }
 
   // Security guard: don't open a WS connection without authentication
-  const currentToken = getAuthToken();
-  if (!currentToken) {
+  if (!hasSessionHint()) {
     throw new Error("Cannot initialize Echo: user is not authenticated");
   }
 
@@ -64,15 +57,13 @@ export function getEcho(): Echo<"reverb"> {
         socketId: string,
         callback: (error: Error | null, authData: { auth: string; channel_data?: string } | null) => void,
       ) => {
-        const token = getAuthToken();
         fetch(buildAuthEndpoint(), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          credentials: "include",
+          credentials: "same-origin",
           body: JSON.stringify({
             socket_id: socketId,
             channel_name: channel.name,

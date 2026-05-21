@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowRight, Loader2, User, KeyRound,
+  ArrowRight, Loader2, User,
 } from "lucide-react";
 import { OtpInput } from "@/components/ui";
 import { CountryCodeSelector } from "./CountryCodeSelector";
@@ -14,68 +14,21 @@ import {
   sendPhoneOtp,
   verifyPhone,
   getAuthErrorMessage,
-  setAuthTokenCookie,
+  safeRelativePath,
   setTokenExpiry,
 } from "../services/auth-service";
 import { mockCountryCodes } from "../mocks/auth";
 import type { CountryCode } from "../models/auth";
 
-// 3 étapes : infos → OTP → PIN
-type RegisterStep = "form" | "otp" | "pin";
-
-
-/** Saisie PIN — 4 cases numériques */
-function PinInput({
-  value, onChange, disabled, id,
-}: {
-  value: string; onChange: (v: string) => void; disabled?: boolean; id?: string;
-}) {
-  const refs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
-
-  const handleChange = (idx: number, char: string) => {
-    const digit = char.replace(/\D/g, "").slice(-1);
-    const arr   = value.split("").slice(0, 4);
-    arr[idx]    = digit;
-    onChange(arr.join("").slice(0, 4));
-    if (digit && idx < 3) refs[idx + 1]?.current?.focus();
-  };
-
-  const handleKey = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !value[idx] && idx > 0) refs[idx - 1]?.current?.focus();
-  };
-
-  return (
-    <div className="flex gap-3" id={id}>
-      {[0, 1, 2, 3].map((idx) => (
-        <input
-          key={idx}
-          ref={refs[idx]}
-          type="password"
-          inputMode="numeric"
-          pattern="\d*"
-          maxLength={1}
-          value={value[idx] ?? ""}
-          onChange={(e) => handleChange(idx, e.target.value)}
-          onKeyDown={(e) => handleKey(idx, e)}
-          disabled={disabled}
-          className="h-14 w-14 rounded-xl border border-border bg-background text-center text-xl font-bold text-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-          aria-label={`Chiffre ${idx + 1} du PIN`}
-        />
-      ))}
-    </div>
-  );
-}
+// Le PIN est SUPPRIMÉ — l'inscription est OTP-only :
+//   form → nom + téléphone → SMS OTP envoyé
+//   otp  → code SMS vérifié → token one-use → POST /register → tokens → auto-login
+type RegisterStep = "form" | "otp";
 
 function RegisterPageClient() {
-  const router       = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo   = searchParams.get("redirect") ?? "/";
-  const safeRedirect = redirectTo.startsWith("/") ? redirectTo : "/";
+  // Open-redirect defence (safeRelativePath bloque `//evil.com`, `/\evil`, …)
+  const safeRedirect = safeRelativePath(searchParams.get("redirect"));
 
   // Pré-remplir le numéro si redirigé depuis login (numéro non trouvé)
   const phoneFromQuery = searchParams.get("phone") ?? "";
@@ -97,16 +50,11 @@ function RegisterPageClient() {
     : phoneFromQuery;
   const [phone, setPhone] = useState(rawFromQuery);
 
-  const [pin,        setPin]        = useState("");
-  const [pinConfirm, setPinConfirm] = useState("");
-  // SEC-01 : token OTP one-use retourné par /verify-phone
-  // Prouve la possession du numéro avant la création du compte
-  const [verifiedToken, setVerifiedToken] = useState<string | undefined>(undefined);
-
   const [resendCooldown, setResendCooldown] = useState(0);
   const [loading,        setLoading]        = useState(false);
   const [error,          setError]          = useState("");
   const [fieldErrors,    setFieldErrors]    = useState<Record<string, string>>({});
+  const [otpAttemptKey,  setOtpAttemptKey]  = useState(0);
 
   // ─── Helpers ──────────────────────────────────────────────
   const formatPhoneE164 = (raw: string): string => {
@@ -114,10 +62,8 @@ function RegisterPageClient() {
     return cleaned.startsWith("+") ? cleaned : `${selectedCountry.dialCode}${cleaned}`;
   };
 
-  const onSuccess = async (token: string) => {
-    const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-    setAuthTokenCookie(token, expiresAt);
-    setTokenExpiry(expiresAt);
+  const onSuccess = (expiresAt?: string) => {
+    if (expiresAt) setTokenExpiry(expiresAt);
     // Hard navigation → force rechargement complet (header remonte + checkAuth refired)
     window.location.href = safeRedirect;
   };
@@ -154,49 +100,41 @@ function RegisterPageClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, phone, selectedCountry]);
 
-  // ─── STEP 2 : Vérification OTP ────────────────────────────
+  // ─── STEP 2 : OTP vérifié → register atomique → auto-login
+  // Le PIN n'existe plus : à la vérification OTP, on enchaîne
+  // immédiatement avec /register en passant le `phone_verified_token`
+  // one-use. Le backend marque phone_verified_at = now() et renvoie un
+  // token de session — l'utilisateur est connecté.
   const handleOtpComplete = useCallback(async (code: string) => {
     setError("");
     setLoading(true);
     try {
-      const result = await verifyPhone({ phone_e164: formatPhoneE164(phone), code });
-      // SEC-01 : stocker le verified_token one-use (sera requis au register)
-      setVerifiedToken(result.verified_token);
-      setStep("pin");
-    } catch (err) {
-      setError(getAuthErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phone, selectedCountry]);
+      const verifyResult = await verifyPhone({
+        phone_e164: formatPhoneE164(phone),
+        code,
+      });
 
-  // ─── STEP 3 : Création compte avec PIN ───────────────────
-  const handlePinSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    if (pin.length !== 4) { setError("Entrez un code PIN de 4 chiffres"); return; }
-    if (pin !== pinConfirm) { setError("Les codes PIN ne correspondent pas"); return; }
+      if (!verifyResult.verified_token) {
+        // Anomalie serveur : token absent → on demande de réessayer.
+        throw new Error("Réponse de vérification incomplète. Veuillez réessayer.");
+      }
 
-    setLoading(true);
-    try {
-      // Sur la marketplace, user_type est TOUJOURS "buyer"
-      // Les vendeurs ont leur propre espace : pro.sugu.pro
-      const result = await registerUser({
+      const registerResult = await registerUser({
         name:                 name.trim(),
         phone_e164:           formatPhoneE164(phone),
-        pin,
         user_type:            "buyer",
-        phone_verified_token: verifiedToken, // SEC-01 : preuve de possession du numéro
+        phone_verified_token: verifyResult.verified_token,
       });
-      if (result.token) onSuccess(result.token);
+
+      if (registerResult.user) onSuccess(registerResult.expires_at);
     } catch (err) {
       setError(getAuthErrorMessage(err));
+      setOtpAttemptKey((key) => key + 1);
     } finally {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pin, pinConfirm, name, phone, selectedCountry, safeRedirect, verifiedToken]);
+  }, [name, phone, selectedCountry, safeRedirect]);
 
   // ══════════════════════════════════════════════════════════
   // ─── RENDU ────────────────────────────────────────────────
@@ -283,7 +221,7 @@ function RegisterPageClient() {
       )}
 
       {/* ════════════════════════════════════════════════════ */}
-      {/* STEP 2 : OTP SMS ─────────────────────────────────── */}
+      {/* STEP 2 : OTP SMS → register + auto-login ────────── */}
       {/* ════════════════════════════════════════════════════ */}
       {step === "otp" && (
         <div className="space-y-5">
@@ -301,11 +239,11 @@ function RegisterPageClient() {
           <p className="text-sm font-medium text-foreground">Entrez le code à 6 chiffres reçu par SMS</p>
 
           <div className="flex justify-start">
-            <OtpInput length={6} onChange={() => setError("")} onComplete={handleOtpComplete} error={!!error} disabled={loading} />
+            <OtpInput key={otpAttemptKey} length={6} onChange={() => setError("")} onComplete={handleOtpComplete} error={!!error} disabled={loading} />
           </div>
 
           {error   && <p className="text-xs text-error" role="alert">{error}</p>}
-          {loading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Vérification...</span></div>}
+          {loading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Création du compte...</span></div>}
 
           <p className="text-sm text-muted-foreground">
             Pas reçu ?{" "}
@@ -318,44 +256,6 @@ function RegisterPageClient() {
             </button>
           </p>
         </div>
-      )}
-
-      {/* ════════════════════════════════════════════════════ */}
-      {/* STEP 3 : SET PIN ─────────────────────────────────── */}
-      {/* ════════════════════════════════════════════════════ */}
-      {step === "pin" && (
-        <form onSubmit={handlePinSubmit} className="space-y-5">
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="text-green-600 font-bold">✓</span>
-              <p className="text-sm font-medium text-green-800">Numéro vérifié</p>
-            </div>
-            <p className="mt-0.5 text-xs text-green-700">{formatPhoneE164(phone)}</p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground flex items-center gap-2">
-              <KeyRound className="h-4 w-4" /> Choisissez votre code PIN
-            </label>
-            <p className="text-xs text-muted-foreground">
-              4 chiffres — utilisé pour vous connecter sur Sugu (web &amp; mobile)
-            </p>
-            <PinInput id="reg-pin" value={pin} onChange={(v) => { setPin(v); if (error) setError(""); }} disabled={loading} />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Confirmez votre PIN</label>
-            <PinInput id="reg-pin-confirm" value={pinConfirm} onChange={(v) => { setPinConfirm(v); if (error) setError(""); }} disabled={loading} />
-          </div>
-
-          {error && <p className="text-xs text-error" role="alert">{error}</p>}
-
-          <button type="submit" id="reg-submit-pin" disabled={loading || pin.length !== 4 || pinConfirm.length !== 4}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-dark active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Création...</span></> : <><span>Créer mon compte</span><ArrowRight className="h-4 w-4" /></>}
-          </button>
-        </form>
       )}
     </div>
   );

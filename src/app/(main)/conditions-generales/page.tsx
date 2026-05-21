@@ -5,7 +5,7 @@ import { Scale, ShoppingCart, Truck, Shield, AlertTriangle, Ban, CreditCard, Mes
 export const metadata: Metadata = {
   title: "Conditions Générales d'Utilisation — Sugu",
   description:
-    "Conditions générales d'utilisation et de vente de la marketplace Sugu. Règles applicables aux acheteurs, vendeurs, agences de livraison et coursiers au Burkina Faso.",
+    "Conditions générales d'utilisation et de vente de la marketplace Sugu. Règles applicables aux acheteurs, vendeurs, agences de livraison et coursiers dans la zone UEMOA (Afrique de l'Ouest).",
   alternates: { canonical: "/conditions-generales" },
   openGraph: {
     title: "Conditions Générales d'Utilisation — Sugu",
@@ -125,13 +125,19 @@ export default function TermsPage() {
               Les présentes Conditions Générales d&apos;Utilisation et de Vente (ci-après « CGU/CGV »)
               régissent l&apos;accès et l&apos;utilisation de la plateforme <strong>Sugu</strong> (site web{" "}
               <a href="https://sugu.pro" className="text-[#F15412] hover:underline">sugu.pro</a>{" "}
-              et application mobile), éditée par <strong>SUGU SARL</strong>, société de droit burkinabè.
+              et application mobile), éditée par <strong>SUGU SARL</strong>, société de droit burkinabè
+              dont le siège social est établi à Ouagadougou, déployant ses services dans la
+              zone <strong>UEMOA</strong> (Bénin, Burkina Faso, Côte d&apos;Ivoire, Guinée-Bissau,
+              Mali, Niger, Sénégal, Togo).
             </p>
             <p>
               Sugu est une marketplace, c&apos;est-à-dire un intermédiaire technique mettant en relation
-              des vendeurs professionnels et des acheteurs, conformément à la{" "}
-              <strong>Loi N°045-2009/AN du 10 novembre 2009</strong> portant réglementation des services
-              et transactions électroniques au Burkina Faso.
+              des vendeurs professionnels et des acheteurs, conformément à l&apos;<strong>Acte
+              Additionnel A/SA.2/01/10 de la CEDEAO</strong> portant transactions électroniques,
+              à l&apos;<strong>Acte Uniforme OHADA</strong> relatif au Droit Commercial Général et aux
+              lois nationales équivalentes en vigueur dans chaque État membre de l&apos;UEMOA
+              (notamment la Loi N°045-2009/AN du 10 novembre 2009 au Burkina Faso, la Loi N°2013-450
+              en Côte d&apos;Ivoire, la Loi N°2008-08 au Sénégal).
             </p>
             <p>
               L&apos;utilisation des services Sugu implique l&apos;acceptation pleine et entière des présentes CGU/CGV.
@@ -170,14 +176,18 @@ export default function TermsPage() {
               <p>
                 L&apos;inscription est ouverte à toute personne physique âgée d&apos;au moins <strong>18 ans</strong>{" "}
                 (ou 16 ans avec autorisation parentale) et disposant de la capacité juridique, ou à toute
-                personne morale légalement constituée au Burkina Faso ou dans un pays de la CEDEAO.
+                personne morale légalement constituée dans un État membre de l&apos;UEMOA ou plus largement
+                de la CEDEAO.
               </p>
             </Sub>
             <Sub title="3.2 Données obligatoires">
               <p>
                 Lors de l&apos;inscription, l&apos;utilisateur fournit : nom complet, adresse email valide,
-                numéro de téléphone au format international et mot de passe sécurisé.
-                Les vendeurs doivent en outre fournir leur numéro RCCM, IFU et coordonnées bancaires.
+                numéro de téléphone au format international (E.164) et mot de passe sécurisé.
+                Les vendeurs doivent en outre fournir leurs identifiants commerciaux nationaux
+                (RCCM et identifiant fiscal — IFU au Burkina/Bénin/Niger/Mali, NINEA au Sénégal,
+                CC/IDU en Côte d&apos;Ivoire, NIF au Togo) ainsi que leurs coordonnées bancaires
+                ou Mobile Money.
               </p>
             </Sub>
             <Sub title="3.3 Sécurité du compte">
@@ -200,9 +210,11 @@ export default function TermsPage() {
           <Section icon={Globe} title="Fonctionnement de la marketplace" id="marketplace">
             <Sub title="4.1 Rôle d'intermédiaire">
               <p>
-                Sugu agit en qualité d&apos;hébergeur et d&apos;intermédiaire technique au sens de la{" "}
-                <strong>Loi N°045-2009/AN</strong>. Sugu n&apos;est <strong>ni vendeur ni acheteur</strong>{" "}
-                des produits proposés. Le contrat de vente est conclu directement entre l&apos;acheteur et le vendeur.
+                Sugu agit en qualité d&apos;hébergeur et d&apos;intermédiaire technique au sens de
+                l&apos;<strong>Acte Additionnel A/SA.2/01/10 de la CEDEAO</strong> sur les transactions
+                électroniques et des lois nationales équivalentes. Sugu n&apos;est
+                <strong> ni vendeur ni acheteur</strong> des produits proposés. Le contrat de vente
+                est conclu directement entre l&apos;acheteur et le vendeur.
               </p>
             </Sub>
             <Sub title="4.2 Commission">
@@ -258,20 +270,26 @@ export default function TermsPage() {
             <Sub title="6.1 Monnaie">
               <p>
                 Tous les prix sont affichés et facturés en <strong>Franc CFA (XOF)</strong>,
-                monnaie ayant cours légal au Burkina Faso.
+                monnaie commune ayant cours légal dans l&apos;ensemble des 8 États membres
+                de l&apos;<strong>Union Économique et Monétaire Ouest-Africaine (UEMOA)</strong>,
+                émise par la BCEAO.
               </p>
             </Sub>
             <Sub title="6.2 Modes de paiement">
               <p>
                 Sugu propose le paiement par <strong>Cash-on-Delivery (COD)</strong> — paiement en espèces
-                au coursier à la livraison — et par <strong>Mobile Money</strong> (Orange Money, Moov Money).
+                au coursier à la livraison — et par <strong>Mobile Money</strong> selon la disponibilité
+                dans le pays de l&apos;acheteur : Orange Money, Moov Money, MTN MoMo, Wave, Free Money,
+                Wizall, ainsi que les autres opérateurs agréés par la BCEAO.
               </p>
             </Sub>
             <Sub title="6.3 Conformité fiscale">
               <p>
-                Les vendeurs sont responsables de leurs obligations fiscales propres (IFU, déclarations).
+                Les vendeurs sont responsables de leurs obligations fiscales propres dans leur pays de
+                résidence (déclarations auprès de la DGI/DGID nationale, TVA, impôts sur les bénéfices).
                 Sugu émet un relevé mensuel des commissions perçues. Les obligations de facturation
-                électronique sont respectées conformément aux dispositions de la Loi N°045-2009/AN.
+                électronique sont respectées conformément aux Actes Additionnels CEDEAO et aux
+                réglementations fiscales nationales applicables.
               </p>
             </Sub>
           </Section>
@@ -378,12 +396,20 @@ export default function TermsPage() {
             </Sub>
             <Sub title="9.4 Recours externes">
               <p>
-                Si la médiation Sugu ne vous satisfait pas, vous pouvez saisir :
+                Si la médiation Sugu ne vous satisfait pas, vous pouvez saisir, selon votre pays
+                de résidence :
               </p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>La <strong>Direction Générale du Commerce</strong> (protection du consommateur)</li>
-                <li>Le <strong>Tribunal de Commerce de Ouagadougou</strong></li>
-                <li>L&apos;<strong>ARCEP</strong> pour les questions relatives aux communications électroniques</li>
+                <li>L&apos;<strong>autorité nationale de protection du consommateur</strong> (Direction
+                  Générale du Commerce ou équivalent — ex. DGCC en Côte d&apos;Ivoire, DCI au Sénégal,
+                  DGCRF au Burkina Faso)</li>
+                <li>Le <strong>Tribunal de commerce compétent</strong> de votre lieu de résidence
+                  ou du siège du vendeur, conformément à l&apos;Acte Uniforme OHADA</li>
+                <li>L&apos;<strong>autorité nationale de régulation des communications électroniques</strong>
+                  {" "}(ARCEP au Burkina/Togo/Bénin/Niger/Mali, ARTCI en Côte d&apos;Ivoire, ARTP au Sénégal,
+                  ARN en Guinée-Bissau) pour les questions relatives aux communications électroniques</li>
+                <li>La <strong>Cour Commune de Justice et d&apos;Arbitrage (CCJA)</strong> de l&apos;OHADA
+                  pour les litiges transfrontaliers</li>
               </ul>
             </Sub>
           </Section>
@@ -391,12 +417,16 @@ export default function TermsPage() {
           {/* 10 — Obligations vendeurs */}
           <Section icon={ShoppingCart} title="Obligations des vendeurs" id="obligations-vendeur">
             <ul className="list-disc pl-5 space-y-2">
-              <li>Disposer d&apos;un numéro <strong>RCCM et IFU</strong> valides (personnes morales) ou d&apos;une pièce d&apos;identité (personnes physiques exerçant une activité commerciale autorisée)</li>
+              <li>Disposer d&apos;un <strong>RCCM</strong> et d&apos;un identifiant fiscal national valides
+                (IFU, NINEA, CC/IDU, NIF selon le pays) pour les personnes morales, ou d&apos;une pièce
+                d&apos;identité pour les personnes physiques exerçant une activité commerciale autorisée</li>
               <li>Fournir des descriptions <strong>exactes et non trompeuses</strong> des produits</li>
               <li>Respecter les prix affichés et ne pas les modifier après confirmation de commande</li>
               <li>Confirmer ou refuser les commandes dans le <strong>délai de 48 heures</strong></li>
               <li>Emballer correctement les produits pour le transport</li>
-              <li>Garantir la conformité des produits avec la <strong>réglementation burkinabè</strong> (normes, étiquetage, dates de péremption)</li>
+              <li>Garantir la conformité des produits avec la <strong>réglementation du pays
+                d&apos;expédition et du pays de livraison</strong> (normes nationales, normes UEMOA/CEDEAO,
+                étiquetage, dates de péremption)</li>
               <li>Ne pas vendre de produits contrefaits, volés, dangereux ou interdits</li>
               <li>Maintenir un taux de rejet inférieur à <strong>25%</strong> sous peine de suspension automatique</li>
               <li>Respecter les droits de propriété intellectuelle d&apos;autrui</li>
@@ -539,19 +569,29 @@ export default function TermsPage() {
           {/* 17 — Droit applicable */}
           <Section icon={Gavel} title="Droit applicable et juridiction" id="droit-applicable">
             <p>
-              Les présentes CGU/CGV sont régies par le <strong>droit burkinabè</strong>.
+              Les présentes CGU/CGV sont régies par le <strong>droit burkinabè</strong> (droit du
+              siège social de SUGU SARL), complété par les <strong>Actes Uniformes OHADA</strong>{" "}
+              et les <strong>Actes Additionnels de la CEDEAO</strong> applicables au commerce
+              électronique et à la protection du consommateur dans la zone UEMOA. Les dispositions
+              impératives du droit national de l&apos;acheteur (notamment en matière de protection
+              du consommateur) demeurent applicables.
+            </p>
+            <p>
               En cas de litige, les parties s&apos;engagent à rechercher une solution amiable
-              dans un délai de 30 jours.
+              dans un délai de 30 jours via la médiation Sugu.
             </p>
             <p>
-              À défaut de résolution amiable, le litige sera porté devant le{" "}
-              <strong>Tribunal de Commerce de Ouagadougou</strong>, compétent à titre exclusif,
-              conformément aux dispositions de l&apos;Acte Uniforme OHADA relatif au Droit Commercial Général.
+              À défaut de résolution amiable, le litige sera porté, au choix de l&apos;acheteur, devant
+              le <strong>tribunal de commerce compétent du lieu de sa résidence</strong> dans la zone
+              UEMOA ou devant le <strong>Tribunal de Commerce de Ouagadougou</strong>, conformément
+              aux dispositions de l&apos;<strong>Acte Uniforme OHADA</strong> relatif au Droit Commercial
+              Général.
             </p>
             <p>
-              Pour les litiges transfrontaliers au sein de la CEDEAO, les dispositions du{" "}
-              <strong>Traité révisé de la CEDEAO</strong> et de la Cour de Justice de la CEDEAO
-              s&apos;appliquent subsidiairement.
+              Pour les litiges transfrontaliers, les parties peuvent recourir à la{" "}
+              <strong>Cour Commune de Justice et d&apos;Arbitrage (CCJA) de l&apos;OHADA</strong>{" "}
+              ou, à titre subsidiaire, à la <strong>Cour de Justice de la CEDEAO</strong>,
+              conformément au Traité révisé de la CEDEAO.
             </p>
           </Section>
 
@@ -574,13 +614,17 @@ export default function TermsPage() {
         <div className="mt-16 pt-8 border-t border-gray-200">
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Références légales</h3>
           <ul className="space-y-1.5 text-xs text-gray-500">
-            <li>• Loi N°045-2009/AN du 10 novembre 2009 — Réglementation des services et transactions électroniques</li>
-            <li>• Loi N°001-2021/AN du 30 mars 2021 — Protection des données à caractère personnel</li>
+            <li>• Traité révisé de la CEDEAO (1993) et Traité de l&apos;UEMOA (1994)</li>
+            <li>• Acte Additionnel A/SA.2/01/10 de la CEDEAO — Transactions électroniques</li>
+            <li>• Acte Additionnel A/SA.1/01/10 de la CEDEAO — Protection des données à caractère personnel</li>
+            <li>• Convention de Malabo (Union Africaine, 2014) — Cybersécurité et protection des données</li>
             <li>• Acte Uniforme OHADA relatif au Droit Commercial Général (AUDCG)</li>
-            <li>• Accord de Bangui (OAPI) révisé — Propriété intellectuelle</li>
-            <li>• Code des douanes du Burkina Faso — Importation de marchandises</li>
-            <li>• Loi N°016-2017/AN — Loi sur le commerce intérieur au Burkina Faso</li>
-            <li>• Acte additionnel A/SA.1/01/10 de la CEDEAO — Protection des données personnelles</li>
+            <li>• Acte Uniforme OHADA portant organisation des procédures collectives d&apos;apurement du passif</li>
+            <li>• Accord de Bangui (OAPI) révisé — Propriété intellectuelle (16 États membres)</li>
+            <li>• Tarif Extérieur Commun (TEC) UEMOA / CEDEAO — Importation de marchandises</li>
+            <li>• Règlement N°15/2002/CM/UEMOA — Systèmes de paiement et BCEAO</li>
+            <li>• Lois nationales sur le commerce intérieur et la protection du consommateur (selon pays de l&apos;acheteur)</li>
+            <li>• Lois nationales sur les services et transactions électroniques (ex. Loi N°045-2009/AN au Burkina Faso, Loi N°2013-450 en Côte d&apos;Ivoire, Loi N°2008-08 au Sénégal)</li>
           </ul>
         </div>
 

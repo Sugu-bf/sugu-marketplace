@@ -1,16 +1,15 @@
 /**
  * Auth module — session management for Sanctum token-based authentication.
  *
- * Backend uses Laravel Sanctum with Bearer token authentication:
- * - Token stored in auth_token cookie (accessible to JS, SameSite=Lax)
- * - Bearer token auth is inherently CSRF-safe (attacker can't forge
- *   the Authorization header from another origin)
+ * Backend uses Laravel Sanctum with Bearer token authentication.
+ * Browser calls go through the same-origin BFF; the Sanctum token stays in an
+ * HttpOnly cookie and is never read by JavaScript.
  *
  * NOTE: Sanctum's cookie-based CSRF (XSRF-TOKEN) does NOT work in this
  * cross-domain setup (sugu.pro → api.mysugu.com). The XSRF-TOKEN cookie
  * is scoped to .mysugu.com, so the browser on sugu.pro never stores it.
- * Therefore initCsrf() is a no-op — we rely on Bearer token + CORS for
- * protection against cross-site request forgery.
+ * Therefore initCsrf() is a no-op. Browser auth calls use same-origin BFF
+ * routes guarded by Origin/Fetch Metadata; the BFF injects Bearer server-side.
  *
  * RULES:
  * - NEVER store tokens in localStorage/sessionStorage
@@ -50,16 +49,14 @@ export interface AuthUser {
  * The XSRF-TOKEN cookie set by /sanctum/csrf-cookie is scoped to .mysugu.com,
  * so the browser on sugu.pro never stores it.
  *
- * Protection against CSRF is provided by:
- * 1. Bearer token auth (can't be forged cross-origin)
- * 2. Content-Type: application/json (triggers CORS preflight)
- * 3. CORS only allows https://sugu.pro and https://pro.sugu.pro
+ * Protection against CSRF is provided by same-origin BFF routes guarded by
+ * Origin/Fetch Metadata checks. The Laravel Bearer token never enters browser
+ * JavaScript.
  *
  * Kept as a function for backward compatibility — callers don't need to change.
  */
 export async function initCsrf(): Promise<void> {
   // No-op: cross-domain CSRF cookies don't work.
-  // Bearer token + CORS provides equivalent protection.
 }
 
 // ─── Auth Helpers ────────────────────────────────────────────
@@ -132,9 +129,19 @@ export async function logout(): Promise<void> {
     // Even if logout fails on the server, clear the local cookie
   }
 
-  // Clear the auth_token cookie
   if (typeof document !== "undefined") {
-    document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+    try {
+      localStorage.removeItem("auth_token_expires_at");
+    } catch {
+      // ignore
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    await fetch("/api/auth/set-session", {
+      method: "DELETE",
+      credentials: "same-origin",
+    }).catch(() => {});
   }
 }
 

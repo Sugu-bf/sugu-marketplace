@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  Loader2, ArrowRight, Phone, KeyRound,
+  Loader2, ArrowRight, Phone,
   ExternalLink,
 } from "lucide-react";
 import { OtpInput } from "@/components/ui";
@@ -12,12 +12,11 @@ import { CountryCodeSelector } from "./CountryCodeSelector";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 import {
   checkPhone,
-  loginUser,
   sendPhoneOtp,
   verifyOtp,
   OTP_TYPE,
   getAuthErrorMessage,
-  setAuthTokenCookie,
+  safeRelativePath,
   setTokenExpiry,
 } from "../services/auth-service";
 import type { AuthUserProfile } from "../services/auth-service";
@@ -25,70 +24,21 @@ import { mockCountryCodes } from "../mocks/auth";
 import type { SocialProviderConfig } from "../mocks/auth";
 import type { CountryCode } from "../models/auth";
 
-// Étapes du flow phone
-type PhoneLoginStep =
-  | "phone"       // Étape 1 — saisie numéro
-  | "pin"         // Étape 2a — saisie PIN
-  | "otp-verify"  // Étape 2b — saisie OTP SMS
-  | "not-found";  // Numéro non reconnu → proposer inscription
+// Le PIN est SUPPRIMÉ — l'auth téléphone est OTP-only.
+//   phone        → saisie du numéro
+//   otp-verify   → code reçu par SMS → tokens
+//   not-found    → numéro inconnu → invite à s'inscrire
+type PhoneLoginStep = "phone" | "otp-verify" | "not-found";
 
 interface LoginPageClientProps {
   socialProviders: SocialProviderConfig[];
 }
 
-
-/** Saisie PIN — 4 cases numériques */
-function PinInput({
-  value, onChange, disabled,
-}: {
-  value: string; onChange: (v: string) => void; disabled?: boolean;
-}) {
-  const refs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
-
-  const handleChange = (idx: number, char: string) => {
-    const digit = char.replace(/\D/g, "").slice(-1);
-    const arr   = value.split("").slice(0, 4);
-    arr[idx]    = digit;
-    onChange(arr.join("").slice(0, 4));
-    if (digit && idx < 3) refs[idx + 1]?.current?.focus();
-  };
-
-  const handleKey = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !value[idx] && idx > 0) refs[idx - 1]?.current?.focus();
-  };
-
-  return (
-    <div className="flex gap-3">
-      {[0, 1, 2, 3].map((idx) => (
-        <input
-          key={idx}
-          ref={refs[idx]}
-          type="password"
-          inputMode="numeric"
-          pattern="\d*"
-          maxLength={1}
-          value={value[idx] ?? ""}
-          onChange={(e) => handleChange(idx, e.target.value)}
-          onKeyDown={(e) => handleKey(idx, e)}
-          disabled={disabled}
-          className="h-14 w-14 rounded-xl border border-border bg-background text-center text-xl font-bold text-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-          aria-label={`Chiffre ${idx + 1} du PIN`}
-        />
-      ))}
-    </div>
-  );
-}
-
 function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
-  const router       = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo   = searchParams.get("redirect") ?? "/";
-  const safeRedirect = redirectTo.startsWith("/") ? redirectTo : "/";
+  // Open-redirect defence (safeRelativePath bloque `//evil.com`, `/\evil`,
+  // les URLs absolues et les caractères de contrôle).
+  const safeRedirect = safeRelativePath(searchParams.get("redirect"));
 
   // ─── State ────────────────────────────────────────────────
   const [step,            setStep]            = useState<PhoneLoginStep>("phone");
@@ -96,16 +46,15 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(
     mockCountryCodes.find((c) => c.code === "BF") ?? mockCountryCodes[0]
   );
-  const [pin,           setPin]           = useState("");
   const [otpIdentifier, setOtpIdentifier] = useState("");
   const [otpExpiresIn,  setOtpExpiresIn]  = useState(0);
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  const [loading,  setLoading]  = useState(false);
-  const [error,     setError]     = useState("");
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   // Incrémenté à chaque erreur OTP → force le reset (remontage) de l'OtpInput
-  // Empêche onComplete de refirer si l'user corrige un chiffre sur les cases encore remplies
+  // pour empêcher onComplete de refirer si l'user corrige un seul chiffre.
   const [otpAttemptKey, setOtpAttemptKey] = useState(0);
 
   // ─── Helpers ──────────────────────────────────────────────
@@ -121,13 +70,13 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
     }, 1000);
   };
 
-  const handleSuccess = async (token: string, user: AuthUserProfile) => {
-    const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-    setAuthTokenCookie(token, expiresAt);
-    setTokenExpiry(expiresAt);
+  const handleSuccess = (user: AuthUserProfile, expiresAt?: string) => {
+    if (expiresAt) setTokenExpiry(expiresAt);
     // Hard navigation → force rechargement complet du navigateur
-    // Nécessaire : MarketplaceHeaderClient fait checkAuth() uniquement au mount.
-    // router.push() (navigation douce) ne remonte pas le Header → pas de checkAuth → user semble déconnecté.
+    // (MarketplaceHeaderClient ne fait checkAuth() qu'au mount).
+    //
+    // La redirection pro est décidée ICI, APRÈS login, à partir du profil
+    // — le backend ne fuite plus le rôle avant authentification (H5).
     const roles = user.roles ?? [];
     if (roles.includes("seller") || roles.includes("partner")) {
       window.location.href = "https://pro.sugu.pro";
@@ -136,7 +85,8 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
     }
   };
 
-  // ─── ÉTAPE 1 : Vérification numéro ───────────────────────
+  // ─── ÉTAPE 1 : Vérification numéro → envoi OTP ────────────
+  // Le PIN n'existe plus : si le compte existe, on envoie l'OTP directement.
   const handlePhoneSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -152,58 +102,9 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
         return;
       }
 
-      if (result.redirect_to_pro) {
-        // Vendeur/agence → ne pas les laisser sur la marketplace
-        setError("");
-        window.location.href = `https://pro.sugu.pro?phone=${encodeURIComponent(phoneE164)}`;
-        return;
-      }
-
-      if (result.auth_method === "pin") {
-        setStep("pin");
-      } else {
-        // auth_method = "otp" → compte Google → envoyer SMS directement
-        const otpRes = await sendPhoneOtp(phoneE164);
-        setOtpIdentifier(phoneE164);
-        setOtpExpiresIn(otpRes.expires_in ?? 300);
-        setStep("otp-verify");
-        startResendCooldown();
-      }
-    } catch (err) {
-      setError(getAuthErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phone, selectedCountry]);
-
-  // ─── ÉTAPE 2a : Login avec PIN ───────────────────────────
-  const handlePinLogin = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    if (pin.length !== 4) { setError("Entrez votre code PIN (4 chiffres)"); return; }
-
-    setLoading(true);
-    try {
-      const result = await loginUser({ login_field: formatPhoneE164(phone), password: pin });
-      if (result.type === "success") handleSuccess(result.token, result.user);
-    } catch (err) {
-      setError(getAuthErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phone, pin, selectedCountry, safeRedirect]);
-
-  // ─── ÉTAPE 2a → Oublié : Envoyer SMS ────────────────────
-  const handleForgotPin = useCallback(async () => {
-    setError("");
-    const phoneE164 = formatPhoneE164(phone);
-    setLoading(true);
-    try {
-      const res = await sendPhoneOtp(phoneE164);
+      const otpRes = await sendPhoneOtp(phoneE164);
       setOtpIdentifier(phoneE164);
-      setOtpExpiresIn(res.expires_in ?? 300);
+      setOtpExpiresIn(otpRes.expires_in ?? 300);
       setStep("otp-verify");
       startResendCooldown();
     } catch (err) {
@@ -214,7 +115,7 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone, selectedCountry]);
 
-  // ─── ÉTAPE 2b : Vérification OTP SMS ────────────────────
+  // ─── ÉTAPE 2 : Vérification OTP SMS → tokens ─────────────
   const handleVerifyOtp = useCallback(async (code: string) => {
     setError("");
     setLoading(true);
@@ -224,18 +125,16 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
         code,
         type: OTP_TYPE.LOGIN_VERIFICATION,
       });
-      if (result.token && result.user) {
+      if (result.user) {
         // Utiliser expires_at du backend si disponible, sinon 90j par défaut
         const expiresAt = result.expires_at
           ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-        setAuthTokenCookie(result.token, expiresAt);
         setTokenExpiry(expiresAt);
-        handleSuccess(result.token, result.user);
+        handleSuccess(result.user, expiresAt);
       }
     } catch (err) {
       setError(getAuthErrorMessage(err));
       // Reset l'OtpInput : l'user doit re-saisir le code complet
-      // Empêche onComplete de refirer si l'user corrige un seul chiffre
       setOtpAttemptKey((k) => k + 1);
     } finally {
       setLoading(false);
@@ -255,7 +154,6 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
     } catch (err) {
       setError(getAuthErrorMessage(err));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otpIdentifier, resendCooldown]);
 
   // ─── Champ téléphone (réutilisé) ─────────────────────────
@@ -308,7 +206,7 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
             </p>
           </div>
           <Link
-            href={`/register?phone=${encodeURIComponent(formatPhoneE164(phone))}`}
+            href={`/register?phone=${encodeURIComponent(formatPhoneE164(phone))}${safeRedirect !== "/" ? `&redirect=${encodeURIComponent(safeRedirect)}` : ""}`}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-dark active:scale-[0.97]"
           >
             Créer mon compte <ArrowRight className="h-4 w-4" />
@@ -321,53 +219,6 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
         </div>
         <GoogleSignInButton onError={(msg) => setError(msg)} className="w-full" />
         {error && <p className="text-xs text-error text-center" role="alert">{error}</p>}
-      </div>
-    );
-  }
-
-  // ── Étape "pin" — saisie du PIN ───────────────────────────
-  if (step === "pin") {
-    return (
-      <div className="page-enter space-y-6">
-        <button type="button" onClick={() => { setStep("phone"); setPin(""); setError(""); }}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          ← Retour
-        </button>
-
-        <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Code PIN</h1>
-          <div className="mt-3 rounded-xl border border-border bg-muted/50 px-4 py-3">
-            <p className="text-sm text-muted-foreground">Connexion pour</p>
-            <p className="mt-0.5 font-semibold text-foreground">{formatPhoneE164(phone)}</p>
-          </div>
-        </div>
-
-        <form onSubmit={handlePinLogin} className="space-y-5" noValidate>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground flex items-center gap-2">
-              <KeyRound className="h-4 w-4" /> Votre code PIN
-            </label>
-            <PinInput value={pin} onChange={(v) => { setPin(v); if (error) setError(""); }} disabled={loading} />
-          </div>
-
-          {error && <p className="text-xs text-error" role="alert">{error}</p>}
-
-          <button type="submit" disabled={loading || pin.length !== 4}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-dark active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Vérification...</span></> : <><span>Se connecter</span><ArrowRight className="h-4 w-4" /></>}
-          </button>
-
-          <p className="text-center text-xs text-muted-foreground">
-            PIN oublié ?{" "}
-            <button type="button" onClick={handleForgotPin} disabled={loading}
-              className="font-semibold text-primary hover:underline disabled:opacity-50"
-            >
-              Recevoir un code SMS
-            </button>
-          </p>
-        </form>
       </div>
     );
   }

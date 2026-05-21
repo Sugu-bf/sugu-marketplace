@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import {
   googleSignIn,
   getAuthErrorMessage,
-  setAuthTokenCookie,
+  safeRelativePath,
   setTokenExpiry,
 } from "../services/auth-service";
 
 // ─── Types ─────────────────────────────────────────────────
 
 interface GoogleSignInButtonProps {
-  /** Appelé après succès — le cookie est déjà posé avant cet appel */
+  /** Called after success. The BFF has already established the HttpOnly session. */
   onSuccess?: (isNewUser: boolean) => void;
   /** Appelé en cas d'erreur */
   onError?: (message: string) => void;
@@ -45,31 +45,24 @@ declare global {
 // ─── Helpers sécurité ──────────────────────────────────────
 
 /**
- * Calcule SHA-256 d'une chaîne via Web Crypto API (non-bloquant, natif).
- * Retourne un hex string de 64 caractères.
+ * Génère un nonce-hash unique pour cette session de signature.
  *
- * SÉCURITÉ : On envoie le HASH du nonce à Google (pas le nonce brut).
- * Le backend vérifie que token.nonce == nonce_hash reçu.
- * → Même si le credential est intercepté, le nonce_hash est inutilisable
- *   sans connaître le nonce original (préimage SHA-256 impossible en pratique).
+ * SÉCURITÉ : On envoie le HASH (jamais le nonce brut) à Google, qui l'embarque
+ * dans le credential JWT. Le backend recompare token.nonce ↔ nonce_hash reçu.
+ *
+ * Implémentation : SHA-256 d'un UUID CSPRNG via Web Crypto.
+ *
+ * Le nonce brut n'est utile à PERSONNE après le hash (ni le client, ni Google,
+ * ni le backend ne le verront jamais) — on ne le conserve pas en mémoire.
  */
-async function sha256Hex(input: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
+async function generateNonceHash(): Promise<string> {
+  const raw = crypto.randomUUID();
+  const data = new TextEncoder().encode(raw);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
-
-/**
- * Génère un nonce cryptographiquement sécurisé.
- * Utilise crypto.randomUUID() (CSPRNG natif).
- */
-function generateNonce(): string {
-  return crypto.randomUUID();
-}
-
-// (setAuthCookie local supprimé — on utilise setAuthTokenCookie centralisé et HttpOnly)
 
 /**
  * Charge le script Google Identity Services de façon paresseuse.
@@ -117,14 +110,17 @@ function loadGsiScript(): Promise<void> {
  *   ✅ Fenêtre d'attaque = durée de vie du nonce (en mémoire, ref)
  */
 function GoogleSignInButton({ onSuccess, onError, className }: GoogleSignInButtonProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") ?? "/";
-  const safeRedirect = redirectTo.startsWith("/") ? redirectTo : "/";
+  // Open-redirect defence (safeRelativePath bloque `//evil.com`, `/\evil`, …)
+  const safeRedirect = safeRelativePath(searchParams.get("redirect"));
 
   const buttonRef = useRef<HTMLDivElement>(null);
-  const nonceRef = useRef<string | null>(null);   // nonce brut — jamais exposé
-  const nonceHashRef = useRef<string | null>(null); // SHA-256(nonce) — envoyé à Google + backend
+  // Le nonce_hash courant. STABLE pour toute la vie du composant : il est
+  // initialisé une fois, passé à Google via .initialize(), puis utilisé lors
+  // de chaque tentative. Régénérer le hash sans réinitialiser Google créerait
+  // un mismatch (Google embarque l'ancien hash dans le token, on enverrait
+  // le nouveau au backend) → blocage en boucle après la première erreur.
+  const nonceHashRef = useRef<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -153,50 +149,33 @@ function GoogleSignInButton({ onSuccess, onError, className }: GoogleSignInButto
           nonce_hash: nonceHashRef.current,
         });
 
-        // SEC-06 : poser le cookie Sanctum en HttpOnly via le Route Handler
-        // (setAuthCookie local supprimé — était document.cookie en clair)
-        if (result.token) {
-          const expiresAt = result.expires_at
-            ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-          setAuthTokenCookie(result.token, expiresAt);
-          setTokenExpiry(expiresAt);
-        }
+        // The BFF stripped the token and set the HttpOnly session cookie.
+        if (result.expires_at) setTokenExpiry(result.expires_at);
 
-        // Invalider le nonce après usage (single-use)
-        nonceRef.current = null;
-        nonceHashRef.current = null;
-
+        // Sur succès, le composant va être démonté par la navigation — pas
+        // besoin d'invalider le ref manuellement.
         onSuccess?.(result.is_new_user ?? false);
 
         // Hard navigation → force rechargement complet du navigateur
         // Nécessaire : le Header fait checkAuth() uniquement au mount.
-        // router.push() (navigation douce) ne remonte pas le Header.
         window.location.href = safeRedirect;
       } catch (err) {
         const msg = getAuthErrorMessage(err);
         setError(msg);
         onError?.(msg);
-
-        // Regénérer un nonce pour la prochaine tentative
-        void initNonce();
+        // NB : on NE régénère PAS le nonce_hash ici. Google reste initialisé
+        // avec le hash courant — un nouveau clic produit un credential dont
+        // le nonce match toujours. Régénérer cassait le retry (le credential
+        // suivant aurait l'ancien nonce mais on enverrait le nouveau hash).
+        // Si la session traîne au-delà de 5 min, le backend renverra "token
+        // trop ancien" → l'utilisateur recharge la page et un nouveau nonce
+        // est généré au remount.
       } finally {
         setLoading(false);
       }
     },
-    [router, safeRedirect, onSuccess, onError] // eslint-disable-line react-hooks/exhaustive-deps
+    [safeRedirect, onSuccess, onError]
   );
-
-  // ── Générer nonce + initialiser GIS ────────────────────────
-  const initNonce = useCallback(async () => {
-    const nonce = generateNonce();
-    const hash = await sha256Hex(nonce);
-
-    // Stocker en ref (pas en state — évite re-render + pas dans le DOM)
-    nonceRef.current = nonce;
-    nonceHashRef.current = hash;
-
-    return hash;
-  }, []);
 
   // ── Init Google GIS ─────────────────────────────────────────
   useEffect(() => {
@@ -212,8 +191,11 @@ function GoogleSignInButton({ onSuccess, onError, className }: GoogleSignInButto
         await loadGsiScript();
         if (cancelled || !window.google?.accounts?.id) return;
 
-        const nonceHash = await initNonce();
+        const nonceHash = await generateNonceHash();
         if (cancelled) return;
+        // Le hash est stocké pour être renvoyé au backend lors de l'échange
+        // — c'est ce que Google va embarquer dans le credential JWT.
+        nonceHashRef.current = nonceHash;
 
         window.google.accounts.id.initialize({
           client_id: clientId,
@@ -257,7 +239,7 @@ function GoogleSignInButton({ onSuccess, onError, className }: GoogleSignInButto
         window.google?.accounts?.id?.cancel();
       } catch { /* ignore */ }
     };
-  }, [clientId, handleCredential, initNonce]);
+  }, [clientId, handleCredential]);
 
   // Si pas de Client ID configuré — ne rien afficher
   if (!clientId) return null;

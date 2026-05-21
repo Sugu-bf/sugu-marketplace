@@ -5,7 +5,7 @@ import { Truck, Package, RotateCcw, Clock, MapPin, Shield, AlertTriangle, Credit
 export const metadata: Metadata = {
   title: "Politique de Livraison & Retours — Sugu",
   description:
-    "Conditions de livraison, retours et remboursements sur la marketplace Sugu. Délais, zones couvertes, vérification des produits et processus de retour au Burkina Faso.",
+    "Conditions de livraison, retours et remboursements sur la marketplace Sugu. Délais, zones couvertes, vérification des produits et processus de retour dans la zone UEMOA (Afrique de l'Ouest).",
   alternates: { canonical: "/politique-livraison-retours" },
   openGraph: {
     title: "Politique de Livraison & Retours — Sugu",
@@ -112,30 +112,41 @@ export default function DeliveryPolicyPage() {
           {/* 1 — Zones */}
           <Section icon={MapPin} title="Zones de livraison" id="zones">
             <p>
-              Sugu assure la livraison sur l&apos;ensemble du territoire du <strong>Burkina Faso</strong>,
-              selon la disponibilité des agences de livraison partenaires dans votre zone.
+              Sugu déploie progressivement ses services dans les 8 pays de la zone{" "}
+              <strong>UEMOA</strong> (Bénin, Burkina Faso, Côte d&apos;Ivoire, Guinée-Bissau,
+              Mali, Niger, Sénégal, Togo). La livraison s&apos;effectue via un réseau d&apos;agences
+              partenaires locales selon la disponibilité dans votre zone.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-3 pr-4 font-semibold text-gray-900">Pays</th>
                     <th className="text-left py-3 pr-4 font-semibold text-gray-900">Zone</th>
                     <th className="text-left py-3 pr-4 font-semibold text-gray-900">Couverture</th>
                     <th className="text-left py-3 font-semibold text-gray-900">Délai estimé</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  <tr><td className="py-2.5 pr-4">Ouagadougou centre</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 48h</td></tr>
-                  <tr><td className="py-2.5 pr-4">Ouagadougou périphérie</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">48 – 72h</td></tr>
-                  <tr><td className="py-2.5 pr-4">Bobo-Dioulasso</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">48 – 72h</td></tr>
-                  <tr><td className="py-2.5 pr-4">Autres villes (Koudougou, Banfora, etc.)</td><td className="py-2.5 pr-4">Partielle</td><td className="py-2.5">3 – 7 jours</td></tr>
-                  <tr><td className="py-2.5 pr-4">Zones rurales</td><td className="py-2.5 pr-4">Selon disponibilité</td><td className="py-2.5">5 – 10 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇧🇫 Burkina Faso</td><td className="py-2.5 pr-4">Ouagadougou, Bobo-Dioulasso</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇨🇮 Côte d&apos;Ivoire</td><td className="py-2.5 pr-4">Abidjan, Bouaké, Yamoussoukro</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇸🇳 Sénégal</td><td className="py-2.5 pr-4">Dakar, Thiès, Saint-Louis</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇹🇬 Togo</td><td className="py-2.5 pr-4">Lomé, Kara</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇧🇯 Bénin</td><td className="py-2.5 pr-4">Cotonou, Porto-Novo, Parakou</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇲🇱 Mali</td><td className="py-2.5 pr-4">Bamako, Sikasso</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">48h – 4 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇳🇪 Niger</td><td className="py-2.5 pr-4">Niamey, Maradi</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">48h – 4 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇬🇼 Guinée-Bissau</td><td className="py-2.5 pr-4">Bissau</td><td className="py-2.5 pr-4">Partielle</td><td className="py-2.5">3 – 5 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">UEMOA — villes secondaires</td><td className="py-2.5 pr-4">Autres capitales régionales</td><td className="py-2.5 pr-4">Partielle</td><td className="py-2.5">3 – 7 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">UEMOA — zones rurales</td><td className="py-2.5 pr-4">Villages et zones reculées</td><td className="py-2.5 pr-4">Selon disponibilité</td><td className="py-2.5">5 – 10 jours</td></tr>
                 </tbody>
               </table>
             </div>
             <p className="text-sm text-gray-500">
-              La disponibilité de la livraison pour votre adresse est vérifiée lors de la validation du panier.
-              Si aucune agence ne couvre votre zone, le retrait en point de collecte peut vous être proposé.
+              La disponibilité de la livraison pour votre adresse est vérifiée lors de la validation
+              du panier. Si aucune agence ne couvre votre zone, le retrait en point de collecte peut
+              vous être proposé. Pour les <strong>livraisons transfrontalières</strong> dans la zone
+              UEMOA, des délais et formalités douanières supplémentaires peuvent s&apos;appliquer
+              conformément au Tarif Extérieur Commun (TEC) de l&apos;UEMOA.
             </p>
           </Section>
 
@@ -256,8 +267,10 @@ export default function DeliveryPolicyPage() {
                   <h4 className="font-bold text-gray-900">Paiement au coursier (COD)</h4>
                 </div>
                 <p className="text-sm text-gray-700">
-                  Si vous acceptez les produits, payez le montant exact au coursier en espèces
-                  ou par Mobile Money. Le coursier confirme la réception du paiement dans l&apos;application.
+                  Si vous acceptez les produits, payez le montant exact en FCFA (XOF) au coursier en
+                  espèces ou par <strong>Mobile Money</strong> (Orange Money, Moov Money, MTN MoMo,
+                  Wave, Free Money — selon votre pays). Le coursier confirme la réception du paiement
+                  dans l&apos;application.
                 </p>
               </div>
 

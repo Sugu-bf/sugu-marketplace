@@ -19,7 +19,7 @@
  */
 
 import type { z } from "zod";
-import { API_TIMEOUT_MS, API_MAX_RETRIES, API_RETRY_BASE_DELAY_MS } from "./config";
+import { API_BASE_URL, API_TIMEOUT_MS, API_MAX_RETRIES, API_RETRY_BASE_DELAY_MS } from "./config";
 import { ApiError, httpStatusToErrorCode } from "./errors";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -96,45 +96,45 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * CSRF note: Sanctum's XSRF-TOKEN approach does NOT work in this
- * cross-domain setup (sugu.pro → api.mysugu.com). Protection against
- * CSRF is provided by Bearer token auth + Content-Type: application/json
- * (which triggers CORS preflight) + strict CORS allowed_origins.
+ * cross-domain setup. Browser auth calls go through same-origin BFF routes
+ * guarded by Origin/Fetch Metadata; the BFF injects Bearer server-side.
  */
 
 /**
- * Read the auth_token for Bearer token auth.
+ * Read the server-side auth_token for Bearer token auth.
  *
- * CLIENT-SIDE : lit document.cookie directement.
- * Le cookie auth_token est intentionnellement lisible par JS (non HttpOnly)
- * car l'API Laravel utilise UNIQUEMENT Authorization: Bearer — pas le mode
- * cookie stateful de Sanctum (incompatible cross-domain sugu.pro → api.mysugu.com).
- *
- * Sécurité CSRF : garantie par Bearer token + CORS strict (pas par HttpOnly).
- * Un attaquant cross-origin ne peut pas forger le header Authorization.
- *
- * SERVER-SIDE : délègue à server-auth.ts via dynamic import pour éviter que
- * next/headers soit détecté statiquement et casse l'ISR sur les pages publiques.
+ * Browser requests never read auth_token. Credentialed browser calls are routed
+ * through the same-origin BFF, which reads the HttpOnly cookie server-side and
+ * injects Authorization when forwarding to Laravel.
  */
 async function getAuthToken(): Promise<string | null> {
-  // Client-side : lire auth_token depuis document.cookie (non HttpOnly, volontaire)
-  if (typeof document !== "undefined") {
-    const match = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("auth_token="));
-    if (match) {
-      return decodeURIComponent(match.split("=")[1]);
-    }
-    return null;
-  }
+  if (typeof window !== "undefined") return null;
 
-  // Server-side : lire depuis next/headers (requête entrante SSR)
-  // Dynamic import évite la détection statique de next/headers qui casserait l'ISR
   try {
     const { getServerAuthToken } = await import("./server-auth");
     return await getServerAuthToken();
   } catch {
     return null;
   }
+}
+
+function shouldProxyThroughBff(url: string, skipCredentials: boolean): boolean {
+  if (skipCredentials) return false;
+  if (typeof window === "undefined") return false;
+  if (process.env.NODE_ENV === "test") return false;
+
+  try {
+    const target = new URL(url);
+    const apiBase = new URL(API_BASE_URL);
+    return target.origin === apiBase.origin && target.pathname.startsWith("/api/");
+  } catch {
+    return false;
+  }
+}
+
+function toBffUrl(url: string): string {
+  const target = new URL(url);
+  return `/api/backend${target.pathname}${target.search}`;
 }
 
 async function safeParseJson(response: Response): Promise<unknown> {
@@ -171,6 +171,8 @@ async function executeRequest<T>(
   } = options;
 
   const method = (restInit.method ?? "GET").toUpperCase();
+  const proxiedThroughBff = shouldProxyThroughBff(url, skipCredentials);
+  const requestUrl = proxiedThroughBff ? toBffUrl(url) : url;
 
   // ─ Build headers (NEVER log these) ────────────────────────
   const headers = new Headers(customHeaders as HeadersInit);
@@ -181,10 +183,9 @@ async function executeRequest<T>(
 
   headers.set("X-Request-Id", requestId);
 
-  // Bearer token from auth_token cookie
-  // Skip for public requests (skipCredentials) — calling cookies() opts
-  // the route into dynamic rendering and breaks ISR.
-  if (!headers.has("Authorization") && !skipCredentials) {
+  // Server direct calls can read the HttpOnly cookie. Browser calls go through
+  // the same-origin BFF, so the token never enters JavaScript.
+  if (!headers.has("Authorization") && !skipCredentials && !proxiedThroughBff) {
     const token = await getAuthToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
@@ -230,7 +231,7 @@ async function executeRequest<T>(
   }
 
   try {
-    const response = await fetch(url, fetchOptions);
+    const response = await fetch(requestUrl, fetchOptions);
 
     clearTimeout(timeoutId);
 

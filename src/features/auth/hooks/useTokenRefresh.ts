@@ -16,9 +16,11 @@ import { useEffect, useRef } from "react";
 import {
   tokenDaysRemaining,
   getTokenExpiry,
-  getAuthTokenCookie,
+  hasAuthSession,
   refreshToken,
+  clearAuthTokenCookie,
 } from "@/features/auth/services/auth-service";
+import { isApiError } from "@/lib/api/errors";
 
 /** Seuil de refresh : si token expire dans moins de REFRESH_THRESHOLD_DAYS */
 const REFRESH_THRESHOLD_DAYS = 7;
@@ -30,9 +32,8 @@ export function useTokenRefresh() {
   const refreshing = useRef(false);
 
   const tryRefresh = async () => {
-    // Ne refresh que si le user est connecté (cookie présent)
-    const token = getAuthTokenCookie();
-    if (!token) return;
+    // Ne refresh que si le user a une session locale.
+    if (!hasAuthSession()) return;
 
     // Ne refresh que si on a une date d'expiration enregistrée
     const expiry = getTokenExpiry();
@@ -50,8 +51,17 @@ export function useTokenRefresh() {
       await refreshToken();
       console.debug("[auth] Token auto-refreshed silently. Days left were:", daysLeft);
     } catch (err) {
-      // Non bloquant — si le refresh échoue (token révoqué, serveur down...)
-      // l'user sera redirigé vers /login au prochain appel API protégé
+      // Backend signale un vol de token (fingerprint device différent) ou une
+      // session dont la chaîne de rotation a dépassé son plafond absolu (H4).
+      // Dans les deux cas le cookie est devenu inutile : on le purge tout de
+      // suite plutôt que d'attendre le prochain appel protégé pour planter.
+      // Une erreur réseau / 5xx ne déclenche PAS de logout (non bloquant).
+      if (isApiError(err) && err.status === 401) {
+        void clearAuthTokenCookie();
+        // Pas de redirect forcé ici (l'utilisateur navigue peut-être sur
+        // une page publique) — le prochain accès à une page protégée le
+        // renverra vers /login via le middleware serveur.
+      }
       console.debug("[auth] Token refresh failed (non-blocking):", err);
     } finally {
       refreshing.current = false;

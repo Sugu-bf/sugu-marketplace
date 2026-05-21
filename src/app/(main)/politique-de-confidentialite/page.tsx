@@ -5,12 +5,12 @@ import { Shield, Lock, Eye, Database, UserCheck, Bell, FileText, Scale } from "l
 export const metadata: Metadata = {
   title: "Politique de Confidentialité — Sugu",
   description:
-    "Politique de confidentialité de Sugu : découvrez comment nous collectons, utilisons et protégeons vos données personnelles conformément à la Loi N°001-2021/AN du Burkina Faso.",
+    "Politique de confidentialité de Sugu : découvrez comment nous collectons, utilisons et protégeons vos données personnelles conformément aux Actes Additionnels de la CEDEAO et aux lois nationales de protection des données dans la zone UEMOA (Afrique de l'Ouest).",
   alternates: { canonical: "/politique-de-confidentialite" },
   openGraph: {
     title: "Politique de Confidentialité — Sugu",
     description:
-      "Découvrez comment Sugu protège vos données personnelles conformément à la législation burkinabè.",
+      "Découvrez comment Sugu protège vos données personnelles conformément à la législation UEMOA / CEDEAO.",
     type: "article",
   },
 };
@@ -74,9 +74,10 @@ export default function PrivacyPolicyPage() {
           </h1>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
             Chez Sugu, la protection de vos données personnelles est une priorité.
-            Cette politique détaille nos pratiques conformément à la{" "}
-            <strong className="text-white">Loi N°001-2021/AN</strong> du Burkina Faso
-            et aux standards internationaux.
+            Cette politique détaille nos pratiques conformément à l&apos;<strong className="text-white">Acte
+            Additionnel A/SA.1/01/10 de la CEDEAO</strong>, à la <strong className="text-white">Convention de
+            Malabo</strong> de l&apos;Union Africaine et aux lois nationales de protection des
+            données en vigueur dans les 8 pays de la zone UEMOA.
           </p>
         </div>
       </div>
@@ -115,14 +116,21 @@ export default function PrivacyPolicyPage() {
               <p>RCCM : BF-OUA-01-2024-XXXXX</p>
               <p>IFU : 00XXXXXXX-X</p>
               <p>Siège social : 3252 Avenue Bobo Dioula, Guimbi Ouattara, Ouagadougou, Burkina Faso</p>
+              <p>Zone de service : États membres de l&apos;UEMOA (Bénin, Burkina Faso, Côte d&apos;Ivoire,
+                Guinée-Bissau, Mali, Niger, Sénégal, Togo)</p>
               <p>Email du DPO : <a href="mailto:dpo@sugu.pro" className="text-[#F15412] hover:underline">dpo@sugu.pro</a></p>
               <p>Téléphone : +226 00 00 00 00</p>
             </div>
             <p>
-              Conformément à la <strong>Loi N°001-2021/AN du 30 mars 2021</strong> portant protection
-              des personnes à l&apos;égard du traitement des données à caractère personnel, et sous le contrôle
-              de la <strong>Commission de l&apos;Informatique et des Libertés (CIL)</strong>, autorité administrative
-              indépendante du Burkina Faso, Sugu s&apos;engage à respecter l&apos;ensemble des obligations qui lui incombent.
+              Conformément à l&apos;<strong>Acte Additionnel A/SA.1/01/10 de la CEDEAO</strong>{" "}
+              portant protection des données à caractère personnel, à la <strong>Convention de Malabo</strong>{" "}
+              (Union Africaine, 2014) et aux lois nationales en vigueur dans la zone UEMOA — notamment
+              la <strong>Loi N°001-2021/AN</strong> du Burkina Faso (loi du siège social), la Loi
+              N°2017-547 en Côte d&apos;Ivoire, la Loi N°2008-12 au Sénégal, la Loi N°2017-20 au Bénin,
+              la Loi N°2019-014 au Togo, la Loi N°2017-28 au Niger et la Loi N°2013-015 au Mali —
+              Sugu s&apos;engage à respecter l&apos;ensemble des obligations qui lui incombent,
+              sous le contrôle de l&apos;autorité de protection des données du pays de résidence
+              de l&apos;utilisateur.
             </p>
           </Section>
 
@@ -147,8 +155,8 @@ export default function PrivacyPolicyPage() {
                 <ul className="list-disc pl-5 space-y-1 text-sm">
                   <li>Historique des commandes et numéros de suivi</li>
                   <li>Adresses de livraison</li>
-                  <li>Montants des transactions (en FCFA)</li>
-                  <li>Mode de paiement utilisé (Cash-on-Delivery, Mobile Money)</li>
+                  <li>Montants des transactions (en FCFA — XOF, monnaie de la zone UEMOA)</li>
+                  <li>Mode de paiement utilisé (Cash-on-Delivery, Mobile Money — Orange Money, Moov Money, MTN MoMo, Wave, Free Money, etc. selon le pays)</li>
                   <li>Codes de vérification de livraison (stockés sous forme de hash cryptographique)</li>
                 </ul>
               </div>
@@ -167,7 +175,7 @@ export default function PrivacyPolicyPage() {
                 <h3 className="font-semibold text-gray-900 mb-2">Données vendeurs</h3>
                 <ul className="list-disc pl-5 space-y-1 text-sm">
                   <li>Nom commercial et raison sociale</li>
-                  <li>Numéro RCCM et IFU</li>
+                  <li>Numéro RCCM et identifiant fiscal national (IFU, NINEA, CC/IDU, NIF selon le pays UEMOA d&apos;immatriculation)</li>
                   <li>Informations bancaires pour les versements (IBAN / numéro Mobile Money) — <strong>stockées de manière chiffrée et masquées dans l&apos;interface</strong></li>
                   <li>Score de fiabilité (calculé automatiquement, non public)</li>
                 </ul>
@@ -204,28 +212,32 @@ export default function PrivacyPolicyPage() {
           {/* 4 — Base légale */}
           <Section icon={Scale} title="Base légale du traitement" id="base-legale">
             <p>
-              Conformément aux articles 7 et suivants de la <strong>Loi N°001-2021/AN</strong>,
-              tout traitement de données à caractère personnel par Sugu repose sur l&apos;une des bases légales suivantes :
+              Conformément à l&apos;<strong>Acte Additionnel A/SA.1/01/10 de la CEDEAO</strong>{" "}
+              et aux lois nationales de protection des données en vigueur dans les pays UEMOA,
+              tout traitement de données à caractère personnel par Sugu repose sur l&apos;une des
+              bases légales suivantes :
             </p>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                <strong>Exécution du contrat</strong> (Art. 7, al. 1) — Le traitement est nécessaire
-                à l&apos;exécution du contrat de vente en ligne entre l&apos;acheteur et le vendeur, dont Sugu
-                est l&apos;intermédiaire au sens de la <strong>Loi N°045-2009/AN</strong> sur les transactions électroniques.
+                <strong>Exécution du contrat</strong> — Le traitement est nécessaire à l&apos;exécution
+                du contrat de vente en ligne entre l&apos;acheteur et le vendeur, dont Sugu est
+                l&apos;intermédiaire au sens de l&apos;<strong>Acte Additionnel A/SA.2/01/10 de la CEDEAO</strong>{" "}
+                sur les transactions électroniques.
               </li>
               <li>
-                <strong>Consentement</strong> (Art. 7, al. 2) — Pour les communications marketing,
+                <strong>Consentement</strong> — Pour les communications marketing,
                 les notifications WhatsApp et la géolocalisation des coursiers. Le consentement peut
                 être retiré à tout moment.
               </li>
               <li>
-                <strong>Intérêt légitime</strong> (Art. 7, al. 6) — Pour la détection de fraude,
-                le scoring de fiabilité des vendeurs et la sécurité de la plateforme. Ces traitements
-                sont proportionnés et ne portent pas atteinte aux droits fondamentaux des personnes.
+                <strong>Intérêt légitime</strong> — Pour la détection de fraude, le scoring de
+                fiabilité des vendeurs et la sécurité de la plateforme. Ces traitements sont
+                proportionnés et ne portent pas atteinte aux droits fondamentaux des personnes.
               </li>
               <li>
                 <strong>Obligation légale</strong> — Pour la conservation des données de facturation
-                et de transaction, conformément au Code de Commerce burkinabè et aux obligations fiscales.
+                et de transaction, conformément à l&apos;<strong>Acte Uniforme OHADA</strong> portant
+                Droit Commercial Général et aux obligations fiscales des pays UEMOA.
               </li>
             </ul>
           </Section>
@@ -253,16 +265,20 @@ export default function PrivacyPolicyPage() {
                 au respect de la confidentialité.
               </li>
               <li>
-                <strong>Autorités compétentes</strong> — Sur réquisition judiciaire ou demande de la CIL,
-                dans le cadre des dispositions légales en vigueur au Burkina Faso.
+                <strong>Autorités compétentes</strong> — Sur réquisition judiciaire ou demande de
+                l&apos;autorité nationale de protection des données du pays concerné (CIL au Burkina,
+                APDP au Bénin/Mali, ARTCI/CTPD en Côte d&apos;Ivoire, CDP au Sénégal, IPDCP au Togo,
+                HAPDP au Niger), dans le cadre des dispositions légales en vigueur.
               </li>
             </ul>
             <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 text-sm">
               <p className="font-semibold text-amber-900 mb-1">🔒 Transferts internationaux</p>
               <p className="text-amber-800">
-                Certaines données techniques transitent par des serveurs situés hors du Burkina Faso
+                Certaines données techniques transitent par des serveurs situés hors de la zone UEMOA
                 (notifications Firebase, CDN). Ces transferts sont encadrés par des clauses contractuelles
-                conformes aux recommandations de la CIL et de la CEDEAO.
+                conformes aux recommandations des autorités nationales de protection des données et
+                aux principes de l&apos;Acte Additionnel A/SA.1/01/10 de la CEDEAO et de la Convention
+                de Malabo.
               </p>
             </div>
           </Section>
@@ -319,8 +335,9 @@ export default function PrivacyPolicyPage() {
           {/* 8 — Droits */}
           <Section icon={UserCheck} title="Vos droits" id="droits">
             <p>
-              Conformément aux articles 15 à 22 de la <strong>Loi N°001-2021/AN</strong>,
-              vous disposez des droits suivants :
+              Conformément à l&apos;<strong>Acte Additionnel A/SA.1/01/10 de la CEDEAO</strong>{" "}
+              et aux lois nationales de protection des données dans la zone UEMOA, vous disposez
+              des droits suivants :
             </p>
             <div className="space-y-3">
               {[
@@ -347,11 +364,19 @@ export default function PrivacyPolicyPage() {
                 en joignant une copie d&apos;une pièce d&apos;identité. Nous répondrons sous <strong>30 jours</strong> maximum.
               </p>
               <p className="text-sm">
-                En cas de litige, vous pouvez saisir la <strong>Commission de l&apos;Informatique et des Libertés (CIL)</strong> :
+                En cas de litige, vous pouvez saisir l&apos;<strong>autorité de protection des
+                données de votre pays de résidence</strong> :
               </p>
-              <p className="text-sm text-gray-600">
-                CIL — 01 BP 6245 Ouagadougou 01 — <a href="https://www.cil.bf" target="_blank" rel="noopener noreferrer" className="text-[#F15412] hover:underline">www.cil.bf</a>
-              </p>
+              <ul className="text-sm text-gray-600 space-y-1 mt-1">
+                <li>• <strong>Burkina Faso</strong> — CIL — <a href="https://www.cil.bf" target="_blank" rel="noopener noreferrer" className="text-[#F15412] hover:underline">www.cil.bf</a></li>
+                <li>• <strong>Côte d&apos;Ivoire</strong> — ARTCI / CTPD — <a href="https://www.artci.ci" target="_blank" rel="noopener noreferrer" className="text-[#F15412] hover:underline">www.artci.ci</a></li>
+                <li>• <strong>Sénégal</strong> — CDP — <a href="https://www.cdp.sn" target="_blank" rel="noopener noreferrer" className="text-[#F15412] hover:underline">www.cdp.sn</a></li>
+                <li>• <strong>Bénin</strong> — APDP — <a href="https://apdp.bj" target="_blank" rel="noopener noreferrer" className="text-[#F15412] hover:underline">apdp.bj</a></li>
+                <li>• <strong>Togo</strong> — IPDCP — <a href="https://ipdcp.tg" target="_blank" rel="noopener noreferrer" className="text-[#F15412] hover:underline">ipdcp.tg</a></li>
+                <li>• <strong>Niger</strong> — HAPDP</li>
+                <li>• <strong>Mali</strong> — APDP</li>
+                <li>• <strong>Guinée-Bissau</strong> — autorité nationale compétente</li>
+              </ul>
             </div>
           </Section>
 
@@ -387,8 +412,9 @@ export default function PrivacyPolicyPage() {
           <Section icon={Shield} title="Protection des mineurs" id="mineurs">
             <p>
               Les services de Sugu sont destinés aux personnes âgées de <strong>18 ans et plus</strong>,
-              ou de 16 ans avec le consentement d&apos;un représentant légal, conformément à l&apos;article 10
-              de la Loi N°001-2021/AN. Nous ne collectons pas sciemment de données de mineurs de moins
+              ou de 16 ans avec le consentement d&apos;un représentant légal, conformément à
+              l&apos;Acte Additionnel A/SA.1/01/10 de la CEDEAO et aux dispositions nationales applicables
+              dans la zone UEMOA. Nous ne collectons pas sciemment de données de mineurs de moins
               de 16 ans.
             </p>
           </Section>
@@ -421,11 +447,14 @@ export default function PrivacyPolicyPage() {
         <div className="mt-16 pt-8 border-t border-gray-200">
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Références légales</h3>
           <ul className="space-y-1.5 text-xs text-gray-500">
-            <li>• Loi N°001-2021/AN du 30 mars 2021 — Protection des personnes à l&apos;égard du traitement des données à caractère personnel</li>
-            <li>• Loi N°045-2009/AN du 10 novembre 2009 — Réglementation des services et transactions électroniques</li>
-            <li>• Acte Uniforme OHADA relatif au Droit Commercial Général (AUDCG) — Obligations comptables</li>
-            <li>• Acte additionnel A/SA.1/01/10 de la CEDEAO — Protection des données à caractère personnel</li>
+            <li>• Acte Additionnel A/SA.1/01/10 de la CEDEAO — Protection des données à caractère personnel dans l&apos;espace de la CEDEAO</li>
+            <li>• Acte Additionnel A/SA.2/01/10 de la CEDEAO — Transactions électroniques</li>
             <li>• Convention de l&apos;Union Africaine sur la cybersécurité et la protection des données à caractère personnel (Convention de Malabo, 2014)</li>
+            <li>• Acte Uniforme OHADA relatif au Droit Commercial Général (AUDCG) — Obligations comptables</li>
+            <li>• Lois nationales de protection des données dans la zone UEMOA :</li>
+            <li>&nbsp;&nbsp;&nbsp;— Loi N°001-2021/AN (Burkina Faso) — Loi N°2017-547 (Côte d&apos;Ivoire)</li>
+            <li>&nbsp;&nbsp;&nbsp;— Loi N°2008-12 (Sénégal) — Loi N°2017-20 (Bénin) — Loi N°2019-014 (Togo)</li>
+            <li>&nbsp;&nbsp;&nbsp;— Loi N°2017-28 (Niger) — Loi N°2013-015 (Mali)</li>
           </ul>
         </div>
       </div>

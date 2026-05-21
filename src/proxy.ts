@@ -115,6 +115,13 @@ function setCached(key: string, destination: string | null, statusCode: number):
   resolveCache.set(key, { destination, statusCode, expiresAt: Date.now() + CACHE_TTL_MS });
 }
 
+function isSafeRelativeRedirect(destination: unknown): destination is string {
+  if (typeof destination !== "string") return false;
+  if (destination === "/") return true;
+  if (/[\x00-\x1F\x7F]/.test(destination)) return false;
+  return /^\/[^/\\]/.test(destination);
+}
+
 /** Evict stale entries periodically to prevent unbounded growth. */
 function maybeEvict(): void {
   if (Date.now() - lastEviction < 60_000) return;
@@ -207,7 +214,7 @@ export default async function proxy(request: NextRequest) {
     const data = await res.json();
 
     if (data.match && data.to) {
-      if (!data.to.startsWith("/")) {
+      if (!isSafeRelativeRedirect(data.to)) {
         console.warn(`[seo-redirect] Blocked external redirect: ${data.to}`);
         setCached(cacheKey, null, 200);
         return NextResponse.next();

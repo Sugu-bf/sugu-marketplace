@@ -33,6 +33,7 @@ import {
   clearRecentSearches,
 } from "../state/recentSearches.cookie";
 import { getAuthUser, logout, type AuthUser } from "@/lib/api/auth";
+import { hasAuthSession } from "@/features/auth/services/auth-service";
 import { useSearchSuggestions } from "../hooks/useSearchSuggestions";
 import { formatPrice } from "@/lib/constants";
 
@@ -90,12 +91,9 @@ export default function MarketplaceHeaderClient({
 
   // ── Auth state detection ──
   const checkAuth = useCallback(async () => {
-    // Quick check: if no auth_token cookie, skip the API call
-    const hasToken = document.cookie
-      .split("; ")
-      .some((row) => row.startsWith("auth_token="));
-
-    if (!hasToken) {
+    // Quick check: the real auth token is HttpOnly; this only reads a
+    // non-sensitive expiry hint to avoid calling /me for obvious guests.
+    if (!hasAuthSession()) {
       setAuthUser(null);
       setAuthLoading(false);
       return;
@@ -126,8 +124,7 @@ export default function MarketplaceHeaderClient({
     try {
       await logout();
     } catch {
-      // Clear cookie even on error
-      document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+      // Best-effort logout; local state is still cleared below.
     }
     setAuthUser(null);
     router.push("/");

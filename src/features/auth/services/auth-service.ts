@@ -9,6 +9,9 @@ import { api } from "@/lib/api/client";
 import { buildApiUrl } from "@/lib/api/endpoints";
 import { initCsrf } from "@/lib/api/auth";
 import { ApiError, isApiError } from "@/lib/api/errors";
+import {
+  AUTH_TOKEN_EXPIRES_COOKIE,
+} from "@/lib/api/session";
 
 // ─── OTP Types (matching backend OtpType enum) ──────────────
 export const OTP_TYPE = {
@@ -58,7 +61,7 @@ interface ApiSuccessResponse<T = unknown> {
 
 interface LoginSuccessData {
   user: AuthUserProfile;
-  token: string;
+  expires_at?: string;
 }
 
 interface LoginOtpData {
@@ -69,7 +72,7 @@ interface LoginOtpData {
 
 interface RegisterSuccessData {
   user: AuthUserProfile;
-  token: string;
+  expires_at?: string;
   verification_required: {
     email: boolean;
     phone: boolean;
@@ -83,58 +86,18 @@ interface ForgotPasswordData {
 
 // ─── Cookie helpers ────────────────────────────────────────────
 
-/** Durée de vie du token : 90 jours en secondes */
-const TOKEN_MAX_AGE = 90 * 24 * 60 * 60;
-
-/**
- * Stocker le token Sanctum dans le cookie `auth_token`.
- *
- * STRATÉGIE DOUBLE :
- * 1. document.cookie direct (primaire) — immédiat et fiable.
- *    Nécessaire : l'API Laravel utilise uniquement Authorization: Bearer
- *    (pas le mode cookie stateful de Sanctum — incompatible cross-domain).
- *    client.ts lit `auth_token` depuis document.cookie → Bearer header.
- *
- * 2. Route Handler /api/auth/set-session (secondaire, async) — bonus SSR.
- *    Si le Route Handler échoue, le cookie JS suffira pour le client.
- *    On ne bloque PAS la navigation sur ce call.
- *
- * NOTE sécurité CSRF : cookie SameSite=Lax + Bearer token.
- * Un attaquant cross-domain ne peut pas forger Authorization: Bearer.
- */
-export function setAuthTokenCookie(token: string, expiresAt?: string): void {
-  if (typeof document === "undefined") return;
-
-  const isHttps = window.location.protocol === "https:";
-  const secure  = isHttps ? "; Secure" : "";
-
-  // ── 1. Cookie direct (synchrone — garanti avant navigation) ──
-  document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; max-age=${TOKEN_MAX_AGE}; SameSite=Lax${secure}`;
-
-  // ── 2. Route Handler en arrière-plan (pour SSR cookie) ────────
-  const expiresAtStr = expiresAt ?? new Date(Date.now() + TOKEN_MAX_AGE * 1000).toISOString();
-  document.cookie = `auth_token_expires_at=${encodeURIComponent(expiresAtStr)}; path=/; max-age=${TOKEN_MAX_AGE}; SameSite=Lax${secure}`;
-
-  // Appel async non-bloquant au Route Handler (pour le rendu SSR)
-  fetch("/api/auth/set-session", {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ token, expires_at: expiresAtStr }),
-  }).catch(() => {
-    // Non bloquant — le cookie JS est déjà posé, auth client OK
-  });
-}
-
-/**
- * Vérifier si l'user a un token en cookie.
- * Lit directement auth_token depuis document.cookie.
- */
-export function getAuthTokenCookie(): string | null {
+/** Read a non-sensitive browser cookie value. */
+function readCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
+  const prefix = `${name}=`;
   const match = document.cookie
     .split("; ")
-    .find((row) => row.startsWith("auth_token="));
-  return match ? decodeURIComponent(match.split("=")[1]) : null;
+    .find((row) => row.startsWith(prefix));
+  return match ? decodeURIComponent(match.slice(prefix.length)) : null;
+}
+
+export function hasAuthSession(): boolean {
+  return getTokenExpiry() !== null;
 }
 
 /** Stocker la date d'expiration en localStorage (pour useTokenRefresh) */
@@ -146,8 +109,9 @@ export function setTokenExpiry(expiresAt: string): void {
 
 /** Lire la date d'expiration du token */
 export function getTokenExpiry(): Date | null {
-  if (typeof localStorage === "undefined") return null;
-  const val = localStorage.getItem("auth_token_expires_at");
+  const val = typeof localStorage !== "undefined"
+    ? localStorage.getItem("auth_token_expires_at") ?? readCookie(AUTH_TOKEN_EXPIRES_COOKIE)
+    : readCookie(AUTH_TOKEN_EXPIRES_COOKIE);
   if (!val) return null;
   const d = new Date(val);
   return isNaN(d.getTime()) ? null : d;
@@ -161,48 +125,49 @@ export function tokenDaysRemaining(): number {
 }
 
 /** Déconnecter : efface le cookie */
-export function clearAuthTokenCookie(): void {
-  if (typeof document === "undefined") return;
-  document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
-  document.cookie = "auth_token_expires_at=; path=/; max-age=0; SameSite=Lax";
+export async function clearAuthTokenCookie(): Promise<void> {
   // Nettoyage via Route Handler (supprime le cookie côté serveur aussi)
-  fetch("/api/auth/set-session", { method: "DELETE" }).catch(() => {});
   if (typeof localStorage !== "undefined") {
     localStorage.removeItem("auth_token_expires_at");
   }
+
+  if (typeof window === "undefined") return;
+
+  await fetch("/api/auth/set-session", {
+    method: "DELETE",
+    credentials: "same-origin",
+  }).catch(() => {});
 }
 
 // ─── Refresh Token (zéro SMS) ────────────────────────────────
 
-export async function refreshToken(): Promise<{ token: string; expires_at: string }> {
+export async function refreshToken(): Promise<{ expires_at: string }> {
   await initCsrf();
 
-  const { data } = await api.post<ApiSuccessResponse<{ token: string; expires_at: string; ttl_days: number }>>(
+  const { data } = await api.post<ApiSuccessResponse<{ expires_at: string; ttl_days?: number }>>(
     buildApiUrl("/api/v1/web-auth/refresh-token"),
     {}
   );
 
-  if (!data.success || !data.data) {
+  if (!data.success || !data.data?.expires_at) {
     throw new ApiError({ status: 401, code: "UNAUTHORIZED", message: data.message || "Session expirée." });
   }
 
-  // Mettre à jour le cookie HttpOnly + expiry
-  await setAuthTokenCookie(data.data.token, data.data.expires_at);
+  // The BFF rotates the HttpOnly cookie server-side. JavaScript keeps only the
+  // non-sensitive expiry hint for refresh scheduling.
   setTokenExpiry(data.data.expires_at);
 
-  return data.data;
+  return { expires_at: data.data.expires_at };
 }
 
 // ─── Check Phone (Smart Login) ───────────────────────────────
-// Étape 1 du login téléphone : vérifie si le numéro existe
-// et retourne la méthode d'auth disponible
+// Étape 1 du login téléphone : vérifie si le numéro existe.
+// Le PIN n'existe plus — l'auth téléphone est TOUJOURS par OTP.
+// La redirection pro est désormais décidée APRÈS login, depuis le profil
+// (user_type / roles) — l'endpoint ne fuite plus le rôle avant auth.
 
 export interface CheckPhoneResult {
   exists: boolean;
-  /** "pin" = l'user a un PIN, "otp" = compte Google (pas de PIN), null = n'existe pas */
-  auth_method: "pin" | "otp" | null;
-  /** true = vendeur/agence → rediriger vers pro.sugu.pro */
-  redirect_to_pro: boolean;
 }
 
 export async function checkPhone(phone_e164: string): Promise<CheckPhoneResult> {
@@ -228,7 +193,7 @@ export interface LoginParams {
 export async function loginUser(params: LoginParams): Promise<{
   type: "success";
   user: AuthUserProfile;
-  token: string;
+  expires_at?: string;
 } | {
   type: "otp_required";
   identifier: string;
@@ -265,7 +230,7 @@ export async function loginUser(params: LoginParams): Promise<{
   return {
     type: "success",
     user: loginData.user,
-    token: loginData.token,
+    expires_at: loginData.expires_at,
   };
 }
 
@@ -273,25 +238,24 @@ export async function loginUser(params: LoginParams): Promise<{
 
 export interface RegisterParams {
   name: string;
-  /** Obligatoire si méthode email */
+  /** Méthode email — sur le portail acheteur on n'utilise pas cette méthode. */
   email?: string;
-  /** Obligatoire si méthode téléphone */
+  /** Méthode téléphone (par défaut sur la marketplace) */
   phone_e164?: string;
-  /** PIN 4 chiffres — méthode téléphone (remplacé password) */
-  pin?: string;
-  /** Mot de passe ≥8 chars — méthode email uniquement */
-  password?: string;
-  password_confirmation?: string;
   /** Toujours "buyer" sur la marketplace. Les vendeurs ont pro.sugu.pro */
   user_type?: "buyer";
   referral_code?: string;
-  /** SEC-01 : token OTP SMS one-use (30 min) — obligatoire si inscription par téléphone */
+  /**
+   * SEC-01 : token OTP SMS one-use (30 min) — OBLIGATOIRE pour l'inscription
+   * par téléphone. Prouve la possession du numéro ; le backend marque alors
+   * phone_verified_at immédiatement et n'envoie PAS d'OTP supplémentaire.
+   */
   phone_verified_token?: string;
 }
 
 export async function registerUser(params: RegisterParams): Promise<{
   user: AuthUserProfile;
-  token: string;
+  expires_at?: string;
   verification_required: { email: boolean; phone: boolean };
 }> {
   await initCsrf();
@@ -386,7 +350,6 @@ export interface VerifyOtpParams {
 export async function verifyOtp(params: VerifyOtpParams): Promise<{
   verified: boolean;
   user?: AuthUserProfile;
-  token?: string;
   expires_at?: string;
 }> {
   await initCsrf();
@@ -395,7 +358,6 @@ export async function verifyOtp(params: VerifyOtpParams): Promise<{
     verified?: boolean;
     type?: string;
     user?: AuthUserProfile;
-    token?: string;
     expires_at?: string;
   }>>(
     buildApiUrl("/api/v1/web-auth/verify-otp"),
@@ -413,7 +375,6 @@ export async function verifyOtp(params: VerifyOtpParams): Promise<{
   return {
     verified: true,
     user: data.data?.user,
-    token: data.data?.token,
     expires_at: data.data?.expires_at,
   };
 }
@@ -517,7 +478,7 @@ export async function resetPassword(params: ResetPasswordParams): Promise<string
 // ─── Guest Entry ─────────────────────────────────────────────
 
 export interface GuestEntryResult {
-  token: string;
+  expires_at?: string;
   user: AuthUserProfile;
 }
 
@@ -528,7 +489,7 @@ export async function guestEntry(): Promise<GuestEntryResult> {
   );
 
   const result = data?.data;
-  if (!result?.token) {
+  if (!result?.user) {
     throw new Error("Erreur lors de la création du compte invité.");
   }
 
@@ -546,7 +507,6 @@ export interface GoogleSignInParams {
 
 export interface GoogleSignInResult {
   user: AuthUserProfile;
-  token: string;
   /** ISO 8601 — date d'expiration du token Sanctum (90j par défaut) */
   expires_at?: string;
   is_new_user: boolean;
@@ -569,11 +529,35 @@ export async function googleSignIn(
   );
 
   const result = data?.data;
-  if (!result?.token) {
+  if (!result?.user) {
     throw new Error("Réponse Google invalide du serveur.");
   }
 
   return result;
+}
+
+// ─── Helper: safe relative path (open-redirect defence) ─────
+/**
+ * Retourne `url` uniquement si c'est un chemin RELATIF interne sûr,
+ * sinon retourne `/`. Bloque :
+ *   - URLs absolues (http://, https://, javascript:, data:, …)
+ *   - URLs protocole-relatif (//evil.com  → équivalent à https://evil.com)
+ *   - Slash + backslash (/\evil.com  → certains navigateurs traitent \ comme /)
+ *   - Caractères de contrôle (newline, etc. — vecteurs d'injection)
+ *
+ * Le check `.startsWith("/")` SEUL est insuffisant : il laisse passer
+ * `//evil.com` et `/\evil.com`, ce qui devient un redirect ouvert exploitable
+ * via `?redirect=//evil.com` après login.
+ */
+export function safeRelativePath(url: string | null | undefined): string {
+  if (typeof url !== "string" || url.length === 0) return "/";
+  // Pas de caractères de contrôle (incluant \r \n \t)
+  if (/[\x00-\x1F\x7F]/.test(url)) return "/";
+  // Doit commencer par '/' et le caractère suivant ne doit être ni '/' ni '\'
+  // (un '/' tout seul est accepté = retour accueil).
+  if (url === "/") return "/";
+  if (/^\/[^/\\]/.test(url)) return url;
+  return "/";
 }
 
 // ─── Helper: extract error message ──────────────────────────

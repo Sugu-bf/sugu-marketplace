@@ -1,11 +1,11 @@
 /**
  * Support Chat API client for the customer-facing marketplace.
- * Communicates with the Laravel backend via Sanctum-authenticated requests.
+ * Browser calls go through the same-origin BFF so the Sanctum token remains
+ * HttpOnly and is injected server-side.
  */
 
-import { API_BASE_URL } from "@/lib/api/config";
-
-const API_BASE = API_BASE_URL;
+import { api } from "@/lib/api/client";
+import { buildApiUrl } from "@/lib/api/endpoints";
 
 export interface ChatConversation {
   id: string;
@@ -46,30 +46,21 @@ export interface ChatMessage {
   created_at: string;
 }
 
-async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const res = await fetch(`${API_BASE}/v1${path}`, {
-    ...options,
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      ...(options.body instanceof FormData
-        ? {}
-        : { "Content-Type": "application/json" }),
-      ...options.headers,
-    },
-  });
+type SupportChatRequestOptions = {
+  method?: "GET" | "POST";
+  body?: unknown;
+};
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      err.message ?? `API error ${res.status}: ${res.statusText}`
-    );
+async function apiFetch<T>(path: string, options: SupportChatRequestOptions = {}): Promise<T> {
+  const url = buildApiUrl(`/api/v1${path}`);
+
+  if (options.method === "POST") {
+    const { data } = await api.post<T>(url, { body: options.body });
+    return data;
   }
 
-  return res.json();
+  const { data } = await api.get<T>(url);
+  return data;
 }
 
 /**
@@ -85,7 +76,7 @@ export async function startChat(
 
   const res = await apiFetch<{ success: boolean; data: ChatConversation }>(
     "/me/support-chat/start",
-    { method: "POST", body: JSON.stringify(body) }
+    { method: "POST", body }
   );
   return res.data;
 }
@@ -164,7 +155,7 @@ export async function markRead(
 ): Promise<void> {
   await apiFetch(`/me/support-chat/${conversationId}/read`, {
     method: "POST",
-    body: JSON.stringify({ last_read_message_id: lastReadMessageId }),
+    body: { last_read_message_id: lastReadMessageId },
   });
 }
 
