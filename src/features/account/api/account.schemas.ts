@@ -97,11 +97,20 @@ export const ApiOrderListItemSchema = z.object({
   itemCount: z.number(),
   items: z.array(ApiOrderItemSchema),
   paymentStatus: z.string().optional(),
+  paymentStatusCode: z.enum([
+    "paid",
+    "pending",
+    "partial",
+    "refunded",
+    "hold",
+    "failed",
+    "cod_pending",
+  ]).nullable().optional(),
   paymentMethod: z.string().optional(),
   shippingStatus: z.string().optional(),
-  // COD Mixte fields
+  // COD fields (Legacy + Mixte)
   is_cod: z.boolean().optional(),
-  cod_flow_type: z.enum(["mixte", "legacy"]).nullable().optional(),
+  cod_flow_type: z.enum(["mixte", "legacy", "none"]).nullable().optional(),
   delivery_fee_paid: z.boolean().optional(),
   product_fee_paid: z.boolean().optional(),
   cod_current_step: z.string().nullable().optional(),

@@ -147,7 +147,8 @@ function mapApiOrderToUI(order: ApiOrderListItem): Order {
       quantity: item.quantity,
       image: item.image,
     })),
-    // COD Mixte fields
+    paymentStatusCode: order.paymentStatusCode,
+    // COD fields (Legacy + Mixte)
     is_cod: order.is_cod,
     cod_flow_type: order.cod_flow_type,
     delivery_fee_paid: order.delivery_fee_paid,

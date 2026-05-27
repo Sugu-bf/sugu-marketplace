@@ -2,7 +2,7 @@ import { createMetadata } from "@/lib/metadata";
 import { Breadcrumb, Badge, Button } from "@/components/ui";
 import { queryOrders } from "@/features/account";
 import { formatPrice } from "@/lib/constants";
-import { Eye, Package, CreditCard, Truck, CheckCircle2 } from "lucide-react";
+import { Eye, Package, CreditCard, Truck, CheckCircle2, Banknote } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -55,6 +55,12 @@ export default async function OrdersPage() {
           {orders.map((order) => {
             const config = STATUS_CONFIG[order.statusCode ?? ""] ?? STATUS_CONFIG.pending;
             const isCodMixte = order.is_cod && order.cod_flow_type === "mixte";
+            // Legacy COD awaiting cash: shown only when both signals agree, so the
+            // indicator disappears the moment the cash payment lands (paymentStatusCode
+            // transitions out of "cod_pending") and never overlaps with the Mixte badge.
+            const isCodLegacyAwaitingCash =
+              order.cod_flow_type === "legacy" &&
+              order.paymentStatusCode === "cod_pending";
             const codStep = order.cod_current_step ? COD_STEP_LABELS[order.cod_current_step] : null;
             const isActionRequired =
               order.cod_current_step === "awaiting_delivery_payment" ||
@@ -76,6 +82,13 @@ export default async function OrdersPage() {
                         deliveryFeePaid={order.delivery_fee_paid ?? false}
                         productFeePaid={order.product_fee_paid ?? false}
                       />
+                    )}
+                    {/* COD Legacy — cash on delivery indicator */}
+                    {isCodLegacyAwaitingCash && (
+                      <Badge variant="warning" size="sm" pill>
+                        <Banknote size={12} className="mr-1 inline-block" />
+                        Paiement à la livraison
+                      </Badge>
                     )}
                     <Link href={`/track-order?id=${order.id}`}>
                       <Button variant="ghost" size="xs"><Eye size={14} /> Détails</Button>
