@@ -14,6 +14,7 @@ import {
   Package,
   ShieldCheck,
   ArrowRight,
+  Banknote,
 } from "lucide-react";
 import { formatPrice } from "@/lib/constants";
 import type { OrderItem, TrackedOrder } from "@/features/order";
@@ -473,6 +474,18 @@ function PaymentStatusBanner({
         <AlertCircle size={18} className="text-orange-600 flex-shrink-0" />
         <span className="text-sm font-medium text-orange-700">
           Paiement à la livraison (COD)
+        </span>
+      </div>
+    );
+  }
+
+  // COD Legacy — cash on delivery, no online payment expected
+  if (paymentStatus === "cod_pending") {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2.5">
+        <Banknote size={18} className="text-amber-700 flex-shrink-0" />
+        <span className="text-sm font-medium text-amber-800">
+          Paiement à la livraison — vous réglerez en espèces à la réception
         </span>
       </div>
     );

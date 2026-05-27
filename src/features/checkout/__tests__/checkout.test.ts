@@ -233,6 +233,44 @@ describe("Checkout Zod Schemas", () => {
       const result = PlaceOrderResponseSchema.safeParse(data);
       expect(result.success).toBe(true);
     });
+
+    // Backend contract: COD Legacy and COD Mixte share the same placeOrder
+    // response shape — is_cod=true, next_step="order_confirmed", payment_url=null.
+    // Legacy carries status="confirmed" (auto-confirmed), Mixte carries
+    // status="pending" (awaiting vendor stock confirmation). The Legacy/Mixte
+    // distinction is NOT made at place-order time on the frontend; it surfaces
+    // later via cod_flow_type on the orders list and codMixte on tracking.
+    test("accepts COD Mixte order response (same shape as Legacy, status='pending')", () => {
+      const data = {
+        success: true,
+        message: "Commande créée avec succès.",
+        data: {
+          order: {
+            id: "order_789",
+            number: "SU-2026-000003",
+            status: "pending",
+            payment_status: "unpaid",
+            total_amount: 90000,
+            currency: "XOF",
+            items_count: 4,
+            is_cod: true,
+            placed_at: "2026-02-25T09:32:00Z",
+            guest_order_token: null,
+          },
+          payment_transaction: {
+            id: "ptx_789",
+            provider: "cod",
+            status: "pending",
+            amount: 90000,
+            currency: "XOF",
+          },
+          payment_url: null,
+          next_step: "order_confirmed",
+        },
+      };
+      const result = PlaceOrderResponseSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
   });
 
   describe("DeliveryPartnerSchema", () => {

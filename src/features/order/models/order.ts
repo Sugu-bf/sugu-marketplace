@@ -112,7 +112,7 @@ export const OrderTrackingApiSchema = z.object({
     discount: z.number(),
     total: z.number(),
     currency: z.string(),
-    paymentStatus: z.enum(["paid", "pending", "failed", "unpaid", "partial"]),
+    paymentStatus: z.enum(["paid", "pending", "failed", "unpaid", "partial", "cod_pending"]),
     paymentMethod: z.string(),
   }),
 
@@ -179,7 +179,7 @@ export const TrackedOrderSchema = z.object({
   discount: z.number(),
   total: z.number(),
   paymentMethod: z.string(),
-  paymentStatus: z.enum(["paid", "pending", "failed", "unpaid", "partial"]),
+  paymentStatus: z.enum(["paid", "pending", "failed", "unpaid", "partial", "cod_pending"]),
 
   // COD Mixte split-payment state
   codMixte: z.object({
