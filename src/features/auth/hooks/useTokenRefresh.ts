@@ -58,9 +58,15 @@ export function useTokenRefresh() {
       // Une erreur réseau / 5xx ne déclenche PAS de logout (non bloquant).
       if (isApiError(err) && err.status === 401) {
         void clearAuthTokenCookie();
-        // Pas de redirect forcé ici (l'utilisateur navigue peut-être sur
-        // une page publique) — le prochain accès à une page protégée le
-        // renverra vers /login via le middleware serveur.
+        // Signaler la perte de session aux composants UI (header, toast, …)
+        // qui peuvent décider d'afficher un message ou de rediriger.
+        // L'event est intentionnellement passif : aucun redirect forcé ici
+        // car l'utilisateur navigue peut-être sur une page publique.
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("auth:session-expired", {
+            detail: { reason: "refresh_failed", status: err.status },
+          }));
+        }
       }
       console.debug("[auth] Token refresh failed (non-blocking):", err);
     } finally {

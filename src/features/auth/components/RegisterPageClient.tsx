@@ -15,7 +15,6 @@ import {
   verifyPhone,
   getAuthErrorMessage,
   safeRelativePath,
-  setTokenExpiry,
 } from "../services/auth-service";
 import { mockCountryCodes } from "../mocks/auth";
 import type { CountryCode } from "../models/auth";
@@ -62,9 +61,10 @@ function RegisterPageClient() {
     return cleaned.startsWith("+") ? cleaned : `${selectedCountry.dialCode}${cleaned}`;
   };
 
-  const onSuccess = (expiresAt?: string) => {
-    if (expiresAt) setTokenExpiry(expiresAt);
-    // Hard navigation → force rechargement complet (header remonte + checkAuth refired)
+  const onSuccess = (_expiresAt?: string) => {
+    // expires_at est déjà persisté par auth-service via consumeAuthEnvelope
+    // — qui n'est appelé que si le BFF a confirmé la pose du cookie HttpOnly.
+    // Hard navigation → force rechargement complet (header remonte + checkAuth refired).
     window.location.href = safeRedirect;
   };
 

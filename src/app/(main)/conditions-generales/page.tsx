@@ -5,7 +5,7 @@ import { Scale, ShoppingCart, Truck, Shield, AlertTriangle, Ban, CreditCard, Mes
 export const metadata: Metadata = {
   title: "Conditions Générales d'Utilisation — Sugu",
   description:
-    "Conditions générales d'utilisation et de vente de la marketplace Sugu. Règles applicables aux acheteurs, vendeurs, agences de livraison et coursiers dans la zone UEMOA (Afrique de l'Ouest).",
+    "Conditions générales d'utilisation et de vente de la marketplace Sugu. Règles applicables aux acheteurs, vendeurs, agences de livraison et coursiers dans la zone UEMOA — pays AES (Burkina Faso, Mali, Niger) et CEDEAO (Bénin, Côte d'Ivoire, Guinée-Bissau, Sénégal, Togo).",
   alternates: { canonical: "/conditions-generales" },
   openGraph: {
     title: "Conditions Générales d'Utilisation — Sugu",
@@ -126,18 +126,21 @@ export default function TermsPage() {
               régissent l&apos;accès et l&apos;utilisation de la plateforme <strong>Sugu</strong> (site web{" "}
               <a href="https://sugu.pro" className="text-[#F15412] hover:underline">sugu.pro</a>{" "}
               et application mobile), éditée par <strong>SUGU SARL</strong>, société de droit burkinabè
-              dont le siège social est établi à Ouagadougou, déployant ses services dans la
-              zone <strong>UEMOA</strong> (Bénin, Burkina Faso, Côte d&apos;Ivoire, Guinée-Bissau,
-              Mali, Niger, Sénégal, Togo).
+              dont le siège social est établi à Ouagadougou. Sugu déploie ses services dans les 8 pays
+              de la zone <strong>UEMOA</strong>, regroupant les États membres de
+              l&apos;<strong>Alliance des États du Sahel (AES)</strong> — Burkina Faso, Mali, Niger —
+              et les États de l&apos;Afrique de l&apos;Ouest restés membres de la
+              <strong> CEDEAO</strong> — Bénin, Côte d&apos;Ivoire, Guinée-Bissau, Sénégal, Togo.
             </p>
             <p>
               Sugu est une marketplace, c&apos;est-à-dire un intermédiaire technique mettant en relation
               des vendeurs professionnels et des acheteurs, conformément à l&apos;<strong>Acte
-              Additionnel A/SA.2/01/10 de la CEDEAO</strong> portant transactions électroniques,
-              à l&apos;<strong>Acte Uniforme OHADA</strong> relatif au Droit Commercial Général et aux
-              lois nationales équivalentes en vigueur dans chaque État membre de l&apos;UEMOA
-              (notamment la Loi N°045-2009/AN du 10 novembre 2009 au Burkina Faso, la Loi N°2013-450
-              en Côte d&apos;Ivoire, la Loi N°2008-08 au Sénégal).
+              Uniforme OHADA</strong> relatif au Droit Commercial Général (commun aux 8 pays), aux
+              <strong> lois nationales</strong> sur les transactions électroniques en vigueur dans chaque
+              État (Loi N°045-2009/AN du 10 novembre 2009 au Burkina Faso, Loi N°2013-450 en Côte
+              d&apos;Ivoire, Loi N°2008-08 au Sénégal, Loi N°2017-20 au Bénin, etc.) — pour partie
+              issues de la transposition de l&apos;<strong>Acte Additionnel A/SA.2/01/10 de la CEDEAO</strong>
+              {" "}et appelées à évoluer dans le cadre du droit dérivé <strong>AES</strong> émergent.
             </p>
             <p>
               L&apos;utilisation des services Sugu implique l&apos;acceptation pleine et entière des présentes CGU/CGV.
@@ -176,8 +179,9 @@ export default function TermsPage() {
               <p>
                 L&apos;inscription est ouverte à toute personne physique âgée d&apos;au moins <strong>18 ans</strong>{" "}
                 (ou 16 ans avec autorisation parentale) et disposant de la capacité juridique, ou à toute
-                personne morale légalement constituée dans un État membre de l&apos;UEMOA ou plus largement
-                de la CEDEAO.
+                personne morale légalement constituée dans un État membre de l&apos;UEMOA — qu&apos;il
+                relève de l&apos;<strong>AES</strong> (Burkina Faso, Mali, Niger) ou de la
+                <strong> CEDEAO</strong> (Bénin, Côte d&apos;Ivoire, Guinée-Bissau, Sénégal, Togo).
               </p>
             </Sub>
             <Sub title="3.2 Données obligatoires">
@@ -210,9 +214,11 @@ export default function TermsPage() {
           <Section icon={Globe} title="Fonctionnement de la marketplace" id="marketplace">
             <Sub title="4.1 Rôle d'intermédiaire">
               <p>
-                Sugu agit en qualité d&apos;hébergeur et d&apos;intermédiaire technique au sens de
-                l&apos;<strong>Acte Additionnel A/SA.2/01/10 de la CEDEAO</strong> sur les transactions
-                électroniques et des lois nationales équivalentes. Sugu n&apos;est
+                Sugu agit en qualité d&apos;hébergeur et d&apos;intermédiaire technique au sens des
+                lois nationales sur les transactions électroniques applicables dans chaque pays
+                d&apos;intervention, qu&apos;elles relèvent du cadre <strong>CEDEAO</strong> (Acte
+                Additionnel A/SA.2/01/10), du cadre <strong>AES</strong> (en cours d&apos;élaboration,
+                lois nationales en vigueur) ou des Actes Uniformes <strong>OHADA</strong>. Sugu n&apos;est
                 <strong> ni vendeur ni acheteur</strong> des produits proposés. Le contrat de vente
                 est conclu directement entre l&apos;acheteur et le vendeur.
               </p>
@@ -288,8 +294,9 @@ export default function TermsPage() {
                 Les vendeurs sont responsables de leurs obligations fiscales propres dans leur pays de
                 résidence (déclarations auprès de la DGI/DGID nationale, TVA, impôts sur les bénéfices).
                 Sugu émet un relevé mensuel des commissions perçues. Les obligations de facturation
-                électronique sont respectées conformément aux Actes Additionnels CEDEAO et aux
-                réglementations fiscales nationales applicables.
+                électronique sont respectées conformément aux <strong>Actes Uniformes OHADA</strong>{" "}
+                (communs aux 8 pays) et aux réglementations fiscales nationales applicables — qu&apos;elles
+                relèvent du cadre AES (BF, ML, NE) ou CEDEAO (BJ, CI, GW, SN, TG).
               </p>
             </Sub>
           </Section>
@@ -400,16 +407,21 @@ export default function TermsPage() {
                 de résidence :
               </p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>L&apos;<strong>autorité nationale de protection du consommateur</strong> (Direction
-                  Générale du Commerce ou équivalent — ex. DGCC en Côte d&apos;Ivoire, DCI au Sénégal,
-                  DGCRF au Burkina Faso)</li>
+                <li>L&apos;<strong>autorité nationale de protection du consommateur</strong>
+                  {" "}(DGCRF/DGC au Burkina Faso, DGCC au Mali, DCQM au Niger, DGCCRF en Côte
+                  d&apos;Ivoire, DCI au Sénégal, DCQRF au Togo, DPCC au Bénin, DGCEC en
+                  Guinée-Bissau)</li>
                 <li>Le <strong>Tribunal de commerce compétent</strong> de votre lieu de résidence
-                  ou du siège du vendeur, conformément à l&apos;Acte Uniforme OHADA</li>
+                  ou du siège du vendeur, conformément à l&apos;Acte Uniforme OHADA (applicable
+                  dans les 8 pays AES et CEDEAO)</li>
                 <li>L&apos;<strong>autorité nationale de régulation des communications électroniques</strong>
-                  {" "}(ARCEP au Burkina/Togo/Bénin/Niger/Mali, ARTCI en Côte d&apos;Ivoire, ARTP au Sénégal,
-                  ARN en Guinée-Bissau) pour les questions relatives aux communications électroniques</li>
+                  {" "}(ARCEP au Burkina/Togo/Bénin/Niger, AMRTP au Mali, ARTCI en Côte d&apos;Ivoire,
+                  ARTP au Sénégal, ARN en Guinée-Bissau)</li>
                 <li>La <strong>Cour Commune de Justice et d&apos;Arbitrage (CCJA)</strong> de l&apos;OHADA
-                  pour les litiges transfrontaliers</li>
+                  pour les litiges transfrontaliers — instance commune aux pays AES et CEDEAO</li>
+                <li>La <strong>Cour de Justice de la CEDEAO</strong> pour les ressortissants des pays
+                  CEDEAO, ou les juridictions de l&apos;<strong>AES</strong> pour les ressortissants
+                  du Burkina Faso, du Mali et du Niger, conformément aux traités fondateurs respectifs</li>
               </ul>
             </Sub>
           </Section>
@@ -570,11 +582,11 @@ export default function TermsPage() {
           <Section icon={Gavel} title="Droit applicable et juridiction" id="droit-applicable">
             <p>
               Les présentes CGU/CGV sont régies par le <strong>droit burkinabè</strong> (droit du
-              siège social de SUGU SARL), complété par les <strong>Actes Uniformes OHADA</strong>{" "}
-              et les <strong>Actes Additionnels de la CEDEAO</strong> applicables au commerce
-              électronique et à la protection du consommateur dans la zone UEMOA. Les dispositions
-              impératives du droit national de l&apos;acheteur (notamment en matière de protection
-              du consommateur) demeurent applicables.
+              siège social de SUGU SARL, État membre de l&apos;<strong>AES</strong>), complété par
+              les <strong>Actes Uniformes OHADA</strong> (socle commun aux 8 pays AES et CEDEAO)
+              et par les Règlements <strong>UEMOA / BCEAO</strong> (zone monétaire commune). Les
+              dispositions impératives du droit national de l&apos;acheteur — notamment en matière
+              de protection du consommateur — demeurent applicables.
             </p>
             <p>
               En cas de litige, les parties s&apos;engagent à rechercher une solution amiable
@@ -583,15 +595,17 @@ export default function TermsPage() {
             <p>
               À défaut de résolution amiable, le litige sera porté, au choix de l&apos;acheteur, devant
               le <strong>tribunal de commerce compétent du lieu de sa résidence</strong> dans la zone
-              UEMOA ou devant le <strong>Tribunal de Commerce de Ouagadougou</strong>, conformément
-              aux dispositions de l&apos;<strong>Acte Uniforme OHADA</strong> relatif au Droit Commercial
-              Général.
+              UEMOA (pays AES ou CEDEAO) ou devant le <strong>Tribunal de Commerce de Ouagadougou</strong>,
+              conformément aux dispositions de l&apos;<strong>Acte Uniforme OHADA</strong> relatif au
+              Droit Commercial Général.
             </p>
             <p>
               Pour les litiges transfrontaliers, les parties peuvent recourir à la{" "}
-              <strong>Cour Commune de Justice et d&apos;Arbitrage (CCJA) de l&apos;OHADA</strong>{" "}
-              ou, à titre subsidiaire, à la <strong>Cour de Justice de la CEDEAO</strong>,
-              conformément au Traité révisé de la CEDEAO.
+              <strong>Cour Commune de Justice et d&apos;Arbitrage (CCJA) de l&apos;OHADA</strong>,
+              compétente sur l&apos;ensemble des 8 pays d&apos;intervention de Sugu indépendamment
+              de leur appartenance à l&apos;AES ou à la CEDEAO. À titre subsidiaire, les ressortissants
+              CEDEAO peuvent saisir la <strong>Cour de Justice de la CEDEAO</strong> et les
+              ressortissants AES les juridictions de l&apos;<strong>Alliance des États du Sahel</strong>.
             </p>
           </Section>
 
@@ -614,17 +628,28 @@ export default function TermsPage() {
         <div className="mt-16 pt-8 border-t border-gray-200">
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Références légales</h3>
           <ul className="space-y-1.5 text-xs text-gray-500">
-            <li>• Traité révisé de la CEDEAO (1993) et Traité de l&apos;UEMOA (1994)</li>
-            <li>• Acte Additionnel A/SA.2/01/10 de la CEDEAO — Transactions électroniques</li>
-            <li>• Acte Additionnel A/SA.1/01/10 de la CEDEAO — Protection des données à caractère personnel</li>
-            <li>• Convention de Malabo (Union Africaine, 2014) — Cybersécurité et protection des données</li>
+            <li><strong className="text-gray-700">Cadre OHADA (commun aux 8 pays d&apos;intervention)</strong></li>
             <li>• Acte Uniforme OHADA relatif au Droit Commercial Général (AUDCG)</li>
             <li>• Acte Uniforme OHADA portant organisation des procédures collectives d&apos;apurement du passif</li>
-            <li>• Accord de Bangui (OAPI) révisé — Propriété intellectuelle (16 États membres)</li>
-            <li>• Tarif Extérieur Commun (TEC) UEMOA / CEDEAO — Importation de marchandises</li>
-            <li>• Règlement N°15/2002/CM/UEMOA — Systèmes de paiement et BCEAO</li>
-            <li>• Lois nationales sur le commerce intérieur et la protection du consommateur (selon pays de l&apos;acheteur)</li>
-            <li>• Lois nationales sur les services et transactions électroniques (ex. Loi N°045-2009/AN au Burkina Faso, Loi N°2013-450 en Côte d&apos;Ivoire, Loi N°2008-08 au Sénégal)</li>
+            <li>• Cour Commune de Justice et d&apos;Arbitrage (CCJA) — Juridiction supérieure OHADA</li>
+            <li className="pt-2"><strong className="text-gray-700">Cadre monétaire UEMOA / BCEAO</strong></li>
+            <li>• Traité de l&apos;UEMOA (1994) et Règlement N°15/2002/CM/UEMOA — Systèmes de paiement</li>
+            <li>• Tarif Extérieur Commun (TEC) UEMOA — Importation de marchandises</li>
+            <li className="pt-2"><strong className="text-gray-700">Cadre panafricain</strong></li>
+            <li>• Convention de Malabo (Union Africaine, 2014) — Cybersécurité et protection des données</li>
+            <li>• Accord de Bangui (OAPI) révisé — Propriété intellectuelle (17 États membres)</li>
+            <li className="pt-2"><strong className="text-gray-700">Cadre régional CEDEAO (Bénin, Côte d&apos;Ivoire, Guinée-Bissau, Sénégal, Togo)</strong></li>
+            <li>• Traité révisé de la CEDEAO (1993)</li>
+            <li>• Acte Additionnel A/SA.2/01/10 — Transactions électroniques</li>
+            <li>• Acte Additionnel A/SA.1/01/10 — Protection des données à caractère personnel</li>
+            <li className="pt-2"><strong className="text-gray-700">Cadre AES (Burkina Faso, Mali, Niger)</strong></li>
+            <li>• Charte de l&apos;Alliance des États du Sahel (Liptako-Gourma, 2023) — Traité de la Confédération AES (2024)</li>
+            <li>• Lois nationales transposant l&apos;ancien cadre CEDEAO et demeurées en vigueur</li>
+            <li className="pt-2"><strong className="text-gray-700">Lois nationales (illustratives, non exhaustives)</strong></li>
+            <li>• Burkina Faso — Loi N°045-2009/AN (transactions électroniques) ; Loi N°001-2021/AN (données personnelles)</li>
+            <li>• Côte d&apos;Ivoire — Loi N°2013-450 (transactions électroniques) ; Loi N°2017-547 (données personnelles)</li>
+            <li>• Sénégal — Loi N°2008-08 (transactions électroniques) ; Loi N°2008-12 (données personnelles)</li>
+            <li>• Mali, Niger, Togo, Bénin, Guinée-Bissau — lois nationales équivalentes</li>
           </ul>
         </div>
 

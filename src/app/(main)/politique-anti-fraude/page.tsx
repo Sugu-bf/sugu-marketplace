@@ -5,7 +5,7 @@ import { ShieldAlert, Eye, Lock, UserX, BarChart3, Bell, Scale, Shield, Fingerpr
 export const metadata: Metadata = {
   title: "Politique Anti-Fraude — Sugu",
   description:
-    "Mesures de protection contre la fraude et les abus sur la marketplace Sugu. Scoring de fiabilité, vérification de livraison, protection des paiements et sanctions.",
+    "Mesures de protection contre la fraude et les abus sur la marketplace Sugu dans la zone UEMOA — pays AES (Burkina Faso, Mali, Niger) et CEDEAO (Bénin, Côte d'Ivoire, Guinée-Bissau, Sénégal, Togo). Scoring de fiabilité, vérification de livraison, protection des paiements et sanctions.",
   alternates: { canonical: "/politique-anti-fraude" },
   openGraph: {
     title: "Politique Anti-Fraude — Sugu",
@@ -299,7 +299,7 @@ export default function AntiFraudPolicyPage() {
               {[
                 { label: "Transactions atomiques", desc: "Chaque opération financière est protégée par un verrou de base de données — impossible de corrompre un solde" },
                 { label: "Idempotence", desc: "Chaque opération porte une clé unique. Un double-appui sur « Payer » ne crée pas un double paiement" },
-                { label: "Plafonds de sécurité", desc: "Les montants sont plafonnés : max 5M FCFA/retrait, max 10M FCFA/jour" },
+                { label: "Plafonds de sécurité", desc: "Les montants sont plafonnés : max 5M FCFA (XOF)/retrait, max 10M FCFA (XOF)/jour, conformes aux règles BCEAO" },
                 { label: "Audit trail complet", desc: "Chaque mouvement de fonds est enregistré dans un journal immuable avec horodatage" },
                 { label: "Séparation des rôles", desc: "Seuls les administrateurs peuvent créditer un wallet. Les vendeurs ne peuvent que retirer" },
                 { label: "Vérification d'intégrité", desc: "Le solde affiché est régulièrement vérifié par rapport à la somme des transactions" },
@@ -388,7 +388,7 @@ export default function AntiFraudPolicyPage() {
                 { method: "Depuis l'application", desc: "Menu « Signaler un abus » disponible sur chaque fiche produit, profil vendeur et commande" },
                 { method: "Par email", desc: "Envoyez les détails et preuves à fraude@sugu.pro" },
                 { method: "Via le chat support", desc: "Accessible depuis votre espace client" },
-                { method: "Par téléphone", desc: "+226 00 00 00 00 — Ligne fraude dédiée" },
+                { method: "Par téléphone", desc: "+226 00 00 00 00 — Ligne fraude dédiée (siège régional Ouagadougou, joignable depuis les 8 pays AES et CEDEAO desservis)" },
               ].map((item) => (
                 <div key={item.method} className="flex gap-3 items-start bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <div className="h-2 w-2 rounded-full bg-[#F15412] mt-1.5 flex-shrink-0" />
@@ -414,8 +414,11 @@ export default function AntiFraudPolicyPage() {
               à notre{" "}
               <Link href="/politique-de-confidentialite" className="text-[#F15412] hover:underline font-medium">
                 Politique de Confidentialité
-              </Link>{" "}
-              et à la <strong>Loi N°001-2021/AN</strong> du Burkina Faso.
+              </Link>, à la <strong>Convention de Malabo</strong> (Union Africaine, instrument commun
+              aux pays AES et CEDEAO) et aux lois nationales de protection des données en vigueur dans
+              les 8 pays de la zone UEMOA — qu&apos;ils relèvent de l&apos;<strong>AES</strong>{" "}
+              (Burkina Faso, Mali, Niger) ou de la <strong>CEDEAO</strong> (Bénin, Côte d&apos;Ivoire,
+              Guinée-Bissau, Sénégal, Togo).
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>Les données de scoring sont conservées <strong>90 jours</strong> (glissants)</li>

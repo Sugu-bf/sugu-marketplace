@@ -10,7 +10,7 @@ import StoresPageClient from "./StoresPageClient";
 export const metadata = createMetadata({
   title: "Nos Boutiques",
   description:
-    "Découvrez les meilleurs vendeurs sur SUGU. Des centaines de boutiques vérifiées au Burkina Faso.",
+    "Découvrez les meilleurs vendeurs sur SUGU. Des centaines de boutiques vérifiées dans la zone UEMOA (Afrique de l'Ouest).",
   path: "/stores",
 });
 

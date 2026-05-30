@@ -17,7 +17,6 @@ import {
   OTP_TYPE,
   getAuthErrorMessage,
   safeRelativePath,
-  setTokenExpiry,
 } from "../services/auth-service";
 import type { AuthUserProfile } from "../services/auth-service";
 import { mockCountryCodes } from "../mocks/auth";
@@ -70,8 +69,8 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
     }, 1000);
   };
 
-  const handleSuccess = (user: AuthUserProfile, expiresAt?: string) => {
-    if (expiresAt) setTokenExpiry(expiresAt);
+  const handleSuccess = (user: AuthUserProfile, _expiresAt?: string) => {
+    // Note : expires_at est déjà persisté par auth-service via consumeAuthEnvelope.
     // Hard navigation → force rechargement complet du navigateur
     // (MarketplaceHeaderClient ne fait checkAuth() qu'au mount).
     //
@@ -126,11 +125,9 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
         type: OTP_TYPE.LOGIN_VERIFICATION,
       });
       if (result.user) {
-        // Utiliser expires_at du backend si disponible, sinon 90j par défaut
-        const expiresAt = result.expires_at
-          ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-        setTokenExpiry(expiresAt);
-        handleSuccess(result.user, expiresAt);
+        // expires_at est posé par auth-service (consumeAuthEnvelope) après que
+        // le BFF a confirmé que le cookie HttpOnly a bien été établi.
+        handleSuccess(result.user, result.expires_at);
       }
     } catch (err) {
       setError(getAuthErrorMessage(err));

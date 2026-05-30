@@ -22,6 +22,15 @@ export type ApiErrorCode =
   | "INVALID_SCHEMA"
   | "PARSE_ERROR"
   | "CSRF_MISMATCH"
+  // Auth session-establishment invariants enforced by auth-service.consumeAuthEnvelope().
+  // AUTH_BFF_NOT_APPLIED — the same-origin BFF proxy did not run (direct cross-origin
+  //   call, misconfigured deployment) → HttpOnly cookie was NOT set.
+  // AUTH_TOKEN_LEAKED   — the upstream Sanctum token reached the browser JSON. We
+  //   refuse to fall back to JS-readable storage; this is a hard failure.
+  // AUTH_ENVELOPE_INVALID — the success envelope is malformed (missing data, etc.).
+  | "AUTH_BFF_NOT_APPLIED"
+  | "AUTH_TOKEN_LEAKED"
+  | "AUTH_ENVELOPE_INVALID"
   | "UNKNOWN";
 
 export interface ApiErrorDetails {

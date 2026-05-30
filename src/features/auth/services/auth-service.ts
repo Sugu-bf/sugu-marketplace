@@ -139,6 +139,76 @@ export async function clearAuthTokenCookie(): Promise<void> {
   }).catch(() => {});
 }
 
+// ─── Session establishment (BFF proxy contract) ────────────────
+/**
+ * Consume an auth-issuing response and guarantee a usable session.
+ *
+ * The same-origin BFF (`/api/backend/[...path]`) is the ONLY component
+ * allowed to materialise an auth session in the browser:
+ *   1. it forwards the request to Laravel,
+ *   2. extracts `data.token` from the upstream JSON,
+ *   3. stores it in an HttpOnly cookie on the app origin,
+ *   4. strips the token from the body and adds `data.session_established = true`
+ *      as a positive confirmation.
+ *
+ * Every auth-issuing call MUST funnel its response through this helper, which
+ * enforces three invariants:
+ *
+ *   I1 — `success === true` and a `data` envelope is present.
+ *   I2 — `session_established === true`. If absent, the BFF did NOT run
+ *        (direct cross-origin call, misconfigured deployment, intercepted
+ *        response, …) — the HttpOnly cookie was NEVER set, and every
+ *        subsequent authenticated request would 401. Failing here turns a
+ *        silent "phantom login" into a loud, diagnosable error.
+ *   I3 — the raw `token` MUST NOT reach the browser. If it leaked through,
+ *        we refuse to proceed rather than fall back to JS-readable storage.
+ *
+ * The non-sensitive `expires_at` is persisted to localStorage so the
+ * background refresh hook can schedule rotation without ever seeing the
+ * token itself.
+ */
+function consumeAuthEnvelope<T>(
+  envelope: ApiSuccessResponse<T> | undefined,
+  context: string,
+): T {
+  if (!envelope?.success || envelope.data === undefined || envelope.data === null) {
+    throw new ApiError({
+      status: 422,
+      code: "AUTH_ENVELOPE_INVALID",
+      message: envelope?.message || `Réponse d'authentification invalide (${context}).`,
+    });
+  }
+
+  const data = envelope.data as Record<string, unknown>;
+
+  // I3 — proxy must have stripped the upstream Sanctum token.
+  if ("token" in data) {
+    throw new ApiError({
+      status: 500,
+      code: "AUTH_TOKEN_LEAKED",
+      message: "Réponse d'authentification non sécurisée. Veuillez réessayer.",
+    });
+  }
+
+  // I2 — proxy must have set the HttpOnly cookie.
+  if (data.session_established !== true) {
+    throw new ApiError({
+      status: 502,
+      code: "AUTH_BFF_NOT_APPLIED",
+      message:
+        "La session n'a pas pu être établie. Si le problème persiste, " +
+        "contactez le support.",
+    });
+  }
+
+  // Persist the non-sensitive expiry hint for useTokenRefresh.
+  if (typeof data.expires_at === "string") {
+    setTokenExpiry(data.expires_at);
+  }
+
+  return envelope.data as T;
+}
+
 // ─── Refresh Token (zéro SMS) ────────────────────────────────
 
 export async function refreshToken(): Promise<{ expires_at: string }> {
@@ -149,15 +219,17 @@ export async function refreshToken(): Promise<{ expires_at: string }> {
     {}
   );
 
-  if (!data.success || !data.data?.expires_at) {
-    throw new ApiError({ status: 401, code: "UNAUTHORIZED", message: data.message || "Session expirée." });
+  const result = consumeAuthEnvelope(data, "refresh-token");
+
+  if (typeof result.expires_at !== "string") {
+    throw new ApiError({
+      status: 502,
+      code: "AUTH_ENVELOPE_INVALID",
+      message: "Réponse de renouvellement invalide.",
+    });
   }
 
-  // The BFF rotates the HttpOnly cookie server-side. JavaScript keeps only the
-  // non-sensitive expiry hint for refresh scheduling.
-  setTokenExpiry(data.data.expires_at);
-
-  return { expires_at: data.data.expires_at };
+  return { expires_at: result.expires_at };
 }
 
 // ─── Check Phone (Smart Login) ───────────────────────────────
@@ -206,27 +278,30 @@ export async function loginUser(params: LoginParams): Promise<{
     { body: params }
   );
 
-  const resp = data;
-
-  if (!resp.success) {
+  if (!data.success) {
     throw new ApiError({
       status: 401,
       code: "UNAUTHORIZED",
-      message: resp.message || "Identifiants invalides.",
+      message: data.message || "Identifiants invalides.",
     });
   }
 
-  const d = resp.data!;
-
-  if ("verification_required" in d && d.verification_required) {
+  // 2FA branch — no session issued yet; just an OTP challenge.
+  const peek = data.data as Record<string, unknown> | undefined;
+  if (peek && peek.verification_required === true) {
+    const otp = peek as unknown as LoginOtpData;
     return {
       type: "otp_required",
-      identifier: (d as LoginOtpData).identifier,
-      expires_in: (d as LoginOtpData).expires_in,
+      identifier: otp.identifier,
+      expires_in: otp.expires_in,
     };
   }
 
-  const loginData = d as LoginSuccessData;
+  // Session branch — proxy MUST have set the HttpOnly cookie.
+  const loginData = consumeAuthEnvelope(
+    data as ApiSuccessResponse<LoginSuccessData>,
+    "login",
+  );
   return {
     type: "success",
     user: loginData.user,
@@ -273,7 +348,8 @@ export async function registerUser(params: RegisterParams): Promise<{
     });
   }
 
-  return data.data!;
+  // Proxy MUST have set the HttpOnly cookie + stripped the upstream token.
+  return consumeAuthEnvelope(data, "register");
 }
 
 // ─── Send Phone OTP (SMS via Ikoddi) ─────────────────────────
@@ -372,11 +448,23 @@ export async function verifyOtp(params: VerifyOtpParams): Promise<{
     });
   }
 
-  return {
-    verified: true,
-    user: data.data?.user,
-    expires_at: data.data?.expires_at,
-  };
+  // LoginVerification → backend returns `data.user` AND a Sanctum token.
+  // The BFF must have stripped the token and added session_established.
+  // Other OTP types (email / phone / password-reset) return no user → no
+  // session is expected, we just surface the verified flag.
+  if (data.data?.user) {
+    const session = consumeAuthEnvelope(
+      data as ApiSuccessResponse<{ user: AuthUserProfile; expires_at?: string }>,
+      "verify-otp",
+    );
+    return {
+      verified: true,
+      user: session.user,
+      expires_at: session.expires_at,
+    };
+  }
+
+  return { verified: true };
 }
 
 // ─── Resend OTP ──────────────────────────────────────────────
@@ -488,12 +576,8 @@ export async function guestEntry(): Promise<GuestEntryResult> {
     { body: {} }
   );
 
-  const result = data?.data;
-  if (!result?.user) {
-    throw new Error("Erreur lors de la création du compte invité.");
-  }
-
-  return result;
+  // Proxy MUST have set the HttpOnly cookie + stripped the upstream token.
+  return consumeAuthEnvelope(data, "guest-entry");
 }
 
 // ─── Google Sign-In ───────────────────────────────────────────
@@ -528,12 +612,8 @@ export async function googleSignIn(
     { body: params, retries: 0 }
   );
 
-  const result = data?.data;
-  if (!result?.user) {
-    throw new Error("Réponse Google invalide du serveur.");
-  }
-
-  return result;
+  // Proxy MUST have set the HttpOnly cookie + stripped the upstream token.
+  return consumeAuthEnvelope(data, "google-signin");
 }
 
 // ─── Helper: safe relative path (open-redirect defence) ─────

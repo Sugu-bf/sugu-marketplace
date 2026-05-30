@@ -8,7 +8,6 @@ import {
   googleSignIn,
   getAuthErrorMessage,
   safeRelativePath,
-  setTokenExpiry,
 } from "../services/auth-service";
 
 // ─── Types ─────────────────────────────────────────────────
@@ -149,8 +148,9 @@ function GoogleSignInButton({ onSuccess, onError, className }: GoogleSignInButto
           nonce_hash: nonceHashRef.current,
         });
 
-        // The BFF stripped the token and set the HttpOnly session cookie.
-        if (result.expires_at) setTokenExpiry(result.expires_at);
+        // Le cookie HttpOnly et expires_at sont déjà posés par auth-service
+        // (via consumeAuthEnvelope, qui exige la confirmation BFF). À ce stade
+        // la session est garantie utilisable.
 
         // Sur succès, le composant va être démonté par la navigation — pas
         // besoin d'invalider le ref manuellement.

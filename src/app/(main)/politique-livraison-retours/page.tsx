@@ -5,7 +5,7 @@ import { Truck, Package, RotateCcw, Clock, MapPin, Shield, AlertTriangle, Credit
 export const metadata: Metadata = {
   title: "Politique de Livraison & Retours — Sugu",
   description:
-    "Conditions de livraison, retours et remboursements sur la marketplace Sugu. Délais, zones couvertes, vérification des produits et processus de retour dans la zone UEMOA (Afrique de l'Ouest).",
+    "Conditions de livraison, retours et remboursements sur la marketplace Sugu. Délais, zones couvertes, vérification des produits et processus de retour dans la zone UEMOA — pays AES (Burkina Faso, Mali, Niger) et CEDEAO (Bénin, Côte d'Ivoire, Guinée-Bissau, Sénégal, Togo).",
   alternates: { canonical: "/politique-livraison-retours" },
   openGraph: {
     title: "Politique de Livraison & Retours — Sugu",
@@ -113,41 +113,52 @@ export default function DeliveryPolicyPage() {
           <Section icon={MapPin} title="Zones de livraison" id="zones">
             <p>
               Sugu déploie progressivement ses services dans les 8 pays de la zone{" "}
-              <strong>UEMOA</strong> (Bénin, Burkina Faso, Côte d&apos;Ivoire, Guinée-Bissau,
-              Mali, Niger, Sénégal, Togo). La livraison s&apos;effectue via un réseau d&apos;agences
-              partenaires locales selon la disponibilité dans votre zone.
+              <strong>UEMOA</strong>, regroupés en deux blocs régionaux :
+              l&apos;<strong>Alliance des États du Sahel (AES)</strong> — Burkina Faso, Mali, Niger —
+              et la <strong>CEDEAO</strong> — Bénin, Côte d&apos;Ivoire, Guinée-Bissau, Sénégal, Togo.
+              La livraison s&apos;effectue via un réseau d&apos;agences partenaires locales selon la
+              disponibilité dans votre zone.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
                     <th className="text-left py-3 pr-4 font-semibold text-gray-900">Pays</th>
+                    <th className="text-left py-3 pr-4 font-semibold text-gray-900">Bloc</th>
                     <th className="text-left py-3 pr-4 font-semibold text-gray-900">Zone</th>
                     <th className="text-left py-3 pr-4 font-semibold text-gray-900">Couverture</th>
                     <th className="text-left py-3 font-semibold text-gray-900">Délai estimé</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  <tr><td className="py-2.5 pr-4">🇧🇫 Burkina Faso</td><td className="py-2.5 pr-4">Ouagadougou, Bobo-Dioulasso</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
-                  <tr><td className="py-2.5 pr-4">🇨🇮 Côte d&apos;Ivoire</td><td className="py-2.5 pr-4">Abidjan, Bouaké, Yamoussoukro</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
-                  <tr><td className="py-2.5 pr-4">🇸🇳 Sénégal</td><td className="py-2.5 pr-4">Dakar, Thiès, Saint-Louis</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
-                  <tr><td className="py-2.5 pr-4">🇹🇬 Togo</td><td className="py-2.5 pr-4">Lomé, Kara</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
-                  <tr><td className="py-2.5 pr-4">🇧🇯 Bénin</td><td className="py-2.5 pr-4">Cotonou, Porto-Novo, Parakou</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
-                  <tr><td className="py-2.5 pr-4">🇲🇱 Mali</td><td className="py-2.5 pr-4">Bamako, Sikasso</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">48h – 4 jours</td></tr>
-                  <tr><td className="py-2.5 pr-4">🇳🇪 Niger</td><td className="py-2.5 pr-4">Niamey, Maradi</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">48h – 4 jours</td></tr>
-                  <tr><td className="py-2.5 pr-4">🇬🇼 Guinée-Bissau</td><td className="py-2.5 pr-4">Bissau</td><td className="py-2.5 pr-4">Partielle</td><td className="py-2.5">3 – 5 jours</td></tr>
-                  <tr><td className="py-2.5 pr-4">UEMOA — villes secondaires</td><td className="py-2.5 pr-4">Autres capitales régionales</td><td className="py-2.5 pr-4">Partielle</td><td className="py-2.5">3 – 7 jours</td></tr>
-                  <tr><td className="py-2.5 pr-4">UEMOA — zones rurales</td><td className="py-2.5 pr-4">Villages et zones reculées</td><td className="py-2.5 pr-4">Selon disponibilité</td><td className="py-2.5">5 – 10 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇧🇫 Burkina Faso</td><td className="py-2.5 pr-4"><span className="text-xs font-semibold text-orange-700">AES</span></td><td className="py-2.5 pr-4">Ouagadougou, Bobo-Dioulasso</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇲🇱 Mali</td><td className="py-2.5 pr-4"><span className="text-xs font-semibold text-orange-700">AES</span></td><td className="py-2.5 pr-4">Bamako, Sikasso</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">48h – 4 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇳🇪 Niger</td><td className="py-2.5 pr-4"><span className="text-xs font-semibold text-orange-700">AES</span></td><td className="py-2.5 pr-4">Niamey, Maradi</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">48h – 4 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇨🇮 Côte d&apos;Ivoire</td><td className="py-2.5 pr-4"><span className="text-xs font-semibold text-blue-700">CEDEAO</span></td><td className="py-2.5 pr-4">Abidjan, Bouaké, Yamoussoukro</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇸🇳 Sénégal</td><td className="py-2.5 pr-4"><span className="text-xs font-semibold text-blue-700">CEDEAO</span></td><td className="py-2.5 pr-4">Dakar, Thiès, Saint-Louis</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇹🇬 Togo</td><td className="py-2.5 pr-4"><span className="text-xs font-semibold text-blue-700">CEDEAO</span></td><td className="py-2.5 pr-4">Lomé, Kara</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇧🇯 Bénin</td><td className="py-2.5 pr-4"><span className="text-xs font-semibold text-blue-700">CEDEAO</span></td><td className="py-2.5 pr-4">Cotonou, Porto-Novo, Parakou</td><td className="py-2.5 pr-4">Complète</td><td className="py-2.5">24 – 72h</td></tr>
+                  <tr><td className="py-2.5 pr-4">🇬🇼 Guinée-Bissau</td><td className="py-2.5 pr-4"><span className="text-xs font-semibold text-blue-700">CEDEAO</span></td><td className="py-2.5 pr-4">Bissau</td><td className="py-2.5 pr-4">Partielle</td><td className="py-2.5">3 – 5 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">Villes secondaires</td><td className="py-2.5 pr-4">—</td><td className="py-2.5 pr-4">Autres capitales régionales</td><td className="py-2.5 pr-4">Partielle</td><td className="py-2.5">3 – 7 jours</td></tr>
+                  <tr><td className="py-2.5 pr-4">Zones rurales</td><td className="py-2.5 pr-4">—</td><td className="py-2.5 pr-4">Villages et zones reculées</td><td className="py-2.5 pr-4">Selon disponibilité</td><td className="py-2.5">5 – 10 jours</td></tr>
                 </tbody>
               </table>
             </div>
             <p className="text-sm text-gray-500">
               La disponibilité de la livraison pour votre adresse est vérifiée lors de la validation
               du panier. Si aucune agence ne couvre votre zone, le retrait en point de collecte peut
-              vous être proposé. Pour les <strong>livraisons transfrontalières</strong> dans la zone
-              UEMOA, des délais et formalités douanières supplémentaires peuvent s&apos;appliquer
-              conformément au Tarif Extérieur Commun (TEC) de l&apos;UEMOA.
+              vous être proposé.
             </p>
+            <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 text-sm">
+              <p className="font-semibold text-blue-900 mb-1">🌍 Livraisons transfrontalières</p>
+              <p className="text-blue-800">
+                Les expéditions <strong>intra-UEMOA</strong> bénéficient de la libre circulation des
+                marchandises et du <strong>Tarif Extérieur Commun (TEC) UEMOA</strong>. Les expéditions
+                <strong> entre pays AES et pays CEDEAO</strong> restent fluides grâce au socle commun
+                UEMOA/OHADA, mais peuvent occasionner des délais et formalités douanières
+                supplémentaires depuis le réajustement régional de 2025.
+              </p>
+            </div>
           </Section>
 
           {/* 2 — Délais */}
