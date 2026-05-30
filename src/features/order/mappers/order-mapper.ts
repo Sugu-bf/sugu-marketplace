@@ -109,6 +109,7 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
           vendorConfirmedAt: api.codMixte.vendorConfirmedAt,
           payDeliveryFeeUrl: api.codMixte.payDeliveryFeeUrl,
           payProductFeeUrl: api.codMixte.payProductFeeUrl,
+          shipmentId: api.codMixte.shipmentId ?? null,
           currentStep: api.codMixte.currentStep,
         }
       : null,

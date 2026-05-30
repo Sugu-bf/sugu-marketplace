@@ -138,6 +138,7 @@ export function TrackingLiveWrapper({
         <div className="lg:col-span-1 space-y-6">
           {/* Order Summary */}
           <TrackingOrderSummary
+            orderId={orderId}
             items={order.items}
             subtotal={order.subtotal}
             shippingCost={order.shippingCost}

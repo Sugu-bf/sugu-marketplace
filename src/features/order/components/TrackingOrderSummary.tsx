@@ -2,7 +2,9 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { api, publicUrl, isApiError } from "@/lib/api";
 import { Button, Badge } from "@/components/ui";
 import {
   CheckCircle2,
@@ -67,6 +69,7 @@ const COD_MIXTE_STEP_LABELS: Record<string, { label: string; description: string
 // ─── Props ────────────────────────────────────────────────────
 
 interface TrackingOrderSummaryProps {
+  orderId: string;
   items: OrderItem[];
   subtotal: number;
   shippingCost: number;
@@ -84,6 +87,7 @@ interface TrackingOrderSummaryProps {
  * Shows split payment progress for COD Mixte orders.
  */
 function TrackingOrderSummary({
+  orderId,
   items,
   subtotal,
   shippingCost,
@@ -232,7 +236,7 @@ function TrackingOrderSummary({
 
         {/* ═══ COD Mixte Payment Action Buttons ═══ */}
         {isCodMixte && codMixte && (
-          <CodMixtePaymentActions codMixte={codMixte} />
+          <CodMixtePaymentActions codMixte={codMixte} orderId={orderId} />
         )}
 
         {/* Support buttons */}
@@ -349,9 +353,16 @@ function ProgressSegment({ label, filled }: { label: string; filled: boolean }) 
 
 // ─── COD Mixte Payment Actions ──────────────────────────────────
 
-function CodMixtePaymentActions({ codMixte }: { codMixte: NonNullable<TrackedOrder["codMixte"]> }) {
-  const [loading, setLoading] = React.useState<"delivery" | "product" | null>(null);
+function CodMixtePaymentActions({
+  codMixte,
+  orderId,
+}: {
+  codMixte: NonNullable<TrackedOrder["codMixte"]>;
+  orderId: string;
+}) {
+  const [loading, setLoading] = React.useState<"delivery" | "product" | "inspection" | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [inspectionDone, setInspectionDone] = React.useState(false);
 
   const showDeliveryButton =
     codMixte.currentStep === "awaiting_delivery_payment" &&
@@ -363,7 +374,29 @@ function CodMixtePaymentActions({ codMixte }: { codMixte: NonNullable<TrackedOrd
     codMixte.payProductFeeUrl &&
     !codMixte.productFeePaid;
 
-  if (!showDeliveryButton && !showProductButton) return null;
+  // Trou n°2-bis fix: buyer confirms product reception → unblocks awaiting_product_payment.
+  const showInspectionButton = codMixte.currentStep === "awaiting_inspection";
+
+  if (!showDeliveryButton && !showProductButton && !showInspectionButton) return null;
+
+  // Scope A: acceptance only. Rejection is handled via support (see support link below).
+  const handleAcceptInspection = async () => {
+    setLoading("inspection");
+    setError(null);
+    try {
+      await api.post(publicUrl(`orders/${orderId}/verify-products`), {
+        body: { accepted: true },
+        skipCredentials: true,
+      });
+      // Success: the tracking poll will flip currentStep to
+      // awaiting_product_payment within the next cycle, revealing the pay button.
+      setInspectionDone(true);
+    } catch (err) {
+      setError(isApiError(err) ? err.message : "Erreur réseau. Veuillez réessayer.");
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const handlePayment = async (url: string, type: "delivery" | "product") => {
     setLoading(type);
@@ -391,6 +424,38 @@ function CodMixtePaymentActions({ codMixte }: { codMixte: NonNullable<TrackedOrd
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
           {error}
+        </div>
+      )}
+
+      {showInspectionButton && (
+        <div className="space-y-2">
+          {inspectionDone ? (
+            <div className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+              <CheckCircle2 size={16} />
+              Réception confirmée. Préparation du paiement des produits…
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={handleAcceptInspection}
+                disabled={loading !== null}
+                className="flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              >
+                {loading === "inspection" ? (
+                  <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                ) : (
+                  <CheckCircle2 size={16} />
+                )}
+                {loading === "inspection" ? "Confirmation…" : "J'ai bien reçu mes produits"}
+              </button>
+              <Link
+                href="/support-chat"
+                className="block text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+              >
+                Un problème avec ma commande ? Contactez le support
+              </Link>
+            </>
+          )}
         </div>
       )}
 

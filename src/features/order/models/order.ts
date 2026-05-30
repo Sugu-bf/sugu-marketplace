@@ -193,6 +193,7 @@ export const TrackedOrderSchema = z.object({
     vendorConfirmedAt: z.string().nullable(),
     payDeliveryFeeUrl: z.string().nullable(),
     payProductFeeUrl: z.string().nullable(),
+    shipmentId: z.string().nullable().optional(),
     currentStep: z.string(),
   }).nullable(),
 });
