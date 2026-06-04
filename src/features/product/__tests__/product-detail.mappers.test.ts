@@ -32,18 +32,19 @@ describe("mapApiProductToProduct", () => {
       video_url: null,
     },
     pricing: {
+      // Backend sends prices in minor units (centimes); the mapper divides by 100.
       currency: "F",
-      price: 1500,
-      compare_at_price: 2000,
+      price: 150000,
+      compare_at_price: 200000,
       discount_percent: 25,
       unit_label: "/Qty",
       formatted: "1 500 F",
       formatted_compare: "2 000 F",
     },
     bulkPrices: [
-      { id: 1, minQty: 1, price: 1500, currency: "XOF", isActive: true },
-      { id: 2, minQty: 5, price: 1300, currency: "XOF", isActive: true },
-      { id: 3, minQty: 10, price: 1100, currency: "XOF", isActive: true },
+      { id: 1, minQty: 1, price: 150000, currency: "XOF", isActive: true },
+      { id: 2, minQty: 5, price: 130000, currency: "XOF", isActive: true },
+      { id: 3, minQty: 10, price: 110000, currency: "XOF", isActive: true },
     ],
     stock: { in_stock: true, quantity_available: 50, low_stock: false },
     options: [
@@ -62,7 +63,7 @@ describe("mapApiProductToProduct", () => {
         id: 100,
         sku: "TOM-250",
         option_values: { Poids: "250g" },
-        pricing: { price: 800, compare_at_price: null, formatted: "800 F", formatted_compare: null },
+        pricing: { price: 80000, compare_at_price: null, formatted: "800 F", formatted_compare: null },
         stock: { in_stock: true, quantity: 30 },
         image_url: null,
       },
@@ -70,7 +71,7 @@ describe("mapApiProductToProduct", () => {
         id: 101,
         sku: "TOM-500",
         option_values: { Poids: "500g" },
-        pricing: { price: 1500, compare_at_price: 2000, formatted: "1 500 F", formatted_compare: "2 000 F" },
+        pricing: { price: 150000, compare_at_price: 200000, formatted: "1 500 F", formatted_compare: "2 000 F" },
         stock: { in_stock: true, quantity: 50 },
         image_url: null,
       },
@@ -78,7 +79,7 @@ describe("mapApiProductToProduct", () => {
         id: 102,
         sku: "TOM-1KG",
         option_values: { Poids: "1kg" },
-        pricing: { price: 2800, compare_at_price: null, formatted: "2 800 F", formatted_compare: null },
+        pricing: { price: 280000, compare_at_price: null, formatted: "2 800 F", formatted_compare: null },
         stock: { in_stock: false, quantity: 0 },
         image_url: null,
       },
@@ -107,7 +108,7 @@ describe("mapApiProductToProduct", () => {
   it("maps basic fields correctly", () => {
     const result = mapApiProductToProduct(BASE_API_PRODUCT);
 
-    expect(result.id).toBeNaN(); // String "01PROD" → Number("01PROD") = NaN (ULID IDs)
+    expect(result.id).toBe("01PROD"); // IDs preserved as strings (ULID-style)
     expect(result.slug).toBe("tomates-bio");
     expect(result.name).toBe("Tomates Bio");
     expect(result.price).toBe(1500);
@@ -216,8 +217,8 @@ describe("mapApiRelatedToListItem", () => {
       image: { url: "/oranges.jpg", alt: "Oranges" },
       pricing: {
         currency: "F",
-        price: 1800,
-        compare_at_price: 2500,
+        price: 180000,
+        compare_at_price: 250000,
         discount_percent: 28,
         unit_label: "/Qty",
         formatted: "1 800 F",
@@ -229,7 +230,7 @@ describe("mapApiRelatedToListItem", () => {
     };
 
     const result = mapApiRelatedToListItem(related);
-    expect(result.id).toBe(5);
+    expect(result.id).toBe("5");
     expect(result.slug).toBe("oranges-navel");
     expect(result.name).toBe("Oranges Navel");
     expect(result.price).toBe(1800);
@@ -249,7 +250,7 @@ describe("mapApiRelatedToListItem", () => {
       image: { url: "/mangues.jpg", alt: "Mangues" },
       pricing: {
         currency: "F",
-        price: 2000,
+        price: 200000,
         compare_at_price: null,
         discount_percent: 0,
         unit_label: "/Qty",
