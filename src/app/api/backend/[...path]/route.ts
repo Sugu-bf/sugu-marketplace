@@ -14,6 +14,7 @@ type RouteContext = {
 
 const ALLOWED_RESPONSE_HEADERS = [
   "content-type",
+  "etag",
   "x-request-id",
   "x-cart-token",
   "x-wishlist-token",
@@ -23,6 +24,7 @@ const FORWARDED_REQUEST_HEADERS = [
   "accept",
   "accept-language",
   "content-type",
+  "if-none-match",
   "user-agent",
   "x-request-id",
   "x-cart-token",
