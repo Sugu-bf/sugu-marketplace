@@ -12,10 +12,15 @@ import { renderHook, waitFor, act } from "@/test/render";
 import { server } from "@/test/msw/server";
 import { setupMswServer } from "@/test/msw/setup";
 import { API_BASE_URL } from "@/lib/api/config";
+import { hasAuthSession } from "@/features/auth/services/auth-service";
 import { useToast } from "@/features/toast/toast-store";
 import { useFavoritesStore } from "../../store/favorites-store";
 import { favoritesKeys } from "../../queries/favorites-keys";
-import { useToggleFavorite } from "../use-toggle-favorite";
+import { useToggleFavorite, __clearToggleMutex } from "../use-toggle-favorite";
+
+vi.mock("@/features/auth/services/auth-service", () => ({
+  hasAuthSession: vi.fn(() => true),
+}));
 
 setupMswServer();
 
@@ -27,6 +32,8 @@ beforeEach(() => {
   localStorage.clear();
   useFavoritesStore.setState({ favoriteSet: new Set<string>() });
   useToast.setState({ toasts: [] });
+  __clearToggleMutex();
+  vi.mocked(hasAuthSession).mockReturnValue(true);
   qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 });
 
@@ -122,5 +129,28 @@ describe("useToggleFavorite", () => {
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
     expect(count).toBe(1);
+  });
+
+  it("toggles locally without any network call for guests", async () => {
+    vi.mocked(hasAuthSession).mockReturnValue(false);
+    let requested = false;
+    server.use(
+      http.post(favUrl("g1"), () => {
+        requested = true;
+        return new HttpResponse(null, { status: 401 });
+      }),
+    );
+
+    const { result } = renderHook(() => useToggleFavorite(), { wrapper });
+
+    act(() => result.current.toggle("g1"));
+    expect(useFavoritesStore.getState().has("g1")).toBe(true); // local flip, persisted
+
+    act(() => result.current.toggle("g1"));
+    expect(useFavoritesStore.getState().has("g1")).toBe(false); // local toggle back
+
+    await Promise.resolve();
+    expect(requested).toBe(false); // never hit the network
+    expect(useToast.getState().toasts).toHaveLength(0); // no error toast
   });
 });

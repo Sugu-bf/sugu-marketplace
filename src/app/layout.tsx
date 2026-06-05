@@ -6,6 +6,7 @@ import { BrandingProvider } from "@/components/BrandingProvider";
 import BrandingHead from "@/components/BrandingHead";
 import { ToastContainer } from "@/features/toast/ToastContainer";
 import { QueryProvider } from "@/lib/query-provider";
+import { WishlistProvider } from "@/features/wishlist/components/WishlistProvider";
 import { TokenRefreshProvider } from "@/components/TokenRefreshProvider";
 import "./globals.css";
 
@@ -50,11 +51,13 @@ export default async function RootLayout({
       <body className={`${fontQuicksand.variable} font-sans antialiased`} suppressHydrationWarning>
         <BrandingProvider branding={branding}>
           <QueryProvider>
-            <TokenRefreshProvider>
-              <BrandingHead />
-              {children}
-              <ToastContainer />
-            </TokenRefreshProvider>
+            <WishlistProvider>
+              <TokenRefreshProvider>
+                <BrandingHead />
+                {children}
+                <ToastContainer />
+              </TokenRefreshProvider>
+            </WishlistProvider>
           </QueryProvider>
         </BrandingProvider>
       </body>

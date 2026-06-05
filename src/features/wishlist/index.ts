@@ -32,3 +32,5 @@ export { useIsFavorite } from "./hooks/use-is-favorite";
 export { useToggleFavorite } from "./hooks/use-toggle-favorite";
 export { useMergeFavoritesOnLogin } from "./hooks/use-merge-favorites-on-login";
 export { WishlistProvider } from "./components/WishlistProvider";
+export { FavoriteHeart } from "./components/FavoriteHeart";
+export type { FavoriteHeartProps } from "./components/FavoriteHeart";

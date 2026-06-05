@@ -10,6 +10,7 @@ import { formatPrice } from "@/lib/constants";
 import { addToCart } from "@/features/product";
 import { useToast } from "@/features/toast/toast-store";
 import { emitCartChanged } from "@/features/cart/events/cart-events";
+import { FavoriteHeart } from "@/features/wishlist";
 
 interface ProductCardProps {
   product: ProductListItem;
@@ -81,6 +82,7 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
     >
       {/* Product Image */}
       <div className="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-muted transition-all duration-500 group-hover:shadow-xl group-hover:shadow-primary/10">
+        <FavoriteHeart productId={String(product.id)} />
         <Image
           src={product.thumbnail}
           alt={product.name}

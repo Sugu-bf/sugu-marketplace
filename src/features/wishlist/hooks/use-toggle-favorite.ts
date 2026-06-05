@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { hasAuthSession } from "@/features/auth/services/auth-service";
 import { useToast } from "@/features/toast/toast-store";
 import { useFavoritesStore } from "../store/favorites-store";
 import { addFavorite, removeFavorite } from "../api/favorites.api";
@@ -10,6 +11,11 @@ import { favoritesKeys } from "../queries/favorites-keys";
  * any rendering of the same product is collapsed to a single in-flight request.
  */
 const mutexMap = new Map<string, boolean>();
+
+/** Test-only: reset the module-level double-tap mutex for isolation between tests. */
+export function __clearToggleMutex(): void {
+  mutexMap.clear();
+}
 
 type ToggleVars = { productId: string; action: "add" | "remove" };
 
@@ -52,9 +58,19 @@ export function useToggleFavorite() {
   });
 
   const toggle = (productId: string): void => {
+    const store = useFavoritesStore.getState();
+
+    // Guests are local-only: the favorites endpoints are auth-strict (401 for
+    // guests). Flip the persisted Set; the login merge syncs it to the server.
+    // No network → no revert/toast, no mutex needed.
+    if (!hasAuthSession()) {
+      store.toggle(productId);
+      return;
+    }
+
     if (mutexMap.get(productId)) return; // a tap is already in flight
     mutexMap.set(productId, true);
-    const action = useFavoritesStore.getState().has(productId) ? "remove" : "add";
+    const action = store.has(productId) ? "remove" : "add";
     mutation.mutate({ productId, action });
   };
 
