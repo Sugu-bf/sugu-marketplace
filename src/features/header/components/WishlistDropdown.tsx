@@ -75,7 +75,7 @@ export default function WishlistDropdown() {
     >
       {/* Trigger */}
       <Link
-        href="/account"
+        href="/account/wishlist"
         className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition-all duration-200 hover:bg-white/15 hover:text-white"
         aria-label={`Liste de souhaits${count > 0 ? ` (${count} articles)` : ""}`}
         id="header-wishlist-trigger"
@@ -149,7 +149,7 @@ export default function WishlistDropdown() {
               {/* CTA */}
               <div className="px-4 pt-2 pb-1 border-t border-border mt-1">
                 <Link
-                  href="/account"
+                  href="/account/wishlist"
                   className={cn(
                     "block w-full rounded-xl border-2 border-primary py-2 text-center text-sm font-bold text-primary",
                     "transition-all duration-200 hover:bg-primary hover:text-white active:scale-95"
