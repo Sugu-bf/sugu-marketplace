@@ -51,6 +51,7 @@ export function useToggleFavorite() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: favoritesKeys.ids() });
+      void queryClient.invalidateQueries({ queryKey: favoritesKeys.page() }); // Lot 5: keeps /account/wishlist in sync
     },
     onSettled: (_data, _err, { productId }) => {
       mutexMap.delete(productId);

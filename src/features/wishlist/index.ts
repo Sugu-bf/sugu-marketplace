@@ -28,6 +28,7 @@ export type {
 export { favoritesKeys } from "./queries/favorites-keys";
 export { useFavoritesBootstrap } from "./queries/use-favorites-bootstrap";
 export type { FavoritesBootstrapData } from "./queries/use-favorites-bootstrap";
+export { useWishlistPage } from "./queries/use-wishlist-page"; // Lot 5
 export { useIsFavorite } from "./hooks/use-is-favorite";
 export { useToggleFavorite } from "./hooks/use-toggle-favorite";
 export { useMergeFavoritesOnLogin } from "./hooks/use-merge-favorites-on-login";
