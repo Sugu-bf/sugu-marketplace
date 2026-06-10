@@ -364,10 +364,13 @@ function CodMixtePaymentActions({
   const [error, setError] = React.useState<string | null>(null);
   const [inspectionDone, setInspectionDone] = React.useState(false);
 
+  // 6C-4: delivery fee button requires agency acceptance; null/undefined = legacy order (no gate)
+  const agencyAccepted = codMixte.agencyAccepted ?? true;
   const showDeliveryButton =
     codMixte.currentStep === "awaiting_delivery_payment" &&
     codMixte.payDeliveryFeeUrl &&
-    !codMixte.deliveryFeePaid;
+    !codMixte.deliveryFeePaid &&
+    agencyAccepted;
 
   const showProductButton =
     codMixte.currentStep === "awaiting_product_payment" &&
@@ -426,6 +429,16 @@ function CodMixtePaymentActions({
           {error}
         </div>
       )}
+
+      {/* 6C-4: show info block when waiting for agency acceptance */}
+      {codMixte.currentStep === "awaiting_delivery_payment" &&
+        !codMixte.deliveryFeePaid &&
+        !agencyAccepted && (
+          <div className="flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+            <Clock size={16} className="flex-shrink-0 mt-0.5" />
+            <span>En attente de l&apos;acceptation de l&apos;agence de livraison. Le paiement sera disponible une fois confirmé.</span>
+          </div>
+        )}
 
       {showInspectionButton && (
         <div className="space-y-2">

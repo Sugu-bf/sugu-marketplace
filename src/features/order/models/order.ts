@@ -129,6 +129,8 @@ export const OrderTrackingApiSchema = z.object({
     payDeliveryFeeUrl: z.string().nullable(),
     payProductFeeUrl: z.string().nullable(),
     shipmentId: z.string().nullable().optional(),
+    /** 6C-4: true when agency has formally accepted the shipment */
+    agencyAccepted: z.boolean().optional(),
     /** Current step in the COD Mixte flow */
     currentStep: z.enum([
       "awaiting_vendor",    // Waiting for vendor stock confirmation
@@ -194,6 +196,7 @@ export const TrackedOrderSchema = z.object({
     payDeliveryFeeUrl: z.string().nullable(),
     payProductFeeUrl: z.string().nullable(),
     shipmentId: z.string().nullable().optional(),
+    agencyAccepted: z.boolean().optional(),
     currentStep: z.string(),
   }).nullable(),
 });
