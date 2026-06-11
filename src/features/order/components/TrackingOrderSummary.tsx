@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { api, publicUrl, isApiError } from "@/lib/api";
 import { Button, Badge } from "@/components/ui";
@@ -17,7 +18,9 @@ import {
   ShieldCheck,
   ArrowRight,
   Banknote,
+  MessageCircle,
 } from "lucide-react";
+import { useStartCourierConversation } from "@/features/messaging/hooks";
 import { formatPrice } from "@/lib/constants";
 import type { OrderItem, TrackedOrder } from "@/features/order";
 
@@ -79,6 +82,8 @@ interface TrackingOrderSummaryProps {
   paymentMethod: string;
   paymentStatus: TrackedOrder["paymentStatus"];
   codMixte: TrackedOrder["codMixte"];
+  shipmentId?: string | null;
+  hasCourier?: boolean;
   className?: string;
 }
 
@@ -97,9 +102,14 @@ function TrackingOrderSummary({
   paymentMethod,
   paymentStatus,
   codMixte,
+  shipmentId,
+  hasCourier,
   className,
 }: TrackingOrderSummaryProps) {
   const isCodMixte = codMixte?.isCodMixte ?? false;
+  const startCourierConv = useStartCourierConversation();
+  const router = useRouter();
+  const canContactCourier = !!(shipmentId && hasCourier);
 
   return (
     <div
@@ -249,6 +259,27 @@ function TrackingOrderSummary({
             Contacter le support
           </Button>
         </div>
+
+        {/* Contact courier button — shown only when courier is assigned */}
+        {canContactCourier && (
+          <button
+            onClick={async () => {
+              try {
+                const conv = await startCourierConv.mutateAsync({
+                  shipmentId: shipmentId!,
+                });
+                router.push(`/messages/${conv.id}`);
+              } catch {
+                // If unauthenticated, the API call fails gracefully
+              }
+            }}
+            disabled={startCourierConv.isPending}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 py-2.5 text-xs font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-60"
+          >
+            <MessageCircle size={14} />
+            {startCourierConv.isPending ? "Connexion..." : "Contacter le livreur"}
+          </button>
+        )}
       </div>
     </div>
   );

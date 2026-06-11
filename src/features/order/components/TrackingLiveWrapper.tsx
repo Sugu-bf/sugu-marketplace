@@ -148,6 +148,8 @@ export function TrackingLiveWrapper({
             paymentMethod={order.paymentMethod}
             paymentStatus={order.paymentStatus}
             codMixte={order.codMixte}
+            shipmentId={order.shipmentId}
+            hasCourier={!!order.driver}
           />
 
           {/* Estimated Delivery */}

@@ -8,6 +8,7 @@ export function getMockTrackedOrder(): TrackedOrder {
   return {
     orderNumber: "SGU-2026-04821",
     status: "shipping",
+    shipmentId: null,
 
     trackingSteps: [
       {

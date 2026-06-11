@@ -50,6 +50,8 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
     orderNumber: api.reference,
     status: mapBackendStatusToUI(api.statusCode),
 
+    shipmentId: api.shipmentId ?? null,
+
     trackingSteps: api.statusSteps,
 
     timeline: api.timeline.map((event) => ({

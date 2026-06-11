@@ -22,6 +22,7 @@ import {
   fetchPresence,
   fetchRecommendedProducts,
   startConversation,
+  startCourierConversation,
   reportMessage,
 } from "./api";
 
@@ -265,6 +266,17 @@ export function useStartConversation() {
       queryClient.invalidateQueries({
         queryKey: messagingKeys.conversations(),
       });
+    },
+  });
+}
+
+export function useStartCourierConversation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ shipmentId }: { shipmentId: string }) =>
+      startCourierConversation(shipmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations() });
     },
   });
 }

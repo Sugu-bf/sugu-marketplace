@@ -81,6 +81,7 @@ export const OrderTrackingApiSchema = z.object({
   createdAt: z.string(),
   statusCode: BackendOrderStatusSchema,
   step: z.number(),
+  shipmentId: z.string().nullable().optional(),
 
   statusSteps: z.array(TrackingStepSchema),
   timeline: z.array(ApiTimelineEventSchema),
@@ -160,6 +161,9 @@ export const TrackedOrderSchema = z.object({
   status: OrderStatusSchema,
   trackingSteps: z.array(TrackingStepSchema),
   timeline: z.array(TimelineEventSchema),
+
+  // Shipment context for courier messaging (6F)
+  shipmentId: z.string().nullable(),
 
   // Delivery info
   agencyName: z.string(),

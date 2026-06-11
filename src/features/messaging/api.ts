@@ -52,6 +52,21 @@ export async function fetchConversations(params?: {
   return { data: data.data, meta: data.meta };
 }
 
+export async function startCourierConversation(
+  shipmentId: string,
+): Promise<Conversation> {
+  const { data } = await api.post<ApiEnvelope<Conversation>>(
+    meUrl("conversations/start"),
+    {
+      body: {
+        target: "courier",
+        shipment_id: shipmentId,
+      },
+    }
+  );
+  return data.data;
+}
+
 export async function startConversation(
   storeId: string,
   orderId?: string,
