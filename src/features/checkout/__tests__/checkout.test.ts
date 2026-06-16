@@ -234,6 +234,111 @@ describe("Checkout Zod Schemas", () => {
       expect(result.success).toBe(true);
     });
 
+    // G1 — provider-agnostic front: a "sugupay" online response is accepted exactly
+    // like "ligdicash" (additive — "ligdicash" is NOT removed, double-run period).
+    test("accepts SuguPay payment response (provider-agnostic, additive)", () => {
+      const data = {
+        success: true,
+        message: "Commande créée avec succès.",
+        data: {
+          order: {
+            id: "order_457",
+            number: "SU-2026-000004",
+            status: "pending",
+            payment_status: "pending",
+            total_amount: 15000,
+            currency: "XOF",
+            items_count: 2,
+            is_cod: false,
+            placed_at: "2026-02-25T09:31:00Z",
+            guest_order_token: "abc123token",
+          },
+          payment_transaction: {
+            id: "ptx_457",
+            provider: "sugupay", // new provider, accepted without removing "ligdicash"
+            status: "initiated",
+            amount: 15000,
+            currency: "XOF",
+          },
+          payment_url: "https://pay.sugupay.test/checkout/yyy",
+          next_step: "redirect_to_payment",
+        },
+      };
+      const result = PlaceOrderResponseSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    // G1 — double-run parity: the post-order redirect decision is a pure function of
+    // next_step + payment_url, NEVER of the provider. A "ligdicash" and a "sugupay"
+    // online response therefore drive the EXACT same redirection, and COD routes to
+    // order tracking via next_step. This is what makes the provider cutover (I3) a
+    // pure backend flag flip with no simultaneous front deployment.
+    test("redirection is provider-agnostic (ligdicash & sugupay identical, COD → track)", () => {
+      // Mirrors CheckoutOrchestrator's decision (keyed ONLY on next_step + payment_url).
+      const redirectDecision = (d: { next_step: string; payment_url: string | null }) =>
+        d.next_step === "redirect_to_payment" && d.payment_url
+          ? { type: "redirect" as const, url: d.payment_url }
+          : { type: "track" as const };
+
+      const onlineResponse = (provider: string, url: string) => ({
+        success: true,
+        message: "ok",
+        data: {
+          order: {
+            id: "o",
+            number: "SU-1",
+            status: "pending",
+            payment_status: "pending",
+            total_amount: 15000,
+            currency: "XOF",
+            items_count: 1,
+            is_cod: false,
+            placed_at: null,
+            guest_order_token: null,
+          },
+          payment_transaction: { id: "p", provider, status: "initiated", amount: 15000, currency: "XOF" },
+          payment_url: url,
+          next_step: "redirect_to_payment" as const,
+        },
+      });
+
+      const ligdi = PlaceOrderResponseSchema.parse(
+        onlineResponse("ligdicash", "https://app.ligdicash.com/checkout/xxx")
+      );
+      const sugu = PlaceOrderResponseSchema.parse(
+        onlineResponse("sugupay", "https://pay.sugupay.test/checkout/yyy")
+      );
+
+      // Both parse and both redirect — identical decision regardless of provider.
+      expect(redirectDecision(ligdi.data).type).toBe("redirect");
+      expect(redirectDecision(sugu.data).type).toBe("redirect");
+      expect(redirectDecision(ligdi.data).type).toBe(redirectDecision(sugu.data).type);
+
+      // COD: keyed on next_step → routes to tracking, no payment redirect.
+      const cod = PlaceOrderResponseSchema.parse({
+        success: true,
+        message: "ok",
+        data: {
+          order: {
+            id: "o2",
+            number: "SU-2",
+            status: "pending",
+            payment_status: "unpaid",
+            total_amount: 90000,
+            currency: "XOF",
+            items_count: 1,
+            is_cod: true,
+            placed_at: null,
+            guest_order_token: null,
+          },
+          payment_transaction: null,
+          payment_url: null,
+          next_step: "order_confirmed" as const,
+        },
+      });
+      expect(redirectDecision(cod.data).type).toBe("track");
+    });
+
     // Backend contract: COD Legacy and COD Mixte share the same placeOrder
     // response shape — is_cod=true, next_step="order_confirmed", payment_url=null.
     // Legacy carries status="confirmed" (auto-confirmed), Mixte carries

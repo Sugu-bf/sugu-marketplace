@@ -346,7 +346,10 @@ export function useCart(initialCart: CartUI): UseCartReturn {
         return placeOrder(
           {
             checkout_session_id: session.sessionId,
-            payment_method: "ligdicash", // Backend expects "cod" or "ligdicash"
+            // Online-payment selector (NOT a provider). The backend validates
+            // "cod" | "ligdicash" and chooses the actual provider via its own flag,
+            // so this value stays "ligdicash" across the provider cutover.
+            payment_method: "ligdicash",
           },
           idempotencyKey
         );

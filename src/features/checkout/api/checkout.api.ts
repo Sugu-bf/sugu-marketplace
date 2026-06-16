@@ -211,7 +211,7 @@ export async function removeCoupon(): Promise<RemoveCouponResponse> {
  * - CSRF token refreshed before call
  * - POST is NEVER retried on failure
  *
- * @returns Order details + payment URL (if LigdiCash)
+ * @returns Order details + payment URL (for online payments, provider-agnostic)
  */
 export async function placeOrder(
   payload: PlaceOrderPayload

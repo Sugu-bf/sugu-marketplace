@@ -9,7 +9,8 @@ import { Button } from "@/components/ui";
 /**
  * Payment Success Page — /payments/success?ref=...
  *
- * The backend redirects here after a successful LigdiCash payment.
+ * The backend redirects here after a successful online (mobile money) payment,
+ * whatever the active provider — the redirect URL is provider-agnostic.
  * The `ref` param is an encrypted order ID (base64-encoded Laravel encrypt()).
  * We don't decrypt it on the frontend — we use it to redirect to the order tracking page.
  *

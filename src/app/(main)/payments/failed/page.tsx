@@ -8,7 +8,8 @@ import { Button } from "@/components/ui";
 /**
  * Payment Failed Page — /payments/failed?ref=...
  *
- * The backend redirects here after a failed/cancelled LigdiCash payment.
+ * The backend redirects here after a failed/cancelled online (mobile money)
+ * payment, whatever the active provider — the redirect URL is provider-agnostic.
  * The `ref` param is an encrypted order ID (base64-encoded Laravel encrypt()).
  * We don't decrypt it on the frontend — we provide options to retry or get support.
  */

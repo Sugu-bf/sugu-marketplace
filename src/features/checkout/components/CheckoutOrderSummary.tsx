@@ -289,7 +289,7 @@ function CheckoutOrderSummary({
               </div>
             </button>
 
-            {/* LigdiCash (Mobile Money) option */}
+            {/* Online (mobile money) payment option — provider chosen by the backend */}
             <button
               type="button"
               role="radio"
