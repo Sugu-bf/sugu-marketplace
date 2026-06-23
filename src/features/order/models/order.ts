@@ -99,8 +99,12 @@ export const OrderTrackingApiSchema = z.object({
   step: z.number(),
   shipmentId: z.string().nullable().optional(),
 
-  statusSteps: z.array(TrackingStepSchema),
-  timeline: z.array(ApiTimelineEventSchema),
+  // D3b-liste — legacy, now OPTIONAL: the buyer view derives both the 4-step
+  // stepper and the detailed history from `canonical_timeline` (single source).
+  // The backend no longer emits statusSteps/timeline; keep them optional so an
+  // older payload (or a transitional deploy) still parses.
+  statusSteps: z.array(TrackingStepSchema).optional().default([]),
+  timeline: z.array(ApiTimelineEventSchema).optional().default([]),
   // D3b — single canonical timeline projection (client role: global jalons).
   canonical_timeline: z.array(CanonicalTimelineStepSchema).optional().default([]),
 
