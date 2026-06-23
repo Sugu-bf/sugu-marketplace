@@ -104,8 +104,10 @@ function deriveStepperFromCanonical(steps: CanonicalTimelineStep[]): TrackingSte
  * Zero UI changes required — the UI still receives the same flat props.
  */
 export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
-  // D3b — global jalons only (the buyer does not see per-boutique detail).
-  const canonicalGlobal = api.canonical_timeline.filter((s) => !s.store_id);
+  // D3b — the buyer sees global jalons only. The backend (buildForRole 'client')
+  // now drops per-boutique steps at the source, so NO frontend filter is needed
+  // — the front no longer filters what it no longer receives.
+  const canonicalGlobal = api.canonical_timeline;
   const COD_KEYS = new Set(["delivery_fee_paid", "product_fee_paid"]);
   // Detailed "Historique" = reached milestones + the COD payment jalons (kept
   // even while pending). Not-yet-reached milestones live in the short stepper.
