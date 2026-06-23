@@ -1,4 +1,4 @@
-import type { OrderTrackingApiData, TrackedOrder, BackendOrderStatus, OrderStatus } from "../models/order";
+import type { OrderTrackingApiData, TrackedOrder, BackendOrderStatus, OrderStatus, CanonicalTimelineStep, TrackingStep } from "../models/order";
 
 /**
  * Map backend order status to simplified UI status.
@@ -42,23 +42,97 @@ function formatTimelineDate(isoDate: string): string {
 }
 
 /**
+ * D3b — buyer-facing labels for the detailed timeline. The canonical projection
+ * carries its own (internal) labels; here we preserve the EXACT labels the buyer
+ * already sees. New milestones the buyer did not see before (awaiting_inspection)
+ * use a clear French label.
+ */
+const CLIENT_TIMELINE_LABEL: Record<string, string> = {
+  placed: "En attente",
+  vendor_confirmed: "Confirmée",
+  preparing: "En préparation",
+  delivery_fee_paid: "Paiement liv. (COD Mixte)",
+  in_transit: "Expédiée",
+  awaiting_inspection: "Vérification produits",
+  product_fee_paid: "Paiement des produits",
+  delivered: "Livrée",
+  delivery_failed: "Échec livraison",
+  canceled: "Annulée",
+  returned: "Retournée",
+};
+
+/**
+ * D3b — derive the 4-step short stepper from the canonical projection (same
+ * source as the detailed timeline). The N canonical keys are mapped onto the 4
+ * existing buyer steps; internal keys (vendor_handoff, agency_accepted, …) never
+ * leak into the stepper. Always returns exactly 4 steps with their prior labels.
+ */
+function deriveStepperFromCanonical(steps: CanonicalTimelineStep[]): TrackingStep[] {
+  const byKey = new Map(steps.map((s) => [s.key, s] as const));
+  const defs = [
+    { id: "confirmed", label: "Confirmée", key: "vendor_confirmed" },
+    { id: "preparing", label: "En préparation", key: "preparing" },
+    { id: "shipping", label: "En livraison", key: "in_transit" },
+    { id: "delivered", label: "Livrée", key: "delivered" },
+  ];
+
+  const reachedAt = defs.map((d) => byKey.get(d.key)?.timestamp ?? null);
+  let lastReached = -1;
+  reachedAt.forEach((ts, i) => {
+    if (ts) lastReached = i;
+  });
+
+  return defs.map((d, i) => {
+    const ts = reachedAt[i];
+    const status: "completed" | "current" | "upcoming" = ts
+      ? i === lastReached
+        ? "current"
+        : "completed"
+      : "upcoming";
+    return {
+      id: d.id,
+      label: d.label,
+      status,
+      date: ts,
+      dateLabel: ts ? formatTimelineDate(ts) : null,
+    };
+  });
+}
+
+/**
  * Transform the raw API response into the TrackedOrder shape expected by UI components.
  * Zero UI changes required — the UI still receives the same flat props.
  */
 export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
+  // D3b — global jalons only (the buyer does not see per-boutique detail).
+  const canonicalGlobal = api.canonical_timeline.filter((s) => !s.store_id);
+  const COD_KEYS = new Set(["delivery_fee_paid", "product_fee_paid"]);
+  // Detailed "Historique" = reached milestones + the COD payment jalons (kept
+  // even while pending). Not-yet-reached milestones live in the short stepper.
+  const historySteps = canonicalGlobal.filter(
+    (s) => s.status !== "upcoming" || COD_KEYS.has(s.key),
+  );
+
   return {
     orderNumber: api.reference,
     status: mapBackendStatusToUI(api.statusCode),
 
     shipmentId: api.shipmentId ?? null,
 
-    trackingSteps: api.statusSteps,
+    // D3b — both representations now derive from the single canonical projection.
+    // api.statusSteps / api.timeline (legacy) are no longer read.
+    // Stepper: exactly 4 steps, derived from canonical (internal keys never leak).
+    trackingSteps: deriveStepperFromCanonical(canonicalGlobal),
 
-    timeline: api.timeline.map((event) => ({
-      id: event.id,
-      date: event.timestamp ? formatTimelineDate(event.timestamp) : "En attente",
-      description: event.title + (event.description ? ` — ${event.description}` : ""),
-      isLatest: event.isLatest,
+    // Detailed "Historique": reached milestones + COD jalons, newest first
+    // (preserves the prior buyer ordering). Buyer labels preserved.
+    timeline: [...historySteps].reverse().map((s) => ({
+      id: `${s.key}-${s.store_id ?? ""}-${s.timestamp ?? "pending"}`,
+      date: s.timestamp ? formatTimelineDate(s.timestamp) : "En attente",
+      description:
+        (CLIENT_TIMELINE_LABEL[s.key] ?? s.label) +
+        (s.description ? ` — ${s.description}` : ""),
+      isLatest: s.status === "current",
     })),
 
     // Delivery info

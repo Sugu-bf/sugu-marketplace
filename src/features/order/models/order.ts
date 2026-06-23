@@ -54,6 +54,22 @@ export const TimelineEventSchema = z.object({
   isLatest: z.boolean(),
 });
 
+// ─── D3b — canonical timeline step (contract shared with backend) ────
+// The marketplace consumes the backend `canonical_timeline` projection. It
+// shares the CONTRACT only (not the sugu-saas <CanonicalTimeline> component).
+
+export const CanonicalTimelineStepSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  status: z.enum(["done", "current", "upcoming"]),
+  timestamp: z.string().nullable(),
+  store_id: z.string().nullable().optional(),
+  actor_type: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+});
+
+export type CanonicalTimelineStep = z.infer<typeof CanonicalTimelineStepSchema>;
+
 // ─── Delivery Driver ─────────────────────────────────────────
 
 export const DeliveryDriverSchema = z.object({
@@ -85,6 +101,8 @@ export const OrderTrackingApiSchema = z.object({
 
   statusSteps: z.array(TrackingStepSchema),
   timeline: z.array(ApiTimelineEventSchema),
+  // D3b — single canonical timeline projection (client role: global jalons).
+  canonical_timeline: z.array(CanonicalTimelineStepSchema).optional().default([]),
 
   delivery: z.object({
     agency: z.object({

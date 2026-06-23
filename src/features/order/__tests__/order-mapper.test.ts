@@ -20,6 +20,7 @@ function baseApiOrder(): OrderTrackingApiData {
     step: 3,
     statusSteps: [],
     timeline: [],
+    canonical_timeline: [],
     delivery: {
       agency: { name: "Livo Express", rating: 4.7 },
       method: { label: "Standard", isExpress: false },
