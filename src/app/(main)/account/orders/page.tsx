@@ -62,8 +62,12 @@ export default async function OrdersPage() {
               order.cod_flow_type === "legacy" &&
               order.paymentStatusCode === "cod_pending";
             const codStep = order.cod_current_step ? COD_STEP_LABELS[order.cod_current_step] : null;
+            // C1-res — the « Payer livraison » indicator must NOT fire before the
+            // agency has accepted (parity with the 6C-4 track-order gate); a missing
+            // agencyAccepted defaults to false upstream, so it never re-opens payment.
             const isActionRequired =
-              order.cod_current_step === "awaiting_delivery_payment" ||
+              (order.cod_current_step === "awaiting_delivery_payment" &&
+                order.agencyAccepted === true) ||
               order.cod_current_step === "awaiting_product_payment";
 
             return (

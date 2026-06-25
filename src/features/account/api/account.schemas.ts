@@ -114,6 +114,8 @@ export const ApiOrderListItemSchema = z.object({
   delivery_fee_paid: z.boolean().optional(),
   product_fee_paid: z.boolean().optional(),
   cod_current_step: z.string().nullable().optional(),
+  // C1-res — agency acceptance gates the « action requise » list indicator.
+  agencyAccepted: z.boolean().optional(),
 });
 
 export const ApiOrderListResponseSchema = z.object({

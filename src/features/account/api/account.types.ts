@@ -133,6 +133,8 @@ export interface Order {
   delivery_fee_paid?: boolean;
   product_fee_paid?: boolean;
   cod_current_step?: string | null;
+  // C1-res — agency acceptance: the list payment indicator only fires once true.
+  agencyAccepted?: boolean;
 }
 
 /** Paginated orders response */

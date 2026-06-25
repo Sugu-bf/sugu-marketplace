@@ -468,8 +468,10 @@ function CodMixtePaymentActions({
   const [error, setError] = React.useState<string | null>(null);
   const [inspectionDone, setInspectionDone] = React.useState(false);
 
-  // 6C-4: delivery fee button requires agency acceptance; null/undefined = legacy order (no gate)
-  const agencyAccepted = codMixte.agencyAccepted ?? true;
+  // 6C-4 + C1-res (A6): the delivery-fee button requires agency acceptance. A missing
+  // agencyAccepted must NEVER re-open payment, so it defaults to FALSE (a legacy order
+  // has no Mixte delivery-payment step, so this does not gate its flow).
+  const agencyAccepted = codMixte.agencyAccepted ?? false;
   const showDeliveryButton =
     codMixte.currentStep === "awaiting_delivery_payment" &&
     codMixte.payDeliveryFeeUrl &&

@@ -29,9 +29,6 @@ import type {
   NotificationGroup,
   Notification,
   ReferralData,
-  UserProfile,
-  SecurityInfo,
-  UserPreferences,
   ApiAddress,
   ApiOrderListItem,
   ApiNotificationItem,
@@ -154,6 +151,8 @@ function mapApiOrderToUI(order: ApiOrderListItem): Order {
     delivery_fee_paid: order.delivery_fee_paid,
     product_fee_paid: order.product_fee_paid,
     cod_current_step: order.cod_current_step,
+    // C1-res — omitted field must NEVER re-open payment: default to false.
+    agencyAccepted: order.agencyAccepted ?? false,
   };
 }
 
