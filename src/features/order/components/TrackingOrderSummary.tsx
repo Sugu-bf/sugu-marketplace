@@ -82,6 +82,8 @@ interface TrackingOrderSummaryProps {
   paymentMethod: string;
   paymentStatus: TrackedOrder["paymentStatus"];
   codMixte: TrackedOrder["codMixte"];
+  codFlowType?: TrackedOrder["codFlowType"];
+  codPrepaid?: TrackedOrder["codPrepaid"];
   shipmentId?: string | null;
   hasCourier?: boolean;
   className?: string;
@@ -102,11 +104,16 @@ function TrackingOrderSummary({
   paymentMethod,
   paymentStatus,
   codMixte,
+  codFlowType,
+  codPrepaid,
   shipmentId,
   hasCourier,
   className,
 }: TrackingOrderSummaryProps) {
   const isCodMixte = codMixte?.isCodMixte ?? false;
+  // C2-paiement — COD classic can be prepaid online (cumulative). OPTION only:
+  // the cash-at-delivery path stays available while not yet prepaid.
+  const showCodClassicPay = codFlowType === "legacy" && !codPrepaid && !isCodMixte && total > 0;
   const startCourierConv = useStartCourierConversation();
   const router = useRouter();
   const canContactCourier = !!(shipmentId && hasCourier);
@@ -249,6 +256,11 @@ function TrackingOrderSummary({
           <CodMixtePaymentActions codMixte={codMixte} orderId={orderId} />
         )}
 
+        {/* ═══ C2 — COD classic cumulative prepayment (OPTION) ═══ */}
+        {showCodClassicPay && (
+          <CodClassicPayAction orderId={orderId} total={total} />
+        )}
+
         {/* Support buttons */}
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" size="md" className="text-xs">
@@ -377,6 +389,67 @@ function ProgressSegment({ label, filled }: { label: string; filled: boolean }) 
       />
       <p className="text-[10px] text-muted-foreground mt-1 text-center">
         {label} {filled ? "✓" : ""}
+      </p>
+    </div>
+  );
+}
+
+// ─── C2 — COD classic cumulative prepayment (OPTION) ────────────
+
+function CodClassicPayAction({
+  orderId,
+  total,
+}: {
+  orderId: string;
+  total: number;
+}) {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handlePay = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Cumulative product + delivery in a single online payment. The backend
+      // returns a provider checkout URL (flag-driven); we redirect to it.
+      const res = await fetch(publicUrl(`orders/${orderId}/pay-order`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+      });
+      const data = await res.json();
+      if (data.success && data.data?.payment_url) {
+        window.location.href = data.data.payment_url;
+      } else {
+        setError(data.message || "Erreur lors de l'initiation du paiement.");
+        setLoading(false);
+      }
+    } catch {
+      setError("Erreur réseau. Veuillez réessayer.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+          {error}
+        </div>
+      )}
+      <button
+        onClick={handlePay}
+        disabled={loading}
+        className="flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-sugu-500 to-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+      >
+        {loading ? (
+          <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+        ) : (
+          <CreditCard size={16} />
+        )}
+        {loading ? "Redirection..." : `Payer la commande — ${formatPrice(total)}`}
+      </button>
+      <p className="text-center text-[11px] text-muted-foreground">
+        Optionnel — vous pouvez aussi régler en espèces à la livraison.
       </p>
     </div>
   );

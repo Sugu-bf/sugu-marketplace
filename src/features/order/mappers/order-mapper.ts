@@ -121,6 +121,10 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
 
     shipmentId: api.shipmentId ?? null,
 
+    // C2-paiement — COD discriminant + prepaid flag for the cumulative-pay CTA.
+    codFlowType: api.cod_flow_type ?? null,
+    codPrepaid: api.cod_prepaid ?? false,
+
     // D3b — both representations now derive from the single canonical projection.
     // api.statusSteps / api.timeline (legacy) are no longer read.
     // Stepper: exactly 4 steps, derived from canonical (internal keys never leak).

@@ -148,6 +148,8 @@ export function TrackingLiveWrapper({
             paymentMethod={order.paymentMethod}
             paymentStatus={order.paymentStatus}
             codMixte={order.codMixte}
+            codFlowType={order.codFlowType}
+            codPrepaid={order.codPrepaid}
             shipmentId={order.shipmentId}
             hasCourier={!!order.driver}
           />

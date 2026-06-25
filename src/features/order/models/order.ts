@@ -99,6 +99,11 @@ export const OrderTrackingApiSchema = z.object({
   step: z.number(),
   shipmentId: z.string().nullable().optional(),
 
+  // C2-paiement — COD discriminant for the CTA branch ('legacy' → cumulative
+  // « Payer la commande », 'mixte' → existing « Payer les frais de livraison »).
+  cod_flow_type: z.string().nullable().optional(),
+  cod_prepaid: z.boolean().optional(),
+
   // D3b-liste — legacy, now OPTIONAL: the buyer view derives both the 4-step
   // stepper and the detailed history from `canonical_timeline` (single source).
   // The backend no longer emits statusSteps/timeline; keep them optional so an
@@ -183,6 +188,10 @@ export const TrackedOrderSchema = z.object({
   status: OrderStatusSchema,
   trackingSteps: z.array(TrackingStepSchema),
   timeline: z.array(TimelineEventSchema),
+
+  // C2-paiement — COD discriminant + prepaid flag, drive the cumulative-pay CTA.
+  codFlowType: z.string().nullable(),
+  codPrepaid: z.boolean(),
 
   // Shipment context for courier messaging (6F)
   shipmentId: z.string().nullable(),
