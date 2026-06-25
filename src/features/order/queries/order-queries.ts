@@ -1,4 +1,4 @@
-import { api, publicUrl, ApiError } from "@/lib/api";
+import { api, publicUrl } from "@/lib/api";
 import { OrderTrackingResponseSchema } from "../models/order";
 import { mapApiToTrackedOrder } from "../mappers/order-mapper";
 import type { TrackedOrder, OrderTrackingApiData } from "../models/order";

@@ -28,7 +28,7 @@ function TrackingTimeline({ events, className }: TrackingTimelineProps) {
         />
 
         <div className="space-y-5">
-          {events.map((event, index) => (
+          {events.map((event) => (
             <div
               key={event.id}
               className="relative flex items-start gap-4 pl-0"

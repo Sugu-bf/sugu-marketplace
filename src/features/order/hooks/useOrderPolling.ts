@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { queryTrackedOrderRaw, mapApiToTrackedOrder } from "@/features/order";
-import type { TrackedOrder, OrderTrackingApiData } from "@/features/order";
+import type { TrackedOrder } from "@/features/order";
 
 /** Terminal statuses — stop polling once reached */
 const TERMINAL_STATUSES = new Set(["delivered", "canceled", "returned", "failed"]);
@@ -30,7 +30,10 @@ export function useOrderPolling(
   initialData: TrackedOrder
 ) {
   const [order, setOrder] = useState<TrackedOrder>(initialData);
-  const [isPolling, setIsPolling] = useState(true);
+  const [isPolling, setIsPolling] = useState(() => {
+    const status = initialData.status === "cancelled" ? "canceled" : initialData.status;
+    return !TERMINAL_STATUSES.has(status);
+  });
   const [error, setError] = useState<string | null>(null);
 
   const pollCountRef = useRef(0);
@@ -56,6 +59,8 @@ export function useOrderPolling(
     if (stablePollsRef.current >= 3) return STABLE_INTERVAL;
     return INITIAL_INTERVAL;
   }, []);
+
+  const pollRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const poll = useCallback(async () => {
     if (!isMountedRef.current || isHiddenRef.current) return;
@@ -105,7 +110,7 @@ export function useOrderPolling(
           return; // Stop polling — confirmed terminal
         }
       }
-    } catch (err) {
+    } catch {
       errorCountRef.current++;
       if (errorCountRef.current >= 5) {
         setIsPolling(false);
@@ -116,9 +121,16 @@ export function useOrderPolling(
 
     // Schedule next poll
     if (isMountedRef.current && !isHiddenRef.current) {
-      timerRef.current = setTimeout(poll, getInterval());
+      timerRef.current = setTimeout(() => {
+        pollRef.current();
+      }, getInterval());
     }
   }, [orderId, getInterval]);
+
+  // Maintain ref to latest poll function
+  useEffect(() => {
+    pollRef.current = poll;
+  }, [poll]);
 
   // ─── Visibility change handler ──────────────────────────────
 
@@ -134,7 +146,9 @@ export function useOrderPolling(
         isHiddenRef.current = false;
         if (isPolling && !timerRef.current) {
           // Resume polling immediately
-          timerRef.current = setTimeout(poll, 1_000);
+          timerRef.current = setTimeout(() => {
+            pollRef.current();
+          }, 1_000);
         }
       }
     }
@@ -142,7 +156,7 @@ export function useOrderPolling(
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [isPolling, poll]);
+  }, [isPolling]);
 
   // ─── Start polling on mount ─────────────────────────────────
 
@@ -150,12 +164,14 @@ export function useOrderPolling(
     isMountedRef.current = true;
 
     // Don't start polling if already terminal
-    if (TERMINAL_STATUSES.has(initialData.status === "cancelled" ? "canceled" : initialData.status)) {
-      setIsPolling(false);
+    const status = initialData.status === "cancelled" ? "canceled" : initialData.status;
+    if (TERMINAL_STATUSES.has(status)) {
       return;
     }
 
-    timerRef.current = setTimeout(poll, INITIAL_INTERVAL);
+    timerRef.current = setTimeout(() => {
+      pollRef.current();
+    }, INITIAL_INTERVAL);
 
     return () => {
       isMountedRef.current = false;
@@ -163,7 +179,7 @@ export function useOrderPolling(
         clearTimeout(timerRef.current);
       }
     };
-  }, [poll, initialData.status]);
+  }, [initialData.status]);
 
   return { order, isPolling, error };
 }
