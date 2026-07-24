@@ -680,13 +680,13 @@ function CategoryListItem({ product }: { product: ProductListItem }) {
   return (
     <div className="group flex gap-4 rounded-2xl border border-border-light bg-background p-3 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20">
       {/* Image */}
-      <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
+      <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-white border border-border-light/60">
         {product.thumbnail ? (
           <Image
             src={product.thumbnail}
             alt={product.name}
             fill
-            className="object-contain p-2 transition-transform duration-500 group-hover:scale-110"
+            className="object-contain p-1.5 mix-blend-multiply transition-transform duration-500 group-hover:scale-110"
             sizes="128px"
           />
         ) : (

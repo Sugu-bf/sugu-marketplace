@@ -81,13 +81,13 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
       )}
     >
       {/* Product Image */}
-      <div className="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-muted transition-all duration-500 group-hover:shadow-xl group-hover:shadow-primary/10">
+      <div className="relative mb-3 aspect-square overflow-hidden rounded-2xl bg-white border border-border-light/60 shadow-xs transition-all duration-500 group-hover:shadow-xl group-hover:shadow-primary/10">
         <FavoriteHeart productId={String(product.id)} />
         <Image
           src={product.thumbnail}
           alt={product.name}
           fill
-          className="object-contain p-4 transition-transform duration-500 group-hover:scale-110"
+          className="object-contain p-2 mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
           sizes="220px"
         />
         {/* Sale badge (hover reveal) */}
@@ -136,18 +136,13 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-xs">
-          {product.stock > 0 && (
-            <span className="text-error font-medium">
-              {product.stock} restant{product.stock > 1 ? "s" : ""}
-            </span>
-          )}
-          {product.sold > 0 && (
+        {product.sold > 0 && (
+          <div className="flex items-center gap-3 text-xs">
             <span className="text-muted-foreground">
               {product.sold} vendu{product.sold > 1 ? "s" : ""}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </Link>
   );

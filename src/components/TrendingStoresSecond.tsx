@@ -32,13 +32,13 @@ function ProductRow({ product, index }: { product: ProductColumnItem; index: num
       }}
     >
       {/* Thumbnail */}
-      <div className="flex-shrink-0 w-[52px] h-[52px] rounded-xl bg-muted flex items-center justify-center overflow-hidden relative">
+      <div className="flex-shrink-0 w-[52px] h-[52px] rounded-xl bg-white border border-border-light/60 flex items-center justify-center overflow-hidden relative">
         {hasImage ? (
           <Image
             src={product.image!}
             alt={product.name}
             fill
-            className="object-cover"
+            className="object-contain p-0.5 mix-blend-multiply"
             sizes="52px"
           />
         ) : (
@@ -162,13 +162,13 @@ export default function TrendingStoresSecond({
 
           {/* Featured product image */}
           <Link href={weeklyDeal.slug ? `/product/${weeklyDeal.slug}` : "#"} className="block">
-            <div className="relative w-full aspect-square rounded-2xl bg-muted flex items-center justify-center mb-4 overflow-hidden">
+            <div className="relative w-full aspect-square rounded-2xl bg-white border border-border-light/60 flex items-center justify-center mb-4 overflow-hidden shadow-xs">
               {hasWeeklyImage ? (
                 <Image
                   src={weeklyDeal.image!}
                   alt={weeklyDeal.name}
                   fill
-                  className="object-contain p-4"
+                  className="object-contain p-2 mix-blend-multiply transition-transform duration-500 hover:scale-105"
                   sizes="300px"
                 />
               ) : (

@@ -47,7 +47,7 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
       }}
     >
       {/* Product Image */}
-      <div className="relative w-[100px] sm:w-[130px] flex-shrink-0 bg-muted flex items-center justify-center">
+      <div className="relative w-[100px] sm:w-[130px] flex-shrink-0 bg-white border-r border-border-light/60 flex items-center justify-center">
         {product.promoPercent && (
           <span className="absolute top-2 left-2 z-10 rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
             Promo {product.promoPercent}%
@@ -58,7 +58,7 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
             src={product.image}
             alt={product.name}
             fill
-            className="object-contain p-2"
+            className="object-contain p-1.5 mix-blend-multiply"
             sizes="130px"
           />
         ) : (

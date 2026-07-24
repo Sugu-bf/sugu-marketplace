@@ -690,11 +690,11 @@ function SearchListItem({ product }: { product: SearchProductItem }) {
       className="group flex gap-4 rounded-2xl border border-border-light bg-background p-3 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20"
     >
       {/* Image */}
-      <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-muted">
+      <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-white border border-border-light/60">
         <img
           src={product.thumbnail}
           alt={product.name}
-          className="h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-110"
+          className="h-full w-full object-contain p-1.5 mix-blend-multiply transition-transform duration-500 group-hover:scale-110"
         />
         {hasDiscount && product.discount && (
           <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
