@@ -65,10 +65,14 @@ const ApiFacetValueSchema = z.object({
   label: z.string().optional(),
 });
 
-const ApiFacetsSchema = z.record(
-  z.string(),
-  z.array(ApiFacetValueSchema)
-).optional();
+const ApiFacetsSchema = z
+  .union([
+    z.record(z.string(), z.array(ApiFacetValueSchema)),
+    z.array(z.unknown()).transform(() => ({})),
+  ])
+  .optional()
+  .nullable()
+  .transform((val) => (val && !Array.isArray(val) ? val : {}));
 
 // ─── Full Search Response ────────────────────────────────────
 

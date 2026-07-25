@@ -164,6 +164,17 @@ export default function StorePageClient({
 
   return (
     <div>
+      {/* Anti-scraping Honeypot Link (hidden from humans, followed by naive bots) */}
+      <a
+        href="https://api-zk47m.mysugu.com/api/v1/web-products/honeypot"
+        className="sr-only hidden"
+        aria-hidden="true"
+        tabIndex={-1}
+        rel="nofollow"
+      >
+        Catalogue complet de la boutique {store.name}
+      </a>
+
       {/* ─── Header Row: count + sort + view + search ────────── */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-bold text-foreground">
@@ -301,7 +312,7 @@ export default function StorePageClient({
           <div
             className={cn(
               viewMode === "grid"
-                ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"
+                ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"
                 : "flex flex-col gap-4",
             )}
           >

@@ -384,6 +384,17 @@ export default function SearchPageClient({
 
   return (
     <div>
+      {/* Anti-scraping Honeypot Link (hidden from humans, followed by naive bots) */}
+      <a
+        href="https://api-zk47m.mysugu.com/api/v1/web-products/honeypot"
+        className="sr-only hidden"
+        aria-hidden="true"
+        tabIndex={-1}
+        rel="nofollow"
+      >
+        Catalogue complet des produits Sugu
+      </a>
+
       {/* ─── Suggestion Chips ─────────────────────────────────── */}
       <div className="mb-6 flex flex-wrap gap-2">
         {suggestions.map((rs) => (

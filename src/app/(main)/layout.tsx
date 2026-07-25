@@ -34,7 +34,7 @@ export default async function MainLayout({
   const trustBadges = await queryTrustBadges();
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50/30">
+    <div className="flex min-h-screen flex-col bg-background">
       <AnnouncementBar />
       <Suspense fallback={<HeaderSkeleton />}>
         <MarketplaceHeader />
