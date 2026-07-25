@@ -140,7 +140,7 @@ function NotificationsClient({ initialData }: NotificationsClientProps) {
 
       {/* Notification list */}
       {groups.length === 0 ? (
-        <div className="rounded-2xl border border-border-light bg-background p-8 lg:p-12 text-center">
+        <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-8 lg:p-12 text-center">
           <Bell size={48} className="text-muted-foreground mx-auto mb-4" />
           <p className="text-base font-semibold text-foreground lg:text-lg">
             Aucune notification
@@ -167,7 +167,7 @@ function NotificationsClient({ initialData }: NotificationsClientProps) {
                       className={cn(
                         "flex items-start gap-3 rounded-2xl border p-4 transition-all hover:shadow-sm cursor-pointer",
                         notif.isRead
-                          ? "border-border-light bg-background"
+                          ? "border-border/80 bg-white shadow-sm"
                           : "border-primary/20 bg-primary-50/30"
                       )}
                       onClick={() => {

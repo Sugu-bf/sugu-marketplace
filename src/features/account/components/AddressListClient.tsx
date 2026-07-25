@@ -213,7 +213,7 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
 
       {/* Address list */}
       {addresses.length === 0 ? (
-        <div className="rounded-2xl border border-border-light bg-background p-8 lg:p-12 text-center">
+        <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-8 lg:p-12 text-center">
           <MapPin size={48} className="text-muted-foreground mx-auto mb-4" />
           <p className="text-base font-semibold text-foreground lg:text-lg">
             Aucune adresse
@@ -235,7 +235,7 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
           {addresses.map((addr) => (
             <div
               key={addr.id}
-              className="rounded-2xl border border-border-light bg-background p-5 transition-all hover:shadow-sm group"
+              className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 transition-all hover:shadow-md group"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">

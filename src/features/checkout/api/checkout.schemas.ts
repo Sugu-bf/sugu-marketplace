@@ -87,6 +87,8 @@ export const CheckoutAddressSchema = z.object({
   postal_code: z.string().nullable().optional(),
   lat: z.number().nullable().optional(),
   lng: z.number().nullable().optional(),
+  /** ULID de l'adresse du carnet dont ce snapshot est issu, si applicable. */
+  address_id: z.string().nullable().optional(),
 });
 
 // ─── Checkout Session (GET /api/v1/checkout/sessions/{id}) ───
@@ -100,6 +102,11 @@ export const CheckoutSessionApiSchema = z.object({
   expires_at: z.string(),
   is_active: z.boolean().optional(),
   cart_items_count: z.number().optional(),
+  // Sélections persistées côté serveur : elles permettent au front de se
+  // réhydrater après un rechargement de page plutôt que de repartir de zéro.
+  shipping_address: CheckoutAddressSchema.nullable().optional(),
+  shipping_partner_id: z.string().nullable().optional(),
+  shipping_rate_id: z.string().nullable().optional(),
 });
 
 // ─── Create Session Response ─────────────────────────────────
@@ -108,15 +115,7 @@ export const CreateSessionResponseSchema = z.object({
   success: z.literal(true),
   message: z.string(),
   data: z.object({
-    session: z.object({
-      id: z.string(),
-      status: z.string(),
-      currency: z.string(),
-      totals: PricingSnapshotSchema,
-      warnings: z.array(CheckoutWarningSchema).nullable(),
-      expires_at: z.string(),
-      cart_items_count: z.number(),
-    }),
+    session: CheckoutSessionApiSchema,
   }),
 });
 

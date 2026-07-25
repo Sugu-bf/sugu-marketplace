@@ -120,8 +120,11 @@ function mapApiAddressToUI(addr: ApiAddress): Address {
     addressLine: addr.address_line,
     addressComplement: addr.address_complement,
     city: addr.city,
+    zone: addr.zone ?? null,
     state: addr.state,
     countryCode: addr.country_code,
+    latitude: addr.latitude ?? null,
+    longitude: addr.longitude ?? null,
     isDefault: addr.is_default,
     isVerified: addr.is_verified,
   };

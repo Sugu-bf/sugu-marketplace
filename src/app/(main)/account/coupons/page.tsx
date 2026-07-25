@@ -20,7 +20,7 @@ export default function CouponsPage() {
         <h1 className="text-2xl font-bold text-foreground sm:text-3xl mt-3">Mes coupons</h1>
       </div>
 
-      <div className="rounded-2xl border border-border-light bg-background p-8 lg:p-12 text-center">
+      <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-8 lg:p-12 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-50 text-primary mx-auto mb-4">
           <Tag size={32} />
         </div>

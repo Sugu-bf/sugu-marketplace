@@ -6,7 +6,7 @@ export const CheckoutStepSchema = z.enum(["cart", "address", "shipping", "paymen
 
 export const CheckoutSessionSchema = z.object({
   step: CheckoutStepSchema,
-  addressId: z.number().nullable(),
+  addressId: z.string().nullable(),
   agencyId: z.string().nullable(),
   shippingMethod: z.string().nullable(),
   paymentMethod: z.string().nullable(),
@@ -38,15 +38,29 @@ export const ShippingMethodSchema = z.object({
 
 // ─── Shipping Address ────────────────────────────────────────
 
+/**
+ * Adresse de livraison — strictement alignée sur `Address` (features/account).
+ *
+ * Le checkout et « Mes adresses » manipulent le MÊME carnet d'adresses : les
+ * identifiants sont des ULID (string, pas number) et les champs portent les
+ * mêmes noms des deux côtés. Toute divergence ici recréerait le décalage de
+ * vocabulaire qui empêchait le checkout de réutiliser le carnet.
+ */
 export const ShippingAddressSchema = z.object({
-  id: z.number(),
-  label: z.string(),             // e.g. "Maison", "Bureau"
-  fullName: z.string(),
-  street: z.string(),
+  id: z.string(),
+  label: z.string(),             // e.g. "Domicile", "Bureau"
+  fullName: z.string().nullable(),
+  phone: z.string().nullable(),
+  addressLine: z.string().nullable(),
+  addressComplement: z.string().nullable(),
   city: z.string(),
-  country: z.string(),
-  phone: z.string().optional(),
+  zone: z.string().nullable(),   // quartier / secteur
+  state: z.string().nullable(),
+  countryCode: z.string(),
+  latitude: z.number().nullable(),
+  longitude: z.number().nullable(),
   isDefault: z.boolean(),
+  isVerified: z.boolean(),
 });
 
 // ─── Order Summary Item (compact version for checkout) ───────
@@ -69,7 +83,7 @@ export const CheckoutPageDataSchema = z.object({
   selectedAgencyId: z.string().nullable(),
   selectedShippingMethodId: z.string().nullable(),
   savedAddresses: z.array(ShippingAddressSchema),
-  selectedAddressId: z.number().nullable(),
+  selectedAddressId: z.string().nullable(),
   orderItems: z.array(OrderSummaryItemSchema),
   subtotal: z.number(),
   shippingCost: z.number(),

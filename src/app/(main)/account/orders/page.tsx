@@ -42,7 +42,7 @@ export default async function OrdersPage() {
       </div>
 
       {orders.length === 0 ? (
-        <div className="rounded-2xl border border-border-light bg-background p-8 lg:p-12 text-center">
+        <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-8 lg:p-12 text-center">
           <Package size={48} className="text-muted-foreground mx-auto mb-4" />
           <p className="text-base font-semibold text-foreground lg:text-lg">Aucune commande</p>
           <p className="text-sm text-muted-foreground mt-1">Vous n&apos;avez pas encore passé de commande.</p>
@@ -71,7 +71,7 @@ export default async function OrdersPage() {
               order.cod_current_step === "awaiting_product_payment";
 
             return (
-              <div key={order.id} className="rounded-2xl border border-border-light bg-background p-4 lg:p-6 transition-all duration-200 active:bg-white/40 lg:hover:shadow-sm">
+              <div key={order.id} className="rounded-2xl border border-border/80 bg-white shadow-sm p-4 lg:p-6 transition-all duration-200 lg:hover:shadow-md">
                 {/* Order header */}
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3 lg:gap-3 lg:mb-4">
                   <div>

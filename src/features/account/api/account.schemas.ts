@@ -60,8 +60,14 @@ export const ApiAddressSchema = z.object({
   address_line: z.string().nullable(),
   address_complement: z.string().nullable(),
   city: z.string(),
+  // Quartier / secteur — donnée de localisation principale en zone UEMOA,
+  // où l'adressage par rue est rarement exploitable par les livreurs.
+  zone: z.string().nullable().optional(),
   state: z.string().nullable(),
+  postal_code: z.string().nullable().optional(),
   country_code: z.string(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   is_default: z.boolean(),
   is_verified: z.boolean(),
 });

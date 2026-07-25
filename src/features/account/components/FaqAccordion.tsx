@@ -21,7 +21,7 @@ function FaqAccordion({ items }: FaqAccordionProps) {
             key={faq.id}
             className={cn(
               "rounded-xl border transition-all duration-200",
-              isOpen ? "border-primary/30 bg-primary-50/20 shadow-sm" : "border-border-light bg-background"
+              isOpen ? "border-primary/30 bg-primary-50/20 shadow-sm" : "border-border/80 bg-white shadow-sm"
             )}
           >
             <button

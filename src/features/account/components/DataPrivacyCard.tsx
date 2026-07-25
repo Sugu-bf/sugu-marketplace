@@ -88,7 +88,7 @@ function DataPrivacyCard() {
 
   return (
     <>
-      <div className="rounded-2xl border border-border-light bg-background p-5 sm:p-6">
+      <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 sm:p-6">
         <h2 className="text-base font-bold text-foreground mb-4">
           Données et confidentialité
         </h2>

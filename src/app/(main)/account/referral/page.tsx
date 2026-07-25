@@ -22,17 +22,17 @@ export default async function ReferralPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-border-light bg-background p-5 text-center">
+        <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary mx-auto mb-2"><Users size={20} /></div>
           <p className="text-2xl font-bold text-foreground">{data.totalReferred}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Amis parrainés</p>
         </div>
-        <div className="rounded-2xl border border-border-light bg-background p-5 text-center">
+        <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-success mx-auto mb-2"><Coins size={20} /></div>
           <p className="text-2xl font-bold text-primary">{formatPrice(data.totalEarnings)}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Total gagné</p>
         </div>
-        <div className="rounded-2xl border border-border-light bg-background p-5 text-center">
+        <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-50 text-accent-dark mx-auto mb-2"><Gift size={20} /></div>
           <p className="text-2xl font-bold text-foreground">{formatPrice(data.rewardPerReferral)}</p>
           <p className="text-xs text-muted-foreground mt-0.5">Par parrainage</p>
@@ -41,7 +41,7 @@ export default async function ReferralPage() {
 
       {/* Referral code card */}
       {data.referralCode ? (
-        <div className="rounded-2xl bg-gradient-to-r from-primary to-primary-light p-6 text-white">
+        <div className="rounded-2xl bg-gradient-to-r from-primary to-primary-light p-6 text-white shadow-sm">
           <p className="text-sm font-medium opacity-80">Votre code de parrainage</p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-2">
             <code className="text-2xl font-bold tracking-wider bg-white/20 rounded-xl px-5 py-2.5">
@@ -57,7 +57,7 @@ export default async function ReferralPage() {
           )}
         </div>
       ) : (
-        <div className="rounded-2xl border border-border-light bg-background p-6 text-center">
+        <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-6 text-center">
           <Gift size={32} className="text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">Aucun code de parrainage disponible pour le moment.</p>
         </div>
@@ -65,7 +65,7 @@ export default async function ReferralPage() {
 
       {/* Referred users */}
       {data.referredUsers.length > 0 && (
-        <div className="rounded-2xl border border-border-light bg-background p-5 sm:p-6">
+        <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 sm:p-6">
           <h2 className="text-base font-bold text-foreground mb-4">Amis parrainés</h2>
           <div className="space-y-3">
             {data.referredUsers.map((user, i) => (

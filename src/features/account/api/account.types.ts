@@ -69,7 +69,12 @@ export interface AccountPageData {
   preferences: UserPreferences;
 }
 
-/** Address for display */
+/**
+ * Address for display — forme canonique unique côté front.
+ *
+ * Utilisée aussi bien par « Mes adresses » que par le checkout : il n'existe
+ * qu'un seul vocabulaire d'adresse dans l'application.
+ */
 export interface Address {
   id: string;
   label: string;
@@ -78,8 +83,12 @@ export interface Address {
   addressLine: string | null;
   addressComplement: string | null;
   city: string;
+  /** Quartier / secteur — repère principal pour le livreur. */
+  zone: string | null;
   state: string | null;
   countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
   isDefault: boolean;
   isVerified: boolean;
 }
@@ -92,6 +101,7 @@ export interface AddressInput {
   address_line: string;
   address_complement?: string | null;
   city: string;
+  zone?: string | null;
   state?: string | null;
   country_code: string;
   is_default?: boolean;

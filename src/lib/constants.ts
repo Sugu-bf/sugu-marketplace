@@ -85,3 +85,43 @@ export const DEFAULT_PRICE_RANGES = [
   { min: 3000, max: 5000, label: formatPriceRangeLabel(3000, 5000) },
   { min: 5000, max: 999999, label: formatPriceRangeLabel(5000, 999999) },
 ] as const;
+
+// ─── Adresses ────────────────────────────────────────────────
+
+/**
+ * Libellés d'adresse — taxonomie UNIQUE pour le checkout et « Mes adresses ».
+ *
+ * Les deux écrans utilisaient auparavant des listes divergentes
+ * ("Maison" vs "Domicile"), ce qui cassait le rendu des icônes selon l'écran
+ * où l'adresse avait été créée.
+ */
+export const ADDRESS_LABELS = ["Domicile", "Bureau", "Famille", "Autre"] as const;
+
+export const DEFAULT_ADDRESS_LABEL = ADDRESS_LABELS[0];
+
+/**
+ * Pays de livraison ouverts — UEMOA.
+ *
+ * Le champ pays était auparavant en saisie libre côté checkout tout en étant
+ * forcé à "BF" à l'envoi : un acheteur pouvait saisir « Mali » et voir sa
+ * commande enregistrée au Burkina. Liste fermée, codes ISO-3166-1 alpha-2.
+ */
+export const DELIVERY_COUNTRIES = [
+  { code: "BF", name: "Burkina Faso" },
+  { code: "BJ", name: "Bénin" },
+  { code: "CI", name: "Côte d'Ivoire" },
+  { code: "GW", name: "Guinée-Bissau" },
+  { code: "ML", name: "Mali" },
+  { code: "NE", name: "Niger" },
+  { code: "SN", name: "Sénégal" },
+  { code: "TG", name: "Togo" },
+] as const;
+
+export const DEFAULT_COUNTRY_CODE = "BF";
+
+/** Nom lisible d'un pays de livraison à partir de son code ISO. */
+export function countryName(code: string | null | undefined): string {
+  return (
+    DELIVERY_COUNTRIES.find((c) => c.code === code)?.name ?? code ?? ""
+  );
+}

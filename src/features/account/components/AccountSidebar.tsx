@@ -85,7 +85,7 @@ function AccountSidebar({ profile, className }: AccountSidebarProps) {
   return (
     <aside
       className={cn(
-        "rounded-2xl border border-border-light bg-background shadow-sm overflow-hidden",
+        "rounded-2xl border border-border/80 bg-white shadow-sm overflow-hidden",
         className
       )}
     >

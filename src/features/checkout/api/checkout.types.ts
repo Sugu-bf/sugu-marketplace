@@ -100,17 +100,7 @@ export interface PlaceOrderPayload {
 }
 
 export interface UpdateCheckoutSessionPayload {
-  shipping_address?: {
-    full_name: string;
-    phone: string;
-    email?: string | null;
-    line1: string;
-    line2?: string | null;
-    city?: string | null;
-    state?: string | null;
-    zone?: string | null;
-    country_code?: string;
-  };
+  shipping_address?: CheckoutAddress;
   shipping_partner_id?: string | null;
   shipping_rate_id?: string | null;
   payment_method?: "cod" | "ligdicash" | null;
