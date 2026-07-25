@@ -27,7 +27,7 @@ function DeliveryDetails({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border-light bg-background p-5 sm:p-6",
+        "rounded-2xl border border-border/80 bg-white shadow-sm p-5 sm:p-6",
         className
       )}
     >

@@ -121,7 +121,7 @@ function TrackingOrderSummary({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border-light bg-background shadow-sm lg:sticky lg:top-24",
+        "rounded-2xl border border-border/80 bg-white shadow-sm lg:sticky lg:top-24",
         className
       )}
     >

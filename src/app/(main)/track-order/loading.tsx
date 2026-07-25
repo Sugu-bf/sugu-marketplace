@@ -26,7 +26,7 @@ export default function TrackOrderPageLoading() {
           {/* Left */}
           <div className="lg:col-span-2 space-y-6">
             {/* Stepper */}
-            <div className="rounded-2xl border border-border-light bg-background p-5 sm:p-6">
+            <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 sm:p-6">
               <div className="flex items-center justify-between">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div
@@ -52,7 +52,7 @@ export default function TrackOrderPageLoading() {
             <Skeleton className="h-[200px] sm:h-[250px] rounded-2xl" />
 
             {/* Delivery details */}
-            <div className="rounded-2xl border border-border-light bg-background p-5 sm:p-6 space-y-4">
+            <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 sm:p-6 space-y-4">
               <Skeleton className="h-5 w-40" />
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -66,7 +66,7 @@ export default function TrackOrderPageLoading() {
             </div>
 
             {/* Timeline */}
-            <div className="rounded-2xl border border-border-light bg-background p-5 sm:p-6 space-y-5">
+            <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 sm:p-6 space-y-5">
               <Skeleton className="h-5 w-24" />
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex items-start gap-4">
@@ -83,7 +83,7 @@ export default function TrackOrderPageLoading() {
           {/* Right */}
           <div className="lg:col-span-1 space-y-6">
             {/* Order summary */}
-            <div className="rounded-2xl border border-border-light bg-background shadow-sm">
+            <div className="rounded-2xl border border-border/80 bg-white shadow-sm">
               <Skeleton className="h-1 w-full rounded-t-2xl" />
               <div className="p-5 sm:p-6 space-y-5">
                 <Skeleton className="h-6 w-48" />

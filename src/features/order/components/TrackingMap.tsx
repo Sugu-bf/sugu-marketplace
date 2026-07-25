@@ -15,7 +15,7 @@ function TrackingMap({ className, statusMessage }: TrackingMapProps) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-50 via-muted to-primary-50/50 border border-border-light",
+        "relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-50 via-white to-primary-50/50 border border-border/80 shadow-sm",
         "h-[200px] sm:h-[250px]",
         className
       )}

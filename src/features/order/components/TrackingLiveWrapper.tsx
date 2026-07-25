@@ -110,7 +110,7 @@ export function TrackingLiveWrapper({
         {/* ═══ Left Column ═══ */}
         <div className="lg:col-span-2 space-y-6">
           {/* Tracking Stepper */}
-          <section className="rounded-2xl border border-border-light bg-background p-5 sm:p-6">
+          <section className="rounded-2xl border border-border/80 bg-white shadow-sm p-5 sm:p-6">
             <Stepper
               steps={stepperSteps}
               currentStepId={currentStepId}

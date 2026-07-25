@@ -23,7 +23,7 @@ function EstimatedDeliveryCard({
   return (
     <div
       className={cn(
-        "rounded-2xl bg-primary-50 border border-primary-100 p-5",
+        "rounded-2xl bg-white border border-primary/20 p-5 shadow-sm",
         className
       )}
     >
