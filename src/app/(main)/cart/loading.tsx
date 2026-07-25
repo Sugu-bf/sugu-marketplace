@@ -37,7 +37,7 @@ export default function CartPageLoading() {
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="flex gap-4 rounded-2xl border border-border-light bg-background p-4"
+                className="flex gap-4 rounded-2xl border border-border/80 bg-white shadow-sm p-4"
               >
                 <Skeleton className="h-24 w-24 rounded-xl flex-shrink-0 sm:h-28 sm:w-28" />
                 <div className="flex-1 space-y-3">
@@ -72,7 +72,7 @@ export default function CartPageLoading() {
 
           {/* Right — Order summary */}
           <div className="lg:col-span-1">
-            <div className="rounded-2xl border border-border-light bg-background shadow-sm">
+            <div className="rounded-2xl border border-border/80 bg-white shadow-sm">
               <Skeleton className="h-1 w-full rounded-t-2xl" />
               <div className="p-6 space-y-5">
                 <Skeleton className="h-6 w-48" />

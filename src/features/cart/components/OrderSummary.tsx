@@ -66,7 +66,7 @@ function OrderSummary({
   };
 
   return (
-    <div className="rounded-2xl border border-border-light bg-background shadow-sm lg:sticky lg:top-24">
+    <div className="rounded-2xl border border-border/80 bg-white shadow-sm lg:sticky lg:top-24">
       {/* Orange top accent */}
       <div className="h-1 rounded-t-2xl bg-gradient-to-r from-primary to-primary-light" />
 
@@ -141,7 +141,7 @@ function OrderSummary({
                   placeholder="Code promo"
                   disabled={isApplyingCoupon}
                   className={cn(
-                    "w-full h-10 rounded-lg border bg-background px-3 text-sm transition-all duration-200",
+                    "w-full h-10 rounded-lg border bg-white px-3 text-sm transition-all duration-200",
                     "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                     couponError ? "border-error" : "border-border"

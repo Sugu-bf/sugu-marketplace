@@ -135,7 +135,7 @@ export default function NewsletterAndTrust({ trustBadges }: NewsletterAndTrustPr
           {/* Right image — hidden on mobile */}
           <div className="relative hidden sm:block w-full md:w-[320px] lg:w-[400px] h-[220px] md:h-auto flex-shrink-0 sm:rounded-b-2xl md:rounded-none md:rounded-r-2xl overflow-hidden isolate">
             <Image
-              src="/promos/newsletter-grocery.png"
+              src="https://cdn.sugu.pro/p/newsletter.png"
               alt="Panier de courses"
               fill
               className="object-cover object-center"

@@ -30,7 +30,7 @@ function CartItemCard({ line, onUpdateQuantity, onRemove, isUpdating = false, is
   return (
     <div
       className={cn(
-        "group flex gap-4 rounded-2xl border border-border-light bg-background p-4 transition-all duration-300 hover:shadow-md hover:border-border",
+        "group flex gap-4 rounded-2xl border border-border/80 bg-white shadow-sm p-4 transition-all duration-300 hover:shadow-md",
         isRemoving && "opacity-50 pointer-events-none",
         line.flags.unavailable && "opacity-60 border-red-200 bg-red-50/30"
       )}
