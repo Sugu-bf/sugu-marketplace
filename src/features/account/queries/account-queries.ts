@@ -51,6 +51,32 @@ export async function queryAccountPageData(): Promise<AccountPageData> {
   } catch (error) {
     console.error("[Account SSR] Failed to fetch account data:", (error as Error)?.message);
     handleAuthError(error);
+    return {
+      profile: {
+        id: "",
+        name: "Utilisateur",
+        email: null,
+        emailVerified: false,
+        phoneE164: null,
+        phoneVerified: false,
+        avatarUrl: null,
+        userType: "customer",
+        referralCode: null,
+        createdAt: "",
+      },
+      security: {
+        twoFactorEnabled: false,
+        passwordUpdatedAt: null,
+        passwordLastChanged: "Non renseigné",
+      },
+      preferences: {
+        newsletterSubscribed: false,
+        pushNotifications: true,
+        smsNotifications: false,
+        language: "fr",
+        currency: "XOF",
+      },
+    };
   }
 }
 
@@ -60,6 +86,7 @@ export async function queryAddresses(): Promise<Address[]> {
   } catch (error) {
     console.error("[Account SSR] Failed to fetch addresses:", (error as Error)?.message);
     handleAuthError(error);
+    return [];
   }
 }
 
@@ -72,6 +99,15 @@ export async function queryOrders(params?: {
   } catch (error) {
     console.error("[Account SSR] Failed to fetch orders:", (error as Error)?.message);
     handleAuthError(error);
+    return {
+      orders: [],
+      pagination: {
+        currentPage: 1,
+        lastPage: 1,
+        perPage: 10,
+        total: 0,
+      },
+    };
   }
 }
 
@@ -81,6 +117,12 @@ export async function queryNotifications(cursor?: string): Promise<NotificationD
   } catch (error) {
     console.error("[Account SSR] Failed to fetch notifications:", (error as Error)?.message);
     handleAuthError(error);
+    return {
+      groups: [],
+      nextCursor: null,
+      hasMore: false,
+      unreadCount: 0,
+    };
   }
 }
 
@@ -90,6 +132,14 @@ export async function queryReferralData(): Promise<ReferralData> {
   } catch (error) {
     console.error("[Account SSR] Failed to fetch referral data:", (error as Error)?.message);
     handleAuthError(error);
+    return {
+      referralCode: null,
+      referralLink: null,
+      totalReferred: 0,
+      totalEarnings: 0,
+      rewardPerReferral: 0,
+      referredUsers: [],
+    };
   }
 }
 
