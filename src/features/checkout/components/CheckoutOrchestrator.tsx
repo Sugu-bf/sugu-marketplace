@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useTransition } from "react";
+import { useState, useCallback, useMemo, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { DeliveryAgencyPreview } from "./DeliveryAgencyPreview";
 import { DeliveryAgencyModal } from "./DeliveryAgencyModal";
@@ -20,12 +20,10 @@ import type {
 import type {
   DeliveryAgency,
   ShippingMethod,
-  ShippingAddress,
   OrderSummaryItem,
 } from "@/features/checkout";
 import {
   getCheckoutSession,
-  createCheckoutSession,
   updateCheckoutSession,
   applyCoupon as applyCouponApi,
   removeCoupon as removeCouponApi,
@@ -33,8 +31,18 @@ import {
   checkoutErrorMessage,
   isConflictError,
 } from "@/features/checkout/api/checkout.api";
+import { fetchAddresses, createAddress } from "@/features/account";
+import type { Address } from "@/features/account";
+import {
+  addressToCheckoutPayload,
+  draftToAddress,
+  draftToAddressInput,
+  checkoutAddressToAddress,
+  DRAFT_ADDRESS_ID,
+  type AddressDraft,
+} from "../utils/address";
 import { destroyCartAfterOrder } from "@/features/cart/events/destroy-cart";
-import { formatPrice } from "@/lib/constants";
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants";
 
 // ─── Props ───────────────────────────────────────────────────
 
@@ -114,17 +122,39 @@ function CheckoutOrchestrator({
   const [isPending, startTransition] = useTransition();
 
   // ─── State ───────────────────────────────────────────────
+  // Les sélections déjà persistées côté serveur amorcent l'état local : après
+  // un rechargement de page, le checkout repart de la session, pas de zéro.
   const [session, setSession] = useState(initialSession);
-  const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null);
-  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
-  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(
+    initialSession.shipping_partner_id ?? null
+  );
+  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(
+    initialSession.shipping_rate_id ?? null
+  );
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    initialSession.shipping_address?.address_id ?? null
+  );
 
   // Saved addresses (from user account — for the address selection modal)
-  const [savedAddresses, setSavedAddresses] = useState<ShippingAddress[]>([]);
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(true);
+
+  /**
+   * Adresse portée par la session mais absente du carnet (saisie à la volée
+   * lors d'une session précédente) — permet de réafficher l'adresse après un
+   * rechargement même si elle n'a pas d'entrée dans le carnet.
+   */
+  const [sessionAddress, setSessionAddress] = useState<Address | null>(() =>
+    initialSession.shipping_address
+      ? checkoutAddressToAddress(initialSession.shipping_address)
+      : null
+  );
 
   // Loading/error states
   const [placingOrder, setPlacingOrder] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  /** Avertissement non bloquant (ex : carnet indisponible). */
+  const [addressNotice, setAddressNotice] = useState<string | null>(null);
 
   // Payment method state (WARN-01 fix)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cod" | "ligdicash">("cod");
@@ -183,19 +213,52 @@ function CheckoutOrchestrator({
   const total = totals.grand_total;
 
   // ─── Address state ───────────────────────────────────────
-  const displayAddress = useMemo((): ShippingAddress | null => {
-    if (savedAddresses.length > 0) {
-      if (selectedAddressId !== null) {
-        return savedAddresses.find((a) => a.id === selectedAddressId) ?? savedAddresses[0];
-      }
-      // Auto-select default or first
-      const defaultAddr = savedAddresses.find((a) => a.isDefault);
-      return defaultAddr ?? savedAddresses[0];
+  /**
+   * Adresse effectivement utilisée pour la livraison, par ordre de priorité :
+   * sélection explicite → adresse déjà posée sur la session → adresse par
+   * défaut du carnet → première du carnet.
+   */
+  const displayAddress = useMemo((): Address | null => {
+    if (selectedAddressId) {
+      const picked = savedAddresses.find((a) => a.id === selectedAddressId);
+      if (picked) return picked;
     }
+
+    if (sessionAddress) return sessionAddress;
+
+    if (savedAddresses.length > 0) {
+      return savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0];
+    }
+
     return null;
-  }, [savedAddresses, selectedAddressId]);
+  }, [savedAddresses, selectedAddressId, sessionAddress]);
 
   const hasAddress = displayAddress !== null;
+
+  // ─── Load the user's address book ────────────────────────
+  // Sans ce chargement, le carnet restait vide et l'acheteur devait ressaisir
+  // son adresse à chaque commande.
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchAddresses()
+      .then((addresses) => {
+        if (cancelled) return;
+        setSavedAddresses(addresses);
+      })
+      .catch(() => {
+        // Le carnet est un confort : son indisponibilité ne doit pas bloquer
+        // le checkout, l'acheteur peut toujours saisir une adresse.
+        if (!cancelled) setSavedAddresses([]);
+      })
+      .finally(() => {
+        if (!cancelled) setAddressesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ─── Refresh session from backend ────────────────────────
   const refreshSession = useCallback(async () => {
@@ -221,30 +284,91 @@ function CheckoutOrchestrator({
     [selectedAgencyId]
   );
 
-  const handleSelectMethod = useCallback((id: string) => {
-    setSelectedMethodId(id);
-    setActionError(null);
-  }, []);
+  const handleSelectMethod = useCallback(
+    (id: string) => {
+      setSelectedMethodId(id);
+      setActionError(null);
 
-  const handleSelectAddress = useCallback((id: number) => {
-    setSelectedAddressId(id);
-    setActionError(null);
-  }, []);
+      // Persiste le tarif : le backend recalcule shipping_amount et grand_total,
+      // donc le total affiché vient du serveur au lieu d'être déduit localement.
+      updateCheckoutSession(sessionId, {
+        shipping_partner_id: selectedAgencyId,
+        shipping_rate_id: id,
+      })
+        .then(setSession)
+        .catch((err) => setActionError(checkoutErrorMessage(err)));
+    },
+    [sessionId, selectedAgencyId]
+  );
+
+  /**
+   * Pousse l'adresse sur la session côté serveur.
+   *
+   * Fait dès la sélection, et non plus au dernier clic : le serveur connaît
+   * l'adresse avant le paiement, et un rechargement de page la retrouve.
+   */
+  const persistAddressToSession = useCallback(
+    async (address: Address) => {
+      const updated = await updateCheckoutSession(sessionId, {
+        shipping_address: addressToCheckoutPayload(address),
+      });
+      setSession(updated);
+    },
+    [sessionId]
+  );
+
+  const handleSelectAddress = useCallback(
+    (id: string) => {
+      setSelectedAddressId(id);
+      setActionError(null);
+      setAddressNotice(null);
+
+      const address = savedAddresses.find((a) => a.id === id);
+      if (!address) return;
+
+      setSessionAddress(null);
+      persistAddressToSession(address).catch((err) => {
+        setActionError(checkoutErrorMessage(err));
+      });
+    },
+    [savedAddresses, persistAddressToSession]
+  );
 
   const handleCreateAddress = useCallback(
-    (newAddr: Omit<ShippingAddress, "id" | "isDefault">) => {
-      // Create a local address with a temporary ID
-      const tempId = Date.now();
-      const newAddress: ShippingAddress = {
-        id: tempId,
-        ...newAddr,
-        isDefault: savedAddresses.length === 0, // First address = default
-      };
-      setSavedAddresses((prev) => [...prev, newAddress]);
-      setSelectedAddressId(tempId);
+    async (draft: AddressDraft) => {
       setActionError(null);
+      setAddressNotice(null);
+
+      const isFirst = savedAddresses.length === 0;
+
+      let address: Address;
+
+      try {
+        // L'adresse saisie au checkout entre dans le carnet : la prochaine
+        // commande n'aura plus rien à ressaisir.
+        address = await createAddress(
+          draftToAddressInput(draft, DEFAULT_COUNTRY_CODE, isFirst)
+        );
+        setSavedAddresses((prev) =>
+          isFirst ? [address] : [...prev.map((a) => ({ ...a, isDefault: false })), address]
+        );
+      } catch {
+        // Le carnet est indisponible : on n'empêche pas l'acheteur de commander.
+        address = draftToAddress(draft, DEFAULT_COUNTRY_CODE);
+        setAddressNotice(
+          "Adresse utilisée pour cette commande, mais non enregistrée dans votre carnet."
+        );
+      }
+
+      const isDraft = address.id === DRAFT_ADDRESS_ID;
+      setSessionAddress(isDraft ? address : null);
+      setSelectedAddressId(isDraft ? null : address.id);
+
+      // Remonte l'erreur à la modale si la session refuse l'adresse (422) :
+      // l'acheteur corrige immédiatement plutôt qu'au clic « Commander ».
+      await persistAddressToSession(address);
     },
-    [savedAddresses.length]
+    [savedAddresses.length, persistAddressToSession]
   );
 
   // ─── Coupon handlers ─────────────────────────────────────
@@ -293,15 +417,10 @@ function CheckoutOrchestrator({
 
       try {
         // ── CRIT-02 FIX: Persist selections on the backend before placing order ──
-        const addr = displayAddress!;
+        // L'adresse est renvoyée intégralement (quartier, complément, GPS) et
+        // non plus réduite à 5 champs dont un pays écrit en dur.
         await updateCheckoutSession(sessionId, {
-          shipping_address: {
-            full_name: addr.fullName,
-            phone: addr.phone ?? "",
-            line1: addr.street,
-            city: addr.city,
-            country_code: addr.country === "Burkina Faso" ? "BF" : "BF",
-          },
+          shipping_address: addressToCheckoutPayload(displayAddress!),
           shipping_partner_id: selectedAgencyId,
           shipping_rate_id: selectedMethodId,
         });
@@ -366,10 +485,68 @@ function CheckoutOrchestrator({
         </div>
       )}
 
+      {/* Non-blocking address notice */}
+      {addressNotice && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {addressNotice}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-10">
         {/* ═══ Left Column ═══ */}
         <div className="lg:col-span-2 space-y-6">
-          {/* ── 1. Delivery Agency Preview ── */}
+          {/* ── 1. Shipping Address ──
+              L'adresse vient EN PREMIER : elle conditionne les agences et les
+              tarifs disponibles, et c'est l'ordre annoncé par le stepper
+              (Panier → Adresse → Livraison → Paiement). */}
+          <section aria-labelledby="address-title">
+            <h2 id="address-title" className="sr-only">
+              Adresse de livraison
+            </h2>
+
+            {hasAddress ? (
+              <AddressPreview
+                address={displayAddress!}
+                onEdit={() => setIsAddressModalOpen(true)}
+              />
+            ) : (
+              <div className="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-5 sm:p-6">
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+                    {addressesLoading ? (
+                      <Loader2 size={24} className="text-amber-600 animate-spin" />
+                    ) : (
+                      <MapPin size={24} className="text-amber-600" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground mb-1">
+                      {addressesLoading
+                        ? "Chargement de vos adresses…"
+                        : "Adresse de livraison requise"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      {addressesLoading
+                        ? "Nous récupérons vos adresses enregistrées."
+                        : "Veuillez ajouter une adresse de livraison pour continuer votre commande."}
+                    </p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={() => setIsAddressModalOpen(true)}
+                    disabled={addressesLoading}
+                    className="mt-1"
+                  >
+                    <Plus size={16} />
+                    Ajouter une adresse
+                  </Button>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* ── 2. Delivery Agency Preview ── */}
           <section aria-labelledby="agency-title">
             <h2 id="agency-title" className="sr-only">
               Agence de livraison
@@ -380,7 +557,7 @@ function CheckoutOrchestrator({
             />
           </section>
 
-          {/* ── 2. Shipping Methods (shown after agency selection) ── */}
+          {/* ── 3. Shipping Methods (shown after agency selection) ── */}
           {selectedAgencyId && agencyMethods.length > 0 && (
             <section
               aria-labelledby="shipping-methods-title"
@@ -421,46 +598,6 @@ function CheckoutOrchestrator({
             </section>
           )}
 
-          {/* ── 3. Shipping Address ── */}
-          <section aria-labelledby="address-title">
-            <h2 id="address-title" className="sr-only">
-              Adresse de livraison
-            </h2>
-
-            {hasAddress ? (
-              /* --- Has address → show preview --- */
-              <AddressPreview
-                address={displayAddress!}
-                onEdit={() => setIsAddressModalOpen(true)}
-              />
-            ) : (
-              /* --- No address → prompt to create one --- */
-              <div className="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-5 sm:p-6">
-                <div className="flex flex-col items-center text-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-                    <MapPin size={24} className="text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground mb-1">
-                      Adresse de livraison requise
-                    </h3>
-                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                      Veuillez ajouter une adresse de livraison pour continuer votre commande.
-                    </p>
-                  </div>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={() => setIsAddressModalOpen(true)}
-                    className="mt-1"
-                  >
-                    <Plus size={16} />
-                    Ajouter une adresse
-                  </Button>
-                </div>
-              </div>
-            )}
-          </section>
         </div>
 
         {/* ═══ Right Column — Order Summary ═══ */}
@@ -500,6 +637,7 @@ function CheckoutOrchestrator({
         selectedAddressId={selectedAddressId}
         onSelectAddress={handleSelectAddress}
         onCreateAddress={handleCreateAddress}
+        loading={addressesLoading}
       />
     </>
   );

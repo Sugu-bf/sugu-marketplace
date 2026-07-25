@@ -22,6 +22,12 @@ import {
   setDefaultAddress,
 } from "@/features/account";
 import type { Address, AddressInput } from "@/features/account";
+import {
+  ADDRESS_LABELS,
+  DEFAULT_ADDRESS_LABEL,
+  DELIVERY_COUNTRIES,
+  DEFAULT_COUNTRY_CODE,
+} from "@/lib/constants";
 import { useRouter } from "next/navigation";
 
 // ─── Constants ───────────────────────────────────────────────
@@ -31,8 +37,6 @@ const LABEL_ICONS: Record<string, React.ReactNode> = {
   Bureau: <Briefcase size={18} />,
   Famille: <Users size={18} />,
 };
-
-const LABEL_OPTIONS = ["Domicile", "Bureau", "Famille", "Autre"];
 
 // ─── Props ───────────────────────────────────────────────────
 
@@ -62,25 +66,29 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
 
   // ── Form fields ──
-  const [label, setLabel] = useState("Domicile");
+  const [label, setLabel] = useState<string>(DEFAULT_ADDRESS_LABEL);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [addressLine, setAddressLine] = useState("");
   const [addressComplement, setAddressComplement] = useState("");
   const [city, setCity] = useState("");
+  const [zone, setZone] = useState("");
   const [state, setState] = useState("");
+  const [countryCode, setCountryCode] = useState<string>(DEFAULT_COUNTRY_CODE);
   const [isDefault, setIsDefault] = useState(false);
 
   // ── Open create form ──
   const openCreateForm = () => {
     setEditingAddress(null);
-    setLabel("Domicile");
+    setLabel(DEFAULT_ADDRESS_LABEL);
     setFullName("");
     setPhone("");
     setAddressLine("");
     setAddressComplement("");
     setCity("");
+    setZone("");
     setState("");
+    setCountryCode(DEFAULT_COUNTRY_CODE);
     setIsDefault(addresses.length === 0); // First address is default
     setFormError(null);
     setShowForm(true);
@@ -95,7 +103,9 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
     setAddressLine(addr.addressLine ?? "");
     setAddressComplement(addr.addressComplement ?? "");
     setCity(addr.city);
+    setZone(addr.zone ?? "");
     setState(addr.state ?? "");
+    setCountryCode(addr.countryCode || DEFAULT_COUNTRY_CODE);
     setIsDefault(addr.isDefault);
     setFormError(null);
     setShowForm(true);
@@ -110,19 +120,20 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
       return setFormError("Le nom complet est requis.");
     if (!phone.trim())
       return setFormError("Le téléphone est requis.");
-    if (!addressLine.trim())
-      return setFormError("L'adresse est requise.");
     if (!city.trim()) return setFormError("La ville est requise.");
+    if (!zone.trim()) return setFormError("Le quartier est requis.");
 
     const data: AddressInput = {
       label,
       full_name: fullName.trim(),
       phone: phone.trim(),
-      address_line: addressLine.trim(),
+      // Sans précision de rue, le quartier tient lieu de ligne d'adresse.
+      address_line: addressLine.trim() || zone.trim(),
       address_complement: addressComplement.trim() || null,
       city: city.trim(),
+      zone: zone.trim(),
       state: state.trim() || null,
-      country_code: "BF", // Default to Burkina Faso
+      country_code: countryCode,
       is_default: isDefault,
     };
 
@@ -303,7 +314,7 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
                 </p>
               )}
               <p className="text-sm text-muted-foreground">
-                {addr.city}
+                {[addr.zone, addr.city].filter(Boolean).join(", ")}
                 {addr.state ? `, ${addr.state}` : ""}
               </p>
               {addr.phone && (
@@ -330,7 +341,7 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
               Type d&apos;adresse
             </label>
             <div className="flex flex-wrap gap-2">
-              {LABEL_OPTIONS.map((opt) => (
+              {ADDRESS_LABELS.map((opt) => (
                 <button
                   key={opt}
                   onClick={() => setLabel(opt)}
@@ -364,11 +375,29 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
             />
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Ville"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Ouagadougou"
+              disabled={saving}
+            />
+            <Input
+              label="Quartier / Secteur"
+              value={zone}
+              onChange={(e) => setZone(e.target.value)}
+              placeholder="Tanghin, Secteur 15"
+              hint="Le repère principal utilisé par le livreur."
+              disabled={saving}
+            />
+          </div>
+
           <Input
-            label="Adresse"
+            label="Rue, porte ou repère (optionnel)"
             value={addressLine}
             onChange={(e) => setAddressLine(e.target.value)}
-            placeholder="Rue, numéro, quartier"
+            placeholder="Rue 12.34, porte 567"
             disabled={saving}
           />
 
@@ -382,19 +411,37 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Ville"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Ouagadougou"
-              disabled={saving}
-            />
-            <Input
               label="Province / État (optionnel)"
               value={state}
               onChange={(e) => setState(e.target.value)}
               placeholder="Kadiogo"
               disabled={saving}
             />
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="address-country"
+                className="text-sm font-medium text-foreground"
+              >
+                Pays
+              </label>
+              <select
+                id="address-country"
+                value={countryCode}
+                onChange={(e) => setCountryCode(e.target.value)}
+                disabled={saving}
+                className={cn(
+                  "h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground",
+                  "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
+                  "disabled:cursor-not-allowed disabled:opacity-50"
+                )}
+              >
+                {DELIVERY_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Default toggle */}

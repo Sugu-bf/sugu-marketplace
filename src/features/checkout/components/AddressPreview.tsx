@@ -1,11 +1,12 @@
 import { cn } from "@/lib/utils";
-import { MapPin, Phone, Home, Briefcase, Users } from "lucide-react";
-import type { ShippingAddress } from "@/features/checkout";
+import { MapPin, Phone, Home, Briefcase, Users, Crosshair } from "lucide-react";
+import type { Address } from "@/features/account";
+import { formatAddressLines } from "../utils/address";
 
 // ─── Icon mapping for address labels ─────────────────────────
 
 const LABEL_ICONS: Record<string, React.ReactNode> = {
-  Maison: <Home size={16} />,
+  Domicile: <Home size={16} />,
   Bureau: <Briefcase size={16} />,
   Famille: <Users size={16} />,
 };
@@ -17,7 +18,7 @@ function getLabelIcon(label: string) {
 // ─── Props ───────────────────────────────────────────────────
 
 interface AddressPreviewProps {
-  address: ShippingAddress;
+  address: Address;
   onEdit?: () => void;
   className?: string;
 }
@@ -55,14 +56,22 @@ function AddressPreview({ address, onEdit, className }: AddressPreviewProps) {
               {address.fullName}
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {address.street}
-              <br />
-              {address.city}, {address.country}
+              {formatAddressLines(address).map((line, i) => (
+                <span key={i} className="block">
+                  {line}
+                </span>
+              ))}
             </p>
             {address.phone && (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
                 <Phone size={12} />
                 {address.phone}
+              </p>
+            )}
+            {address.latitude !== null && address.longitude !== null && (
+              <p className="flex items-center gap-1.5 text-xs text-success mt-1">
+                <Crosshair size={12} />
+                Position GPS enregistrée
               </p>
             )}
           </div>
