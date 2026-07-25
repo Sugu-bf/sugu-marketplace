@@ -68,11 +68,16 @@ const ApiFacetValueSchema = z.object({
 const ApiFacetsSchema = z
   .union([
     z.record(z.string(), z.array(ApiFacetValueSchema)),
-    z.array(z.unknown()).transform(() => ({})),
+    z.array(z.unknown()).transform(
+      (): Record<string, z.infer<typeof ApiFacetValueSchema>[]> => ({})
+    ),
   ])
   .optional()
   .nullable()
-  .transform((val) => (val && !Array.isArray(val) ? val : {}));
+  .transform(
+    (val): Record<string, z.infer<typeof ApiFacetValueSchema>[]> =>
+      val && !Array.isArray(val) ? (val as Record<string, z.infer<typeof ApiFacetValueSchema>[]>) : {}
+  );
 
 // ─── Full Search Response ────────────────────────────────────
 
