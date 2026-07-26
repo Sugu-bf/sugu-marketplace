@@ -40,14 +40,18 @@ function getRoleBadge(conversation: Conversation): string | null {
   );
   if (!otherParticipant) return null;
 
-  switch (otherParticipant.type) {
+  switch (otherParticipant.type?.toLowerCase()) {
     case "seller":
-      return "vendeur";
+    case "vendor":
+    case "store":
+      return "Vendeur";
     case "agency":
-      return "Agence de Livraison";
+      return "Agence de livraison";
     case "admin":
-      return "Support";
+    case "support":
+      return "Support Sugu";
     case "courier":
+    case "driver":
       return "Livreur";
     default:
       return null;
@@ -64,10 +68,17 @@ export function ConversationCard({
   onClick,
 }: ConversationCardProps) {
   const store = conversation.store;
-  const displayName = store?.name ?? conversation.participants?.[0]?.name ?? "Conversation";
+  const otherParticipant = conversation.participants?.find(
+    (p) => p.type !== "customer"
+  );
+  const displayName =
+    store?.name ??
+    otherParticipant?.name ??
+    conversation.participants?.[0]?.name ??
+    "Conversation";
   const avatarUrl = store?.logo_url ?? null;
   const isOnline = store?.is_online ?? false;
-  const totalUnread = conversation.unread_count + extraUnread;
+  const totalUnread = (conversation.unread_count ?? 0) + extraUnread;
   const roleBadge = getRoleBadge(conversation);
 
   const initials = (displayName ?? "")

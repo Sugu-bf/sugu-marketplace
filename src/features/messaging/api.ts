@@ -40,7 +40,7 @@ export async function fetchConversations(params?: {
   cursor?: string;
 }): Promise<{ data: Conversation[]; meta: CursorMeta }> {
   const { data } = await api.get<
-    ApiEnvelope<Conversation[]> & { meta: CursorMeta }
+    ApiEnvelope<unknown> & { meta?: CursorMeta }
   >(
     meUrl("conversations", {
       per_page: params?.per_page ?? 20,
@@ -49,7 +49,20 @@ export async function fetchConversations(params?: {
       ...(params?.cursor ? { cursor: params.cursor } : {}),
     })
   );
-  return { data: data.data, meta: data.meta };
+
+  const rawData = data?.data as any;
+  const items: Conversation[] = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray(rawData?.data)
+    ? rawData.data
+    : [];
+
+  const meta: CursorMeta = {
+    has_more: data?.meta?.has_more ?? (rawData?.next_cursor ? true : false),
+    next_cursor: data?.meta?.next_cursor ?? rawData?.next_cursor ?? null,
+  };
+
+  return { data: items, meta };
 }
 
 export async function startCourierConversation(
