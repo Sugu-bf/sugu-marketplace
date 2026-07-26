@@ -28,11 +28,7 @@ export function ConversationList({
   // Debounce search input (300ms)
   useEffect(() => {
     const trimmed = searchQuery.trim();
-    if (!trimmed) {
-      setDebouncedQuery("");
-      return;
-    }
-    const timer = setTimeout(() => setDebouncedQuery(trimmed), 300);
+    const timer = setTimeout(() => setDebouncedQuery(trimmed), trimmed ? 300 : 0);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 

@@ -12,12 +12,10 @@ import type {
 import {
   useMessagingStore,
   messagingKeys,
-  sendTyping,
 } from "../hooks";
 import { ConversationList } from "./ConversationList";
 import { ChatRoom } from "./ChatRoom";
 import { ContactPanel } from "./ContactPanel";
-import { EmptyState } from "./EmptyState";
 import { MessageSquare } from "lucide-react";
 
 interface MessagingPageProps {
@@ -46,7 +44,9 @@ export function MessagingPage({ user }: MessagingPageProps) {
 
   // Ref to avoid stale closure in real-time callbacks
   const activeConvRef = useRef(activeConversationId);
-  activeConvRef.current = activeConversationId;
+  useEffect(() => {
+    activeConvRef.current = activeConversationId;
+  }, [activeConversationId]);
 
   // ─── Real-time events ─────────────────────────────────────
 
