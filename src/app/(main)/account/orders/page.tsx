@@ -30,8 +30,23 @@ const COD_STEP_LABELS: Record<string, string> = {
   completed: "Terminée",
 };
 
-export default async function OrdersPage() {
-  const { orders, pagination } = await queryOrders();
+export default async function OrdersPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ status?: string; page?: string }>;
+}) {
+  const params = await searchParams;
+  const statusFilter = params?.status;
+  const { orders, pagination } = await queryOrders({ status: statusFilter });
+
+  const FILTERS = [
+    { label: "Toutes", value: undefined },
+    { label: "En attente", value: "pending" },
+    { label: "Confirmées", value: "confirmed" },
+    { label: "En livraison", value: "shipped" },
+    { label: "Livrées", value: "delivered" },
+    { label: "Annulées", value: "canceled" },
+  ];
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -39,6 +54,24 @@ export default async function OrdersPage() {
         <Breadcrumb items={[{ label: "Mon compte", href: "/account" }, { label: "Mes commandes" }]} />
         <h1 className="text-lg font-bold text-foreground lg:text-2xl mt-3">Mes commandes</h1>
         <p className="mt-1 text-sm text-muted-foreground">{pagination.total} commande{pagination.total > 1 ? "s" : ""}</p>
+      </div>
+
+      {/* ── Status filter tabs ── */}
+      <div className="flex gap-2 flex-wrap">
+        {FILTERS.map((f) => {
+          const isActive = (statusFilter ?? undefined) === f.value;
+          const href = f.value ? `/account/orders?status=${f.value}` : "/account/orders";
+          return (
+            <Link key={f.label} href={href}>
+              <Button
+                variant={isActive ? "primary" : "ghost"}
+                size="xs"
+              >
+                {f.label}
+              </Button>
+            </Link>
+          );
+        })}
       </div>
 
       {orders.length === 0 ? (
