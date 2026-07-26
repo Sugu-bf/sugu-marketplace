@@ -21,7 +21,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from "@/features/account";
-import type { NotificationData, NotificationGroup, Notification } from "@/features/account";
+import type { NotificationData, NotificationGroup } from "@/features/account";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 

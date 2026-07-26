@@ -124,7 +124,9 @@ export function Composer({ conversationId, disabled }: ComposerProps) {
 
   // Cleanup object URLs on unmount — use ref to avoid stale closure
   const previewsRef = useRef<string[]>([]);
-  previewsRef.current = filePreviews;
+  useEffect(() => {
+    previewsRef.current = filePreviews;
+  }, [filePreviews]);
 
   useEffect(() => {
     return () => {

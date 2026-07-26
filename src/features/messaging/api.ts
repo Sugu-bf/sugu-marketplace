@@ -50,16 +50,16 @@ export async function fetchConversations(params?: {
     })
   );
 
-  const rawData = data?.data as any;
+  const rawData = data?.data as unknown;
   const items: Conversation[] = Array.isArray(rawData)
-    ? rawData
-    : Array.isArray(rawData?.data)
-    ? rawData.data
+    ? (rawData as Conversation[])
+    : Array.isArray((rawData as { data?: Conversation[] })?.data)
+    ? ((rawData as { data: Conversation[] }).data)
     : [];
 
   const meta: CursorMeta = {
-    has_more: data?.meta?.has_more ?? (rawData?.next_cursor ? true : false),
-    next_cursor: data?.meta?.next_cursor ?? rawData?.next_cursor ?? null,
+    has_more: data?.meta?.has_more ?? ((rawData as { next_cursor?: string })?.next_cursor ? true : false),
+    next_cursor: data?.meta?.next_cursor ?? (rawData as { next_cursor?: string })?.next_cursor ?? null,
   };
 
   return { data: items, meta };
