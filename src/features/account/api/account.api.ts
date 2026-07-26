@@ -161,14 +161,19 @@ function mapApiOrderToUI(order: ApiOrderListItem): Order {
 
 /** Map API notification to UI shape */
 function mapApiNotificationToUI(n: ApiNotificationItem): Notification {
+  let actionUrl = n.action_url ?? null;
+  if (actionUrl && actionUrl.startsWith("/orders/")) {
+    actionUrl = "/account/orders";
+  }
+
   return {
     id: n.id,
     type: n.type,
     title: n.title,
-    message: n.message,
-    actionUrl: n.action_url ?? null,
+    message: n.body ?? n.message ?? "",
+    actionUrl: actionUrl,
     isRead: n.is_read,
-    createdAt: n.created_at,
+    createdAt: n.time ?? n.created_at ?? "",
   };
 }
 
@@ -260,7 +265,7 @@ export async function fetchNotifications(
 
   return {
     groups: mapApiNotificationGroupsToUI(data.data.groups),
-    nextCursor: data.data.next_cursor,
+    nextCursor: data.data.next_cursor ?? null,
     hasMore: data.data.has_more,
     unreadCount: data.data.unread_count,
   };

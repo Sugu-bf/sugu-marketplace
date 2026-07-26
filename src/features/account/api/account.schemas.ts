@@ -144,15 +144,20 @@ export const ApiOrderListResponseSchema = z.object({
 export const ApiNotificationItemSchema = z.object({
   id: z.string(),
   type: z.string(),
+  icon: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
   title: z.string(),
-  message: z.string(),
+  body: z.string().nullable().optional(),
+  message: z.string().nullable().optional(),
   action_url: z.string().nullable().optional(),
   is_read: z.boolean(),
-  created_at: z.string(),
+  time: z.string().nullable().optional(),
+  created_at: z.string().nullable().optional(),
 });
 
 export const ApiNotificationGroupSchema = z.object({
   label: z.string(),
+  date: z.string().nullable().optional(),
   items: z.array(ApiNotificationItemSchema),
 });
 
@@ -160,9 +165,9 @@ export const ApiNotificationListResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
     groups: z.array(ApiNotificationGroupSchema),
-    next_cursor: z.string().nullable(),
-    has_more: z.boolean(),
-    unread_count: z.number(),
+    next_cursor: z.string().nullable().optional(),
+    has_more: z.boolean().optional().default(false),
+    unread_count: z.number().optional().default(0),
   }),
 });
 

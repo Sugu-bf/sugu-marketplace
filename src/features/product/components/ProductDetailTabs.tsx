@@ -15,6 +15,40 @@ interface ProductTabsProps {
 }
 
 /**
+ * Converts raw description text/HTML to formatted HTML:
+ * 1. Replaces standalone image URLs with <img> tags
+ * 2. Replaces markdown images ![alt](url) with <img> tags
+ * 3. Wraps plain text paragraphs with <p> tags if no HTML structure is present
+ */
+function formatDescriptionHtml(rawContent: string): string {
+  if (!rawContent) return "";
+
+  let html = rawContent;
+
+  // 1. Replace standalone image URLs (not inside src="..." or href="...") with <img> tags
+  const standaloneImageUrlRegex = /(?<!src=["']|href=["'])(https?:\/\/[^\s<"']+\.(?:png|jpe?g|webp|gif|svg)(\?[^\s<"']*)?)/gi;
+  html = html.replace(standaloneImageUrlRegex, (url) => {
+    return `<img src="${url}" alt="Illustration produit" class="max-w-full h-auto rounded-2xl my-4 border border-border/80 shadow-sm bg-white p-2" />`;
+  });
+
+  // 2. Replace markdown images ![alt](url)
+  const markdownImageRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s\)]+)\)/gi;
+  html = html.replace(markdownImageRegex, (_, alt, url) => {
+    return `<img src="${url}" alt="${alt || "Illustration"}" class="max-w-full h-auto rounded-2xl my-4 border border-border/80 shadow-sm bg-white p-2" />`;
+  });
+
+  // 3. If plain text without HTML tags, wrap paragraphs for spacing
+  if (!/<[a-z][\s\S]*>/i.test(html)) {
+    html = html
+      .split(/\n\s*\n/)
+      .map((para) => `<p>${para.replace(/\n/g, "<br/>")}</p>`)
+      .join("");
+  }
+
+  return html;
+}
+
+/**
  * Product detail tabs — Description, Specifications, Reviews.
  *
  * Reviews are loaded from the real API when the Reviews tab is first opened.
@@ -71,18 +105,19 @@ function ProductDetailTabs({ product, slug, descriptionHtml }: ProductTabsProps)
 
   const reviewCountLabel = reviewsLoaded ? reviewMeta.total : product.reviewCount;
 
+  // Format description content: parse standalone image URLs, markdown images, and line breaks into proper HTML
+  const rawDescription = descriptionHtml || product.description || "";
+  const formattedDescriptionHtml = formatDescriptionHtml(rawDescription);
+
   const tabs = [
     {
       id: "description",
       label: "Description",
       content: (
-        <div className="prose prose-sm max-w-none text-muted-foreground leading-relaxed">
-          {descriptionHtml ? (
-            <div dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
-          ) : (
-            <p>{product.description}</p>
-          )}
-        </div>
+        <div
+          className="prose prose-sm max-w-none text-muted-foreground leading-relaxed [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-2xl [&_img]:my-4 [&_img]:shadow-sm [&_img]:border [&_img]:border-border/80 [&_img]:bg-white [&_img]:p-2 [&_img]:object-contain [&_a]:text-primary [&_a]:underline"
+          dangerouslySetInnerHTML={{ __html: formattedDescriptionHtml }}
+        />
       ),
     },
     {
@@ -136,7 +171,7 @@ function ProductDetailTabs({ product, slug, descriptionHtml }: ProductTabsProps)
           {reviews.map((review) => (
             <article
               key={String(review.id)}
-              className="rounded-xl border border-border-light p-4 space-y-2"
+              className="rounded-xl border border-border/80 bg-white shadow-sm p-4 space-y-2"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

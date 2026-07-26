@@ -17,8 +17,8 @@ function BulkPriceTable({ tiers, basePrice, className }: BulkPriceTableProps) {
   if (!tiers.length) return null;
 
   return (
-    <div className={cn("rounded-xl border border-border overflow-hidden", className)}>
-      <div className="bg-muted px-4 py-2.5 border-b border-border">
+    <div className={cn("rounded-xl border border-border/80 bg-white shadow-sm overflow-hidden", className)}>
+      <div className="bg-gray-50/80 px-4 py-2.5 border-b border-border-light">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
           <Package size={14} /> Remises sur volume
         </h3>
@@ -48,7 +48,7 @@ function BulkPriceTable({ tiers, basePrice, className }: BulkPriceTableProps) {
                     ? "bg-green-50/70"
                     : savingsPercent > 0
                     ? "bg-green-50/30"
-                    : "bg-background"
+                    : "bg-white"
                 )}
               >
                 <td className="px-4 py-2.5 font-medium text-foreground">

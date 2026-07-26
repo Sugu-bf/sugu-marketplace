@@ -116,7 +116,9 @@ export async function queryNotifications(cursor?: string): Promise<NotificationD
     return await fetchNotifications(cursor);
   } catch (error) {
     console.error("[Account SSR] Failed to fetch notifications:", (error as Error)?.message);
-    handleAuthError(error);
+    if (isApiError(error) && (error.status === 401 || error.code === "UNAUTHORIZED")) {
+      redirect("/login?redirect=/account/notifications");
+    }
     return {
       groups: [],
       nextCursor: null,

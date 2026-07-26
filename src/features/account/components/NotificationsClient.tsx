@@ -29,6 +29,8 @@ const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
   order_shipped: { icon: <Truck size={16} />, color: "bg-primary-50 text-primary" },
   order_delivered: { icon: <Package size={16} />, color: "bg-green-50 text-green-600" },
   order_cancelled: { icon: <XCircle size={16} />, color: "bg-red-50 text-red-600" },
+  order_status_changed: { icon: <Package size={16} />, color: "bg-emerald-50 text-emerald-600" },
+  mixed_order_vendor_action_required: { icon: <Bell size={16} />, color: "bg-amber-50 text-amber-600" },
   payment_confirmed: { icon: <CreditCard size={16} />, color: "bg-green-50 text-green-600" },
   payment_failed: { icon: <CreditCard size={16} />, color: "bg-red-50 text-red-600" },
   new_order: { icon: <ShoppingBag size={16} />, color: "bg-blue-50 text-blue-600" },
@@ -40,6 +42,18 @@ const TYPE_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
 };
 
 const DEFAULT_TYPE_CONFIG = { icon: <Bell size={16} />, color: "bg-muted text-muted-foreground" };
+
+function formatNotifTime(timeStr: string): string {
+  if (!timeStr) return "";
+  const d = new Date(timeStr);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  return timeStr;
+}
 
 // ─── Props ───────────────────────────────────────────────────
 
@@ -202,13 +216,7 @@ function NotificationsClient({ initialData }: NotificationsClientProps) {
                             {notif.title}
                           </p>
                           <span className="text-xs text-muted-foreground flex-shrink-0 mt-0.5">
-                            {new Date(notif.createdAt).toLocaleTimeString(
-                              "fr-FR",
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )}
+                            {formatNotifTime(notif.createdAt)}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">

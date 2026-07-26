@@ -73,7 +73,7 @@ function ProductImageGallery({ images, productName, productId }: ProductImageGal
   return (
     <div className="flex flex-col gap-3">
       {/* Main Image */}
-      <div className="group relative aspect-square overflow-hidden rounded-2xl bg-muted">
+      <div className="group relative aspect-square overflow-hidden rounded-2xl bg-white border border-border/80 shadow-sm">
         <Image
           src={currentImage.url}
           alt={currentImage.alt || productName}
@@ -118,11 +118,11 @@ function ProductImageGallery({ images, productName, productId }: ProductImageGal
               key={img.id}
               onClick={() => setSelectedIndex(idx)}
               className={cn(
-                "relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 bg-muted transition-all duration-200",
+                "relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 bg-white transition-all duration-200",
                 "hover:border-primary/50",
                 idx === selectedIndex
                   ? "border-primary ring-1 ring-primary/20"
-                  : "border-transparent"
+                  : "border-border-light"
               )}
               aria-label={`Voir image ${idx + 1}`}
               aria-current={idx === selectedIndex ? "true" : undefined}

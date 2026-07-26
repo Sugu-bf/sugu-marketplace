@@ -357,7 +357,7 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
       </div>
 
       {/* Paiement à la livraison — modalités selon le montant */}
-      <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-3.5">
+      <div className="rounded-xl border border-amber-200/80 bg-white shadow-sm p-3.5">
         <div className="flex items-start gap-2.5">
           <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-amber-100">
             <ShieldCheck size={14} className="text-amber-700" />

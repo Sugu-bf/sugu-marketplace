@@ -14,7 +14,7 @@ function AssuranceBadge({ icon, label, className }: AssuranceBadgeProps) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-1.5 rounded-xl border border-border-light bg-muted/50 p-3 text-center",
+        "flex flex-col items-center gap-1.5 rounded-xl border border-border/80 bg-white shadow-sm p-3 text-center",
         className
       )}
     >

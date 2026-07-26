@@ -17,7 +17,7 @@ function ProductPricing({ product }: ProductPricingProps) {
   const savings = hasDiscount ? product.originalPrice! - product.price : 0;
 
   return (
-    <div className="rounded-xl bg-primary-50/60 p-4 space-y-3 border border-primary-100">
+    <div className="rounded-xl bg-white p-4 space-y-3 border border-primary/20 shadow-sm">
       {/* Regular / Promo prices */}
       <div className="space-y-1">
         {hasDiscount && (
