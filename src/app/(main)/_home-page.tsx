@@ -1,4 +1,5 @@
 import HeroBanners from "@/components/HeroBanners";
+import SmallBanners from "@/components/SmallBanners";
 import CategoryBar from "@/components/CategoryBar";
 import BestSeller from "@/components/BestSeller";
 import TrendingStores from "@/components/TrendingStores";
@@ -122,8 +123,8 @@ export default async function HomePage() {
         Sugu — Votre marketplace en ligne
       </h1>
 
-      {/* SECTION 1+2: Top Banners + Hero */}
-      <HeroBanners slides={bannerSlides} heroBanner={heroBanner} />
+      {/* SECTION 1: Main Hero Banner */}
+      <HeroBanners heroBanner={heroBanner} />
 
       {/* SECTION 3: Category Pills */}
       <CategoryBar categories={categoryPills} />
@@ -140,10 +141,13 @@ export default async function HomePage() {
       {/* SECTION 6: Trending Store Favorites (with tabs) */}
       <TrendingStores tags={trendingTags} products={trendingProducts} />
 
-      {/* SECTION 6b: Products + Deal Card */}
+      {/* SECTION 6b: Products + Deal Card (Deals of the day) */}
       <OrderNowBanner products={orderNowProducts} dealCard={dailyDealCard} />
 
-      {/* SECTION 7: 4 Columns (Vedettes, Ventes, Promo, Weekly) */}
+      {/* SECTION 6c: 3 Small Banners */}
+      <SmallBanners slides={bannerSlides} />
+
+      {/* SECTION 7: 4 Columns (Vedettes, Ventes, Promo, Weekly Deal / Offres de la semaine) */}
       <TrendingStoresSecond
         produitsVedettes={produitsVedettes}
         meilleuresVentes={meilleuresVentes}
