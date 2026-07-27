@@ -16,14 +16,14 @@ import type {
 // ─── Hero Banner Slides ─────────────────────────────────────
 
 export const mockBannerSlides: BannerSlide[] = [
-  { id: 1, image: "/banners/fathers-day.png", alt: "Fête des pères — Jusqu'à 50% de réduction" },
-  { id: 2, image: "/banners/shopping-festival.png", alt: "Festival Shopping — Promotions exclusives" },
-  { id: 3, image: "/banners/summer-drinks.png", alt: "Boissons rafraîchissantes d'été" },
+  { id: 1, image: "https://cdn.sugu.pro/p/banners/buy-smart.avif", alt: "Achetez malin La marketplace qui simplifie vos achats" },
+  { id: 2, image: "https://cdn.sugu.pro/p/banners/deliver-to-your-home.avif", alt: "Livré chez vous en moins de 2h" },
+  { id: 3, image: "https://cdn.sugu.pro/p/banners/factory-price.avif", alt: "Prix usine Direct fournisseurs pour revendeurs et achats en gros" },
 ];
 
 export const mockHeroBanner: HeroBanner = {
-  image: "/banners/mothers-day.png",
-  alt: "Fête des mères — Remplissez la fête d'amour et de douceur",
+  image: "https://cdn.sugu.pro/p/banners/unprecedented-prices.avif",
+  alt: "Prix sans précédent Offres exclusives",
 };
 
 // ─── Category Pills ─────────────────────────────────────────
@@ -98,7 +98,7 @@ export const mockDailyDealCard: DailyDealCard = {
   category: "Équipement médical",
   title: "Offres du jour",
   subtitle: "Économisez jusqu'à 50% sur votre première commande",
-  expiry: "Offre expirée — actualisation...",
+  expiry: "Offre expirée actualisation...",
   image: "/promos/grocery-basket.png",
 };
 

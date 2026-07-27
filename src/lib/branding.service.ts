@@ -21,8 +21,8 @@ export const BRANDING_FALLBACK: BrandingData = {
     light_url: "https://cdn.sugu.pro/p/logo-sugu.avif",
     dark_url: "https://cdn.sugu.pro/p/logo-sugu.avif",
     footer_url: "https://cdn.sugu.pro/p/logo-sugu.avif",
-    favicon_url: "/favicon.ico",
-    apple_touch_icon_url: "/favicon.ico",
+    favicon_url: "/favicon.svg",
+    apple_touch_icon_url: "/favicon.svg",
   },
   colors: {
     primary: "#F15412",
