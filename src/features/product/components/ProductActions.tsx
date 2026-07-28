@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { Button, QuantitySelector } from "@/components/ui";
 import { AssuranceBadge } from "@/components/ui/assurance-badge";
 import { ShoppingCart, Zap, Truck, RotateCcw, ShieldCheck, Loader2, XCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -12,6 +11,8 @@ import type { Product } from "@/features/product";
 import { addToCart, type ApiProductDetail } from "@/features/product";
 import { isApiError } from "@/lib/api";
 import { ProductVariants } from "./ProductVariants";
+import { ProductPricing } from "./ProductPricing";
+import { BulkPriceTable } from "./BulkPriceTable";
 import { useToast } from "@/features/toast/toast-store";
 import { emitCartChanged } from "@/features/cart/events/cart-events";
 
@@ -31,7 +32,7 @@ interface ProductActionsProps {
 function ProductActions({ product, apiData }: ProductActionsProps) {
   const router = useRouter();
   const toast = useToast();
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(() => Math.max(1, apiData?.min_order_quantity ?? product.minOrderQuantity ?? 1));
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -40,11 +41,31 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
 
   // ─── Variant Selection State ─────────────────────────────
   // Initialize selected variants with first available option
-  const [selectedVariants, setSelectedVariants] = useState<Record<number, number>>(() => {
-    const initial: Record<number, number> = {};
-    product.variants?.forEach((v) => {
-      const firstAvailable = v.options.find((o) => o.available);
-      if (firstAvailable) initial[v.id] = firstAvailable.id;
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    const defaultApiVariant = apiData?.variants.find(
+      (variant) =>
+        String(variant.id) === String(apiData.default_variant_id) &&
+        variant.stock.in_stock
+    ) ?? apiData?.variants.find((variant) => variant.stock.in_stock)
+      ?? apiData?.variants.find(
+        (variant) => String(variant.id) === String(apiData.default_variant_id)
+      );
+
+    if (apiData?.options.length && defaultApiVariant) {
+      for (const option of apiData.options) {
+        const selectedLabel = defaultApiVariant.option_values[option.name];
+        const selectedValue = option.values.find((value) => value.label === selectedLabel);
+        if (selectedValue) {
+          initial[String(option.id)] = String(selectedValue.id);
+        }
+      }
+      return initial;
+    }
+
+    product.variants?.forEach((variant) => {
+      const firstAvailable = variant.options.find((option) => option.available);
+      if (firstAvailable) initial[String(variant.id)] = String(firstAvailable.id);
     });
     return initial;
   });
@@ -56,20 +77,61 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
     // Build the selection map: option_name -> selected value label
     const selectionMap: Record<string, string> = {};
     for (const option of apiData.options) {
-      const selectedOptionId = selectedVariants[Number(option.id)];
-      if (selectedOptionId) {
-        const value = option.values.find((v) => Number(v.id) === selectedOptionId);
+      const selectedOptionId = selectedVariants[String(option.id)];
+      if (selectedOptionId !== undefined) {
+        const value = option.values.find((v) => String(v.id) === selectedOptionId);
         if (value) selectionMap[option.name] = value.label;
       }
     }
 
+    if (Object.keys(selectionMap).length !== apiData.options.length) {
+      return null;
+    }
+
     // Find the variant that matches all selected option values
     return apiData.variants.find((variant) => {
-      return Object.entries(selectionMap).every(
-        ([optName, optValue]) => variant.option_values[optName] === optValue
+      return apiData.options.every(
+        (option) => variant.option_values[option.name] === selectionMap[option.name]
       );
     }) ?? null;
   }, [apiData, selectedVariants]);
+
+  const selectableVariants = useMemo(() => {
+    if (!product.variants || !apiData?.options.length || !apiData.variants.length) {
+      return product.variants;
+    }
+
+    return product.variants.map((group) => {
+      const apiOption = apiData.options.find((option) => String(option.id) === String(group.id));
+      if (!apiOption) return group;
+
+      return {
+        ...group,
+        options: group.options.map((optionValue) => {
+          const apiValue = apiOption.values.find((value) => String(value.id) === String(optionValue.id));
+          if (!apiValue) return { ...optionValue, available: false };
+
+          const available = apiData.variants.some((variant) => {
+            if (!variant.stock.in_stock || variant.option_values[apiOption.name] !== apiValue.label) {
+              return false;
+            }
+
+            return apiData.options.every((otherOption) => {
+              if (String(otherOption.id) === String(apiOption.id)) return true;
+              const selectedId = selectedVariants[String(otherOption.id)];
+              if (!selectedId) return true;
+              const selectedValue = otherOption.values.find((value) => String(value.id) === selectedId);
+              return selectedValue
+                ? variant.option_values[otherOption.name] === selectedValue.label
+                : false;
+            });
+          });
+
+          return { ...optionValue, available };
+        }),
+      };
+    });
+  }, [apiData, product.variants, selectedVariants]);
 
   // ─── Price calculation (backend-driven) ──────────────────
   const currentPrice = useMemo(() => {
@@ -82,8 +144,8 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
     if (!product.variants) return product.price;
 
     const variantAdjustment = product.variants.reduce((sum, variant) => {
-      const selectedOptionId = selectedVariants[variant.id];
-      const option = variant.options.find((o) => o.id === selectedOptionId);
+      const selectedOptionId = selectedVariants[String(variant.id)];
+      const option = variant.options.find((o) => String(o.id) === selectedOptionId);
       return sum + (option?.priceAdjustment ?? 0);
     }, 0);
 
@@ -91,16 +153,34 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
   }, [resolvedApiVariant, product, selectedVariants]);
 
   // ─── Unit price with bulk tiers ──────────────────────────
-  const unitPrice = useMemo(() => {
-    if (!product.bulkPrices?.length) return currentPrice;
+  const activeBulkPrices = useMemo(() => {
+    const apiTiers = resolvedApiVariant?.bulkPrices;
+    if (!apiTiers?.length) return product.bulkPrices;
 
-    const tier = product.bulkPrices.find((t) => {
+    const sorted = [...apiTiers].sort((a, b) => a.minQty - b.minQty);
+    return sorted.map((tier, index) => {
+      const nextTier = sorted[index + 1];
+      return {
+        minQty: tier.minQty,
+        maxQty: nextTier ? nextTier.minQty - 1 : undefined,
+        unitPrice: Math.round(tier.price / 100),
+        label: nextTier
+          ? `${tier.minQty}-${nextTier.minQty - 1} unités`
+          : `${tier.minQty}+ unités`,
+      };
+    });
+  }, [product.bulkPrices, resolvedApiVariant]);
+
+  const unitPrice = useMemo(() => {
+    if (!activeBulkPrices?.length) return currentPrice;
+
+    const tier = activeBulkPrices.find((t) => {
       if (t.maxQty) return quantity >= t.minQty && quantity <= t.maxQty;
       return quantity >= t.minQty;
     });
 
     return tier ? tier.unitPrice : currentPrice;
-  }, [currentPrice, product.bulkPrices, quantity]);
+  }, [activeBulkPrices, currentPrice, quantity]);
 
   const totalPrice = unitPrice * quantity;
 
@@ -109,15 +189,43 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
     if (resolvedApiVariant) {
       return resolvedApiVariant.stock.quantity;
     }
-    return product.stock;
-  }, [resolvedApiVariant, product.stock]);
+    return product.isStockUnlimited ? null : product.stock;
+  }, [resolvedApiVariant, product.isStockUnlimited, product.stock]);
 
   const isInStock = resolvedApiVariant
     ? resolvedApiVariant.stock.in_stock
-    : product.stock > 0;
+    : product.isInStock ?? product.isStockUnlimited ?? product.stock > 0;
+
+  const isStockUnlimited = resolvedApiVariant
+    ? resolvedApiVariant.stock.is_unlimited
+    : Boolean(product.isStockUnlimited);
+
+  const minimumQuantity = resolvedApiVariant?.min_order_quantity
+    ?? apiData?.min_order_quantity
+    ?? product.minOrderQuantity
+    ?? 1;
+
+  useEffect(() => {
+    setQuantity((current) => {
+      const atLeastMinimum = Math.max(current, minimumQuantity);
+      if (
+        !isStockUnlimited &&
+        currentStock !== null &&
+        currentStock >= minimumQuantity
+      ) {
+        return Math.min(atLeastMinimum, currentStock);
+      }
+      return atLeastMinimum;
+    });
+  }, [currentStock, isStockUnlimited, minimumQuantity]);
+
+  const canMeetMinimum = isStockUnlimited
+    || currentStock === null
+    || currentStock >= minimumQuantity;
+  const isPurchasable = isInStock && canMeetMinimum;
 
   // ─── Variant change handler ──────────────────────────────
-  const handleVariantSelect = useCallback((variantId: number, optionId: number) => {
+  const handleVariantSelect = useCallback((variantId: string, optionId: string) => {
     setSelectedVariants((prev) => ({ ...prev, [variantId]: optionId }));
     setActionError(null);
     setActionSuccess(null);
@@ -128,10 +236,9 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
     if (resolvedApiVariant) {
       return { variant_id: resolvedApiVariant.id, qty: quantity };
     }
-    if (apiData?.default_variant_id) {
-      return { variant_id: apiData.default_variant_id, qty: quantity };
+    if (apiData?.has_variants || (apiData?.options.length ?? 0) > 0) {
+      return null;
     }
-    // Fallback: send product_id and let backend resolve
     return { product_id: apiData?.id ?? product.id, qty: quantity };
   }, [resolvedApiVariant, apiData, product.id, quantity]);
 
@@ -145,6 +252,9 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
 
     try {
       const payload = getCartPayload();
+      if (!payload) {
+        throw new Error("Veuillez sélectionner une combinaison de variantes disponible.");
+      }
       const result = await addToCart(payload);
 
       // P3 — Facebook Pixel: AddToCart event
@@ -184,7 +294,7 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
 
       // Show warnings if any
       if (result.warnings && result.warnings.length > 0) {
-        toast.warning(result.warnings.join(", "));
+        toast.warning(result.warnings.map((warning) => warning.message).join(", "));
       }
 
       // Auto-clear success message after 3s
@@ -201,7 +311,9 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
         setActionError(msg);
         toast.error(msg);
       } else {
-        const msg = "Erreur inattendue. Réessayez plus tard.";
+        const msg = error instanceof Error
+          ? error.message
+          : "Erreur inattendue. Réessayez plus tard.";
         setActionError(msg);
         toast.error(msg);
       }
@@ -209,7 +321,20 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
       setIsAddingToCart(false);
       submitMutex.current = false;
     }
-  }, [getCartPayload, isAddingToCart]);
+  }, [
+    apiData?.default_variant_id,
+    apiData?.id,
+    getCartPayload,
+    isAddingToCart,
+    product.id,
+    product.name,
+    product.slug,
+    product.thumbnail,
+    quantity,
+    resolvedApiVariant,
+    toast,
+    unitPrice,
+  ]);
 
   // ─── Buy Now ─────────────────────────────────────────────
   const handleBuyNow = useCallback(async () => {
@@ -220,6 +345,9 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
 
     try {
       const payload = getCartPayload();
+      if (!payload) {
+        throw new Error("Veuillez sélectionner une combinaison de variantes disponible.");
+      }
       await addToCart(payload);
 
       // Redirect to checkout
@@ -228,7 +356,9 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
       if (isApiError(error)) {
         setActionError(error.message || "Erreur lors de la commande.");
       } else {
-        setActionError("Erreur inattendue. Réessayez plus tard.");
+        setActionError(
+          error instanceof Error ? error.message : "Erreur inattendue. Réessayez plus tard."
+        );
       }
     } finally {
       setIsBuyingNow(false);
@@ -237,16 +367,42 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
   }, [getCartPayload, isBuyingNow, router]);
 
   const isProcessing = isAddingToCart || isBuyingNow;
+  const requiresResolvedVariant = Boolean(
+    apiData?.has_variants || (apiData?.options.length ?? 0) > 0
+  );
+  const variantSelectionInvalid = requiresResolvedVariant && !resolvedApiVariant;
+  const displayProduct: Product = {
+    ...product,
+    price: unitPrice,
+    originalPrice: resolvedApiVariant?.pricing.compare_at_price
+      ? Math.round(resolvedApiVariant.pricing.compare_at_price / 100)
+      : product.originalPrice,
+  };
 
   return (
     <div className="space-y-5">
+      <ProductPricing product={displayProduct} />
+
+      {activeBulkPrices && activeBulkPrices.length > 0 && (
+        <BulkPriceTable
+          tiers={activeBulkPrices}
+          basePrice={displayProduct.originalPrice ?? currentPrice}
+        />
+      )}
+
       {/* Variants */}
-      {product.variants && product.variants.length > 0 && (
+      {selectableVariants && selectableVariants.length > 0 && (
         <ProductVariants
-          variants={product.variants}
+          variants={selectableVariants}
           selected={selectedVariants}
           onSelect={handleVariantSelect}
         />
+      )}
+
+      {variantSelectionInvalid && (
+        <p className="text-sm text-error" role="alert">
+          Cette combinaison de variantes n’est pas disponible. Modifiez votre sélection.
+        </p>
       )}
 
       {/* Stock info */}
@@ -256,7 +412,12 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
             <XCircle size={14} /> Rupture de stock
           </span>
         )}
-        {isInStock && currentStock > 0 && currentStock <= 20 && (
+        {isInStock && !canMeetMinimum && (
+          <span className="text-error font-medium inline-flex items-center gap-1.5">
+            <AlertTriangle size={14} /> Stock insuffisant pour le minimum de {minimumQuantity}
+          </span>
+        )}
+        {isInStock && currentStock !== null && currentStock > 0 && currentStock <= 20 && (
           <span className="text-error font-medium inline-flex items-center gap-1.5">
             <AlertTriangle size={14} /> {currentStock} restant{currentStock > 1 ? "s" : ""} en stock
           </span>
@@ -275,10 +436,15 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
           <QuantitySelector
             value={quantity}
             onChange={setQuantity}
-            min={1}
-            max={currentStock > 0 ? currentStock : product.stock}
+            min={minimumQuantity}
+            max={!isStockUnlimited && currentStock !== null ? Math.max(minimumQuantity, currentStock) : 500}
             size="md"
           />
+          {minimumQuantity > 1 && (
+            <p className="text-xs text-muted-foreground">
+              Minimum de commande : {minimumQuantity}
+            </p>
+          )}
         </div>
         {quantity > 1 && (
           <div className="text-sm text-muted-foreground mt-5">
@@ -309,7 +475,7 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
           className="text-base font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
           aria-label={`Ajouter ${product.name} au panier`}
           onClick={handleAddToCart}
-          disabled={!isInStock || isProcessing}
+          disabled={!isPurchasable || variantSelectionInvalid || isProcessing}
         >
           {isAddingToCart ? (
             <Loader2 size={18} className="animate-spin" />
@@ -327,7 +493,7 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
           className="text-base"
           aria-label="Acheter maintenant"
           onClick={handleBuyNow}
-          disabled={!isInStock || isProcessing}
+          disabled={!isPurchasable || variantSelectionInvalid || isProcessing}
         >
           {isBuyingNow ? (
             <Loader2 size={18} className="animate-spin" />

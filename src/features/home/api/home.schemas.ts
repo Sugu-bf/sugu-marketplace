@@ -58,6 +58,22 @@ const ApiCountdownSchema = z.object({
   server_now: z.string().nullable().optional(),
 }).nullable().optional();
 
+const ApiStockSnapshotSchema = z.object({
+  available: z.number().nullable(),
+  in_stock: z.boolean(),
+  is_low_stock: z.boolean(),
+  is_unlimited: z.boolean(),
+  fulfilled_by: z.string(),
+  variant_count: z.number(),
+}).optional();
+
+const PurchaseFields = {
+  has_variants: z.boolean().default(false),
+  default_variant_id: z.union([z.string(), z.number()]).nullable().optional(),
+  min_order_quantity: z.number().int().positive().default(1),
+  stock: ApiStockSnapshotSchema,
+};
+
 // ─── Banner Slot API ─────────────────────────────────────────
 
 export const ApiBannerItemSchema = z.object({
@@ -158,6 +174,7 @@ export const ApiRecommendedProductSchema = z.object({
   category: ApiCategoryRefSchema,
   in_stock: z.boolean().optional(),
   badges: z.array(z.string()).optional(),
+  ...PurchaseFields,
 });
 
 export const RecommendedResponseSchema = z.object({
@@ -204,6 +221,7 @@ export const ApiHotDealItemSchema = z.object({
   pricing: ApiPricingSchema,
   rating: ApiRatingSchema,
   in_stock: z.boolean().optional(),
+  ...PurchaseFields,
 });
 
 export const HotDealsResponseSchema = z.object({
@@ -231,6 +249,7 @@ export const ApiProductListItemSchema = z.object({
   pricing: ApiPricingSchema,
   rating: ApiRatingSchema,
   in_stock: z.boolean().optional(),
+  ...PurchaseFields,
 });
 
 export const ApiProductListSchema = z.object({
@@ -297,6 +316,7 @@ export const ApiDailyBestSellItemSchema = z.object({
   pricing: ApiPricingSchema,
   rating: ApiRatingSchema,
   in_stock: z.boolean().optional(),
+  ...PurchaseFields,
 });
 
 export const ApiPromoBannerSchema = z.object({
@@ -332,7 +352,10 @@ export const CartAddResponseSchema = z.object({
     })
     .optional(),
   meta: z.unknown().optional(),
-  warnings: z.array(z.string()).optional(),
+  warnings: z.array(z.object({
+    code: z.string(),
+    message: z.string(),
+  }).passthrough()).optional(),
   message: z.string().optional(),
 });
 

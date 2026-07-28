@@ -120,7 +120,10 @@ function CheckoutOrderSummary({
         {/* Compact item list */}
         <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.productId} className="flex items-center gap-3">
+            <div
+              key={`${item.productId}:${item.variantId ?? "default"}`}
+              className="flex items-center gap-3"
+            >
               {/* Thumbnail */}
               <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
                 {item.thumbnail && item.thumbnail !== "/products/default.png" ? (

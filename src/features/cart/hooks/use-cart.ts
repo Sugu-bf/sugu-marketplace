@@ -23,9 +23,8 @@ import {
   placeOrder,
   generateIdempotencyKey,
   getCartErrorMessage,
-  isStockConflict,
 } from "../api/cart.api";
-import type { CartUI, CartLineUI } from "../api/cart.types";
+import type { CartUI } from "../api/cart.types";
 import { emitCartChanged } from "../events/cart-events";
 import { destroyCartAfterOrder } from "../events/destroy-cart";
 
@@ -192,14 +191,10 @@ export function useCart(initialCart: CartUI): UseCartReturn {
           if (err instanceof Error && err.name === "AbortError") return;
           if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "ABORTED") return;
 
-          // Reconcile with current server state
-          if (isStockConflict(err)) {
-            setError(getCartErrorMessage(err));
-            // Refetch to get the real stock-limited state
-            fetchCart().then(setCart).catch(() => {});
-          } else {
-            setError(getCartErrorMessage(err));
-          }
+          setError(getCartErrorMessage(err));
+          // Every rejected optimistic mutation must reconcile, including
+          // backend 422 responses for MOQ and stock clamps.
+          fetchCart().then(setCart).catch(() => {});
         })
         .finally(() => {
           updatingLines.current.delete(lineId);

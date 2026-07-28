@@ -31,7 +31,6 @@ import type {
   CartUI,
   CartLineUI,
   CartTotalsUI,
-  CartWarning,
 } from "./cart.types";
 import { saveCartToken, withCartTokenHeader } from "./cart-token";
 
@@ -48,6 +47,7 @@ function mapLineToUI(line: ApiCartLine): CartLineUI {
     image: line.image ?? null,
     variantTitle: line.variant_title ?? null,
     qty: line.qty,
+    minOrderQuantity: line.min_order_quantity,
     unitPrice: line.unit_price,
     compareAtPrice: line.compare_at_price,
     lineTotal: line.line_total,

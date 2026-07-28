@@ -48,6 +48,7 @@ export interface CartLineUI {
   image: string | null;
   variantTitle: string | null;
   qty: number;
+  minOrderQuantity: number;
   unitPrice: number;
   compareAtPrice: number | null;
   lineTotal: number;

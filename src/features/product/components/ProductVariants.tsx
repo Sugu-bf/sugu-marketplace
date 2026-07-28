@@ -6,8 +6,8 @@ import type { ProductVariant } from "@/features/product";
 interface ProductVariantsProps {
   variants: ProductVariant[];
   /** Map: variant id -> selected option id */
-  selected: Record<number, number>;
-  onSelect: (variantId: number, optionId: number) => void;
+  selected: Record<string, string>;
+  onSelect: (variantId: string, optionId: string) => void;
   className?: string;
 }
 
@@ -21,26 +21,28 @@ function ProductVariants({ variants, selected, onSelect, className }: ProductVar
   return (
     <div className={cn("space-y-4", className)}>
       {variants.map((variant) => {
-        const selectedOptionId = selected[variant.id];
+        const variantId = String(variant.id);
+        const selectedOptionId = selected[variantId];
 
         return (
-          <div key={variant.id} className="space-y-2">
+          <div key={variantId} className="space-y-2">
             <label className="text-sm font-semibold text-foreground">
               {variant.name} :
             </label>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={variant.name}>
               {variant.options.map((option) => {
-                const isSelected = selectedOptionId === option.id;
+                const optionId = String(option.id);
+                const isSelected = selectedOptionId === optionId;
                 const isDisabled = !option.available;
 
                 return (
                   <button
-                    key={option.id}
+                    key={optionId}
                     type="button"
                     role="radio"
                     aria-checked={isSelected}
                     disabled={isDisabled}
-                    onClick={() => onSelect(variant.id, option.id)}
+                    onClick={() => onSelect(variantId, optionId)}
                     className={cn(
                       "rounded-full border-2 px-4 py-1.5 text-sm font-medium transition-all duration-200",
                       "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",

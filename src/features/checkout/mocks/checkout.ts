@@ -174,21 +174,24 @@ export const mockSavedAddresses: ShippingAddress[] = [
 
 export const mockOrderItems: OrderSummaryItem[] = [
   {
-    productId: 1,
+    productId: "1",
+    variantId: null,
     name: "Mangues Kent (5 kg)",
     quantity: 1,
     price: 5000,
     thumbnail: "/products/oranges.png",
   },
   {
-    productId: 2,
+    productId: "2",
+    variantId: null,
     name: "Plantains mûrs (3 régimes)",
     quantity: 1,
     price: 4500,
     thumbnail: "/products/limes.png",
   },
   {
-    productId: 3,
+    productId: "3",
+    variantId: null,
     name: "Huile de Palme Rouge (1L)",
     quantity: 1,
     price: 3000,

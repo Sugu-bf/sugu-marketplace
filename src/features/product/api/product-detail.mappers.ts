@@ -28,14 +28,19 @@ export function mapApiProductToProduct(api: ApiProductDetail): Product {
     discount: api.pricing.discount_percent || undefined,
     images: mapImages(api),
     thumbnail: api.media.images[0]?.url || "/products/placeholder.png",
-    categoryId: Number(api.category?.id ?? 0),
+    categoryId: api.category?.id ? String(api.category.id) : 0,
     categoryName: api.category?.name ?? "",
-    vendorId: Number(api.seller?.id ?? 0),
+    vendorId: api.seller?.id ? String(api.seller.id) : 0,
     vendorName: api.seller?.name ?? "",
     vendorSlug: api.seller?.slug,
     rating: api.rating.avg,
     reviewCount: api.rating.count,
-    stock: api.stock.quantity_available,
+    stock: api.stock.quantity_available ?? 0,
+    isInStock: api.stock.in_stock,
+    isStockUnlimited: api.stock.is_unlimited ?? false,
+    minOrderQuantity: api.min_order_quantity ?? 1,
+    hasVariants: api.has_variants ?? api.options.length > 0,
+    defaultVariantId: api.default_variant_id,
     sold: 0, // Backend doesn't expose sold count yet
     tags: [], // Backend doesn't expose tags in PDP — safe default
     isFeatured: false,
@@ -107,18 +112,11 @@ function mapVariantsToLegacy(
 ): ProductVariant[] | undefined {
   if (!options.length) return undefined;
 
-  return options.map((option, optionIdx) => {
-    const optionId = Number(option.id);
-
+  return options.map((option) => {
     return {
-      // Guard: fall back to a negative index-based ID when the API returns
-      // a null/undefined/empty id (Number() would produce NaN, which React
-      // renders as duplicate keys and logs a warning).
-      id: Number.isFinite(optionId) ? optionId : -(optionIdx + 1),
+      id: String(option.id),
       name: option.name,
-      options: option.values.map((val, valIdx) => {
-        const valId = Number(val.id);
-
+      options: option.values.map((val) => {
         // Check if any variant with this option value is in stock
         const matchingVariants = variants.filter((v) =>
           v.option_values[option.name] === val.label
@@ -130,8 +128,7 @@ function mapVariantsToLegacy(
         const priceAdjustment = 0;
 
         return {
-          // Same NaN guard for option values.
-          id: Number.isFinite(valId) ? valId : -(optionIdx * 1000 + valIdx + 1),
+          id: String(val.id),
           value: val.label,
           available,
           priceAdjustment,
@@ -155,7 +152,11 @@ export function mapApiRelatedToListItem(rel: ApiRelatedProduct): ProductListItem
     thumbnail: rel.image.url,
     rating: rel.rating.avg,
     reviewCount: rel.rating.count,
-    stock: rel.in_stock ? 10 : 0, // Backend doesn't give exact stock for related
+    stock: rel.stock?.available ?? (rel.in_stock ? 1 : 0),
+    isInStock: rel.in_stock,
+    minOrderQuantity: rel.min_order_quantity ?? 1,
+    hasVariants: rel.has_variants ?? false,
+    defaultVariantId: rel.default_variant_id,
     sold: 0,
     vendorName: rel.seller?.name ?? "",
     categoryName: "",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Star, ShoppingCart, Camera, Loader2 } from "lucide-react";
@@ -8,6 +9,7 @@ import { Container } from "@/components/ui";
 import { formatPrice } from "@/lib/constants";
 import { addToCart } from "@/features/home";
 import type { ProductColumnItem, WeeklyDeal } from "@/features/home";
+import { emitCartChanged } from "@/features/cart/events/cart-events";
 
 interface TrendingStoresSecondProps {
   produitsVedettes: ProductColumnItem[];
@@ -109,22 +111,32 @@ export default function TrendingStoresSecond({
 }: TrendingStoresSecondProps) {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [cartFeedback, setCartFeedback] = useState<string | null>(null);
+  const router = useRouter();
 
   const hasWeeklyImage = weeklyDeal.image && !weeklyDeal.image.includes("fallback-product");
 
   async function handleAddToCart() {
     if (isAddingToCart) return; // Anti double-click
+    if (weeklyDeal.hasVariants) {
+      router.push(weeklyDeal.slug ? `/product/${weeklyDeal.slug}` : "#");
+      return;
+    }
+    if (weeklyDeal.isInStock === false) {
+      setCartFeedback("Rupture de stock");
+      return;
+    }
     setIsAddingToCart(true);
     setCartFeedback(null);
 
     try {
       const result = await addToCart({
         product_id: weeklyDeal.id,
-        qty: 1,
+        qty: Math.max(1, weeklyDeal.minOrderQuantity ?? 1),
       });
 
       if (result.success) {
         setCartFeedback("✓ Ajouté au panier");
+        emitCartChanged({ action: "add" });
       } else {
         setCartFeedback(result.message || "Erreur");
       }
@@ -223,7 +235,7 @@ export default function TrendingStoresSecond({
           {/* Add to cart */}
           <button
             onClick={handleAddToCart}
-            disabled={isAddingToCart}
+            disabled={isAddingToCart || weeklyDeal.isInStock === false}
             className="mt-auto group flex items-center justify-center gap-2 w-full rounded-full bg-primary py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-primary-dark hover:shadow-lg hover:shadow-primary/25 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isAddingToCart ? (

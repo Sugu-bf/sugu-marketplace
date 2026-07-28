@@ -33,14 +33,27 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
 
   const handleQuickAdd = useCallback(
     async (e: React.MouseEvent) => {
+      // Keep the enclosing Link's native navigation for configurable products.
+      if (product.hasVariants) return;
+
       e.preventDefault();
       e.stopPropagation();
 
       if (addState !== "idle") return;
+
+      if (product.isInStock === false) {
+        toast.error("Ce produit est en rupture de stock.");
+        return;
+      }
+
       setAddState("loading");
+      const qty = Math.max(1, product.minOrderQuantity ?? 1);
 
       try {
-        await addToCart({ product_id: product.id, qty: 1 });
+        await addToCart({
+          product_id: product.id,
+          qty,
+        });
 
         setAddState("done");
         toast.success(`${product.name} ajouté au panier !`, {
@@ -56,7 +69,7 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
             slug: product.slug,
             thumbnail: product.thumbnail,
             price: product.price,
-            qty: 1,
+            qty,
           },
         });
 
@@ -69,7 +82,7 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
         toast.error(message);
       }
     },
-    [addState, product.id, product.name, toast]
+    [addState, product, toast]
   );
 
   return (
@@ -106,7 +119,7 @@ function ProductCard({ product, showSaleBadge, className }: ProductCardProps) {
           )}
           aria-label={`Ajouter ${product.name} au panier`}
           onClick={handleQuickAdd}
-          disabled={addState === "loading"}
+          disabled={addState === "loading" || product.isInStock === false}
         >
           {addState === "loading" ? (
             <Loader2 size={16} className="animate-spin" />

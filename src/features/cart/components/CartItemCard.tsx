@@ -25,7 +25,7 @@ interface CartItemCardProps {
  */
 function CartItemCard({ line, onUpdateQuantity, onRemove, isUpdating = false, isRemoving = false }: CartItemCardProps) {
   const hasDiscount = line.compareAtPrice !== null && line.compareAtPrice > line.unitPrice;
-  const isDisabled = isRemoving || line.flags.unavailable;
+  const isRemoveDisabled = isRemoving;
 
   return (
     <div
@@ -116,9 +116,15 @@ function CartItemCard({ line, onUpdateQuantity, onRemove, isUpdating = false, is
             <div className="relative">
               <QuantitySelector
                 value={line.qty}
-                onChange={(qty) => onUpdateQuantity(qty)}
-                min={1}
-                max={line.maxQuantity ?? 99}
+                onChange={(qty) =>
+                  onUpdateQuantity(
+                    line.qty < line.minOrderQuantity
+                      ? line.minOrderQuantity
+                      : qty
+                  )
+                }
+                min={line.minOrderQuantity}
+                max={line.maxQuantity ?? 500}
                 size="sm"
               />
               {/* Loading overlay on stepper */}
@@ -131,7 +137,7 @@ function CartItemCard({ line, onUpdateQuantity, onRemove, isUpdating = false, is
 
             <button
               onClick={onRemove}
-              disabled={isDisabled}
+              disabled={isRemoveDisabled}
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all duration-200",
                 "hover:bg-red-50 hover:text-error active:scale-90",

@@ -36,7 +36,6 @@ import type {
   ApiBannerItem,
   ApiCategory,
   ApiRecommendedProduct,
-  ApiHotDealItem,
   ApiProductListItem as ApiProdListItem,
   ApiDailyBestSellItem,
   ApiDealOfWeekProduct,
@@ -105,32 +104,14 @@ function apiRecommendedToListItem(p: ApiRecommendedProduct): ProductListItem {
     thumbnail: p.image?.url ?? "/products/placeholder.png",
     rating: p.rating?.avg ?? 0,
     reviewCount: p.rating?.count ?? 0,
-    stock: p.in_stock ? 10 : 0,
+    stock: p.stock?.available ?? ((p.stock?.in_stock ?? p.in_stock) ? 1 : 0),
     sold: 0,
     vendorName: p.store?.name ?? "",
     categoryName: p.category?.name ?? "",
-  };
-}
-
-/**
- * Transform hot-deal item (nested product wrapper) → flat ProductListItem.
- * API shape: { deal_id, product:{id,name,image}, pricing:{price,...}, rating, store, sold_qty, total_qty }
- */
-function apiHotDealToListItem(p: ApiHotDealItem): ProductListItem {
-  return {
-    id: String(p.product.id),
-    slug: p.product.slug || "",
-    name: p.product.name,
-    price: Math.round((p.pricing?.price ?? 0) / 100),
-    originalPrice: p.pricing?.compare_at_price ? Math.round(p.pricing.compare_at_price / 100) : undefined,
-    discount: undefined,
-    thumbnail: p.product.image?.url ?? "/products/placeholder.png",
-    rating: p.rating?.avg ?? 0,
-    reviewCount: p.rating?.count ?? 0,
-    stock: p.total_qty ?? 0,
-    sold: p.sold_qty ?? 0,
-    vendorName: p.store?.name ?? "",
-    categoryName: "",
+    hasVariants: p.has_variants,
+    defaultVariantId: p.default_variant_id,
+    minOrderQuantity: p.min_order_quantity,
+    isInStock: p.stock?.in_stock ?? p.in_stock,
   };
 }
 
@@ -148,6 +129,10 @@ function apiProdListToColumnItem(p: ApiProdListItem): ProductColumnItem {
     rating: p.rating?.avg ?? 0,
     reviews: p.rating?.count ?? 0,
     image: p.image?.url ?? undefined,
+    hasVariants: p.has_variants,
+    defaultVariantId: p.default_variant_id,
+    minOrderQuantity: p.min_order_quantity,
+    isInStock: p.stock?.in_stock ?? p.in_stock,
   };
 }
 
@@ -172,6 +157,10 @@ function apiDailyBestSellToProduct(p: ApiDailyBestSellItem): DailyBestSaleProduc
     totalStock: p.total_qty ?? 0,
     promoPercent: p.discount_percent ?? undefined,
     image: p.product.image?.url ?? undefined,
+    hasVariants: p.has_variants,
+    defaultVariantId: p.default_variant_id,
+    minOrderQuantity: p.min_order_quantity,
+    isInStock: p.stock?.in_stock ?? p.in_stock,
   };
 }
 
@@ -393,6 +382,10 @@ export class ApiHomeService implements HomeRepository {
         rating: p.rating?.avg ?? 5,
         reviews: p.rating?.count ?? 0,
         image: p.image?.url ?? undefined,
+        hasVariants: p.has_variants,
+        defaultVariantId: p.default_variant_id,
+        minOrderQuantity: p.min_order_quantity,
+        isInStock: p.in_stock,
       };
     }
     return mockWeeklyDeal;

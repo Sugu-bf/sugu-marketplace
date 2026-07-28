@@ -97,6 +97,10 @@ export const DailyBestSaleProductSchema = z.object({
   totalStock: z.number(),
   promoPercent: z.number().optional(),
   image: z.string().optional(),
+  hasVariants: z.boolean().optional(),
+  defaultVariantId: z.union([z.string(), z.number()]).nullable().optional(),
+  minOrderQuantity: z.number().int().positive().optional(),
+  isInStock: z.boolean().optional(),
 });
 
 // ─── Weekly Deal (featured single product) ──────────────────
@@ -110,6 +114,10 @@ export const WeeklyDealSchema = z.object({
   rating: z.number(),
   reviews: z.number(),
   image: z.string().optional(),
+  hasVariants: z.boolean().optional(),
+  defaultVariantId: z.union([z.string(), z.number()]).nullable().optional(),
+  minOrderQuantity: z.number().int().positive().optional(),
+  isInStock: z.boolean().optional(),
 });
 
 // ─── Product Column (Produits Vedettes, etc.) ───────────────
@@ -123,6 +131,10 @@ export const ProductColumnItemSchema = z.object({
   rating: z.number(),
   reviews: z.number(),
   image: z.string().optional(),
+  hasVariants: z.boolean().optional(),
+  defaultVariantId: z.union([z.string(), z.number()]).nullable().optional(),
+  minOrderQuantity: z.number().int().positive().optional(),
+  isInStock: z.boolean().optional(),
 });
 
 // ─── Tags ────────────────────────────────────────────────────

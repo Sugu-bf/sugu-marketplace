@@ -33,6 +33,7 @@ export const ApiCartLineSchema = z.object({
   variant_id: z.union([z.string(), z.number()]),
   vendor_id: z.union([z.string(), z.number()]).nullable().optional(),
   qty: z.number().min(0),
+  min_order_quantity: z.number().int().positive().default(1),
   unit_price: z.number(),
   compare_at_price: z.number().nullable(),
   line_total: z.number(),
@@ -86,9 +87,11 @@ export const DiscountLineSchema = z.object({
 // ─── Cart Meta ───────────────────────────────────────────────
 
 export const CartMetaSchema = z.object({
-  cart_id: z.union([z.string(), z.number()]),
+  // Anonymous read-only carts are intentionally virtual until the first
+  // mutation, so the backend has no persisted cart id yet.
+  cart_id: z.union([z.string(), z.number()]).nullable(),
   currency: z.string().default("XOF"),
-  cart_token: z.string().optional(),
+  cart_token: z.string().nullable().optional(),
 });
 
 // ─── Full Cart API Response ──────────────────────────────────

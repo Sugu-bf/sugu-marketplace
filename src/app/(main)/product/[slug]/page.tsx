@@ -8,8 +8,6 @@ import { queryProductBySlug, queryRelatedProducts } from "@/features/product";
 
 import { ProductImageGallery } from "@/features/product/components/ProductImageGallery";
 import { ProductInfo } from "@/features/product/components/ProductInfo";
-import { ProductPricing } from "@/features/product/components/ProductPricing";
-import { BulkPriceTable } from "@/features/product/components/BulkPriceTable";
 import { ProductActions } from "@/features/product/components/ProductActions";
 import { ProductDetailTabs } from "@/features/product/components/ProductDetailTabs";
 import { RelatedProducts } from "@/features/product/components/RelatedProducts";
@@ -126,10 +124,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     500
   );
 
-  // P7 — priceValidUntil: use real promo date or +30 days default
-  const priceValidUntil = product.promoEndsAt
-    ? product.promoEndsAt.slice(0, 10)
-    : new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+  // A validity date is meaningful only for a promotion with a real end date.
+  const priceValidUntil = product.promoEndsAt?.slice(0, 10);
 
   const vendorUrl = product.vendorSlug
     ? `${SITE_URL}/store/${product.vendorSlug}`
@@ -173,15 +169,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           {/* Right — Product Details */}
           <div className="space-y-6">
             <ProductInfo product={product} />
-            <ProductPricing product={product} />
-
-            {product.bulkPrices && product.bulkPrices.length > 0 && (
-              <BulkPriceTable
-                tiers={product.bulkPrices}
-                basePrice={product.originalPrice ?? product.price}
-              />
-            )}
-
             <ProductActions
               product={product}
               apiData={product._api ?? undefined}
@@ -228,7 +215,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     ? "https://schema.org/InStock"
                     : "https://schema.org/OutOfStock",
                 itemCondition: "https://schema.org/NewCondition",
-                priceValidUntil, // ← P7 fix: was missing
+                priceValidUntil,
                 seller: {
                   "@type": "Organization",
                   name: product.vendorName,

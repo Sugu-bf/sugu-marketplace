@@ -17,14 +17,14 @@ export const BulkPriceTierSchema = z.object({
 });
 
 export const ProductVariantOptionSchema = z.object({
-  id: z.number(),
+  id: z.union([z.string(), z.number()]),
   value: z.string(), // e.g. "500g", "Rouge"
   available: z.boolean().default(true),
   priceAdjustment: z.number().default(0), // delta from base price
 });
 
 export const ProductVariantSchema = z.object({
-  id: z.number(),
+  id: z.union([z.string(), z.number()]),
   name: z.string(), // e.g. "Poids", "Conditionnement"
   options: z.array(ProductVariantOptionSchema),
 });
@@ -40,14 +40,19 @@ export const ProductSchema = z.object({
   discount: z.number().min(0).max(100).optional(),
   images: z.array(ProductImageSchema),
   thumbnail: z.string(),
-  categoryId: z.number(),
+  categoryId: z.union([z.string(), z.number()]),
   categoryName: z.string(),
-  vendorId: z.number(),
+  vendorId: z.union([z.string(), z.number()]),
   vendorName: z.string(),
   vendorSlug: z.string().optional(),
   rating: z.number().min(0).max(5),
   reviewCount: z.number().nonnegative(),
   stock: z.number().nonnegative(),
+  isInStock: z.boolean().optional(),
+  isStockUnlimited: z.boolean().optional(),
+  minOrderQuantity: z.number().int().positive().optional(),
+  hasVariants: z.boolean().optional(),
+  defaultVariantId: z.union([z.string(), z.number()]).nullable().optional(),
   sold: z.number().nonnegative(),
   tags: z.array(z.string()),
   isFeatured: z.boolean().default(false),
@@ -74,6 +79,11 @@ export const ProductListItemSchema = ProductSchema.pick({
   sold: true,
   vendorName: true,
   categoryName: true,
+  isInStock: true,
+  isStockUnlimited: true,
+  minOrderQuantity: true,
+  hasVariants: true,
+  defaultVariantId: true,
 });
 
 // ─── Derived Types ───────────────────────────────────────────

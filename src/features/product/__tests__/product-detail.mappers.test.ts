@@ -173,6 +173,45 @@ describe("mapApiProductToProduct", () => {
     expect(result.variants![0].options[2].available).toBe(false);
   });
 
+  it("preserves ULID option and value identifiers without numeric coercion", () => {
+    const withUlidOptions: ApiProductDetail = {
+      ...BASE_API_PRODUCT,
+      options: [
+        {
+          id: "01JOPTIONULID0000000000000",
+          name: "Couleur",
+          values: [
+            {
+              id: "01JVALUEULID00000000000000",
+              label: "Rouge",
+            },
+          ],
+        },
+      ],
+      variants: [
+        {
+          id: "01JVARIANTULID000000000000",
+          sku: "RED",
+          option_values: { Couleur: "Rouge" },
+          pricing: {
+            price: 150000,
+            compare_at_price: null,
+            formatted: "1 500 F",
+            formatted_compare: null,
+          },
+          stock: { in_stock: true, quantity: 10 },
+          image_url: null,
+        },
+      ],
+      default_variant_id: "01JVARIANTULID000000000000",
+    };
+
+    const result = mapApiProductToProduct(withUlidOptions);
+
+    expect(result.variants?.[0].id).toBe("01JOPTIONULID0000000000000");
+    expect(result.variants?.[0].options[0].id).toBe("01JVALUEULID00000000000000");
+  });
+
   it("handles missing optional fields gracefully", () => {
     const minimal: ApiProductDetail = {
       ...BASE_API_PRODUCT,
@@ -239,7 +278,7 @@ describe("mapApiRelatedToListItem", () => {
     expect(result.rating).toBe(4.8);
     expect(result.reviewCount).toBe(256);
     expect(result.vendorName).toBe("Saveurs d'Afrique");
-    expect(result.stock).toBe(10); // in_stock = true → 10
+    expect(result.stock).toBe(1); // in_stock without an exact quantity → sellable sentinel
   });
 
   it("handles out-of-stock related product", () => {

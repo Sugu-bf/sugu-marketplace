@@ -49,8 +49,9 @@ export const ApiBulkPriceSchema = z.object({
 
 export const ApiStockSchema = z.object({
   in_stock: z.boolean(),
-  quantity_available: z.number(),
+  quantity_available: z.number().nullable(),
   low_stock: z.boolean().default(false),
+  is_unlimited: z.boolean().optional(),
 });
 
 export const ApiOptionValueSchema = z.object({
@@ -73,7 +74,8 @@ export const ApiVariantPricingSchema = z.object({
 
 export const ApiVariantStockSchema = z.object({
   in_stock: z.boolean(),
-  quantity: z.number(),
+  quantity: z.number().nullable(),
+  is_unlimited: z.boolean().optional(),
 });
 
 /**
@@ -95,6 +97,8 @@ export const ApiVariantSchema = z.object({
   option_values: OptionValuesSchema,
   pricing: ApiVariantPricingSchema,
   stock: ApiVariantStockSchema,
+  min_order_quantity: z.number().int().positive().optional(),
+  bulkPrices: z.array(ApiBulkPriceSchema).optional(),
   image_url: z.string().nullable().optional(),
 });
 
@@ -164,6 +168,8 @@ export const ApiProductDetailSchema = z.object({
   options: z.array(ApiOptionSchema).default([]),
   variants: z.array(ApiVariantSchema).default([]),
   default_variant_id: z.union([z.string(), z.number()]).nullable().optional(),
+  min_order_quantity: z.number().int().positive().optional(),
+  has_variants: z.boolean().optional(),
   seller: ApiSellerSchema.nullable().optional(),
   shipping: ApiShippingSchema.optional(),
   rating: ApiRatingSchema,
@@ -192,6 +198,17 @@ export const ApiRelatedProductSchema = z.object({
     count: z.number(),
   }),
   in_stock: z.boolean(),
+  stock: z.object({
+    available: z.number().nullable(),
+    in_stock: z.boolean(),
+    is_low_stock: z.boolean(),
+    is_unlimited: z.boolean(),
+    fulfilled_by: z.string(),
+    variant_count: z.number(),
+  }).optional(),
+  has_variants: z.boolean().optional(),
+  default_variant_id: z.union([z.string(), z.number()]).nullable().optional(),
+  min_order_quantity: z.number().int().positive().optional(),
   seller: z.object({
     name: z.string(),
     slug: z.string(),
@@ -253,7 +270,10 @@ export const CartResponseSchema = z.object({
     totals: CartTotalsSchema,
   }),
   meta: z.record(z.string(), z.unknown()).optional(),
-  warnings: z.array(z.string()).default([]),
+  warnings: z.array(z.object({
+    code: z.string(),
+    message: z.string(),
+  }).passthrough()).default([]),
 });
 
 export const CartCountResponseSchema = z.object({

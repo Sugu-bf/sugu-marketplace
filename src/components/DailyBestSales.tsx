@@ -3,11 +3,13 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Star, ShoppingCart, ArrowRight, Camera, ShoppingBag, Loader2 } from "lucide-react";
 import { Container, SectionHeader } from "@/components/ui";
 import { formatPrice } from "@/lib/constants";
 import { addToCart } from "@/features/home";
 import type { DailyBestSaleProduct } from "@/features/home";
+import { emitCartChanged } from "@/features/cart/events/cart-events";
 
 interface DailyBestSalesProps {
   products: DailyBestSaleProduct[];
@@ -19,24 +21,37 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
     : 0;
   const [isAdding, setIsAdding] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const router = useRouter();
+  const href = product.slug ? `/product/${product.slug}` : "#";
 
   const handleAdd = useCallback(async () => {
     if (isAdding) return;
+    if (product.hasVariants) {
+      router.push(href);
+      return;
+    }
+    if (product.isInStock === false) {
+      setFeedback("Rupture de stock");
+      return;
+    }
     setIsAdding(true);
     setFeedback(null);
+    const qty = Math.max(1, product.minOrderQuantity ?? 1);
 
     try {
-      const result = await addToCart({ product_id: product.id, qty: 1 });
+      const result = await addToCart({
+        product_id: product.id,
+        qty,
+      });
       setFeedback(result.success ? "✓ Ajouté" : (result.message || "Erreur"));
+      if (result.success) emitCartChanged({ action: "add" });
     } catch {
       setFeedback("Erreur");
     } finally {
       setIsAdding(false);
       setTimeout(() => setFeedback(null), 3000);
     }
-  }, [isAdding, product.id]);
-
-  const href = product.slug ? `/product/${product.slug}` : "#";
+  }, [href, isAdding, product, router]);
 
   return (
     <Link
@@ -126,7 +141,7 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
         {/* Add to cart */}
         <button
           onClick={(e) => { e.preventDefault(); handleAdd(); }}
-          disabled={isAdding}
+          disabled={isAdding || product.isInStock === false}
           className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline transition-colors duration-200 disabled:opacity-50"
         >
           {isAdding ? (

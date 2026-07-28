@@ -90,7 +90,8 @@ function mapLineItemsToOrderItems(
 ): OrderSummaryItem[] {
   if (!lineItems || lineItems.length === 0) return [];
   return lineItems.map((line) => ({
-    productId: parseInt(line.product_id, 10) || 0,
+    productId: line.product_id,
+    variantId: line.variant_id,
     name: line.name,
     quantity: line.qty,
     price: line.unit_price,

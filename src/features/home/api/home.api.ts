@@ -263,7 +263,7 @@ export interface AddToCartParams {
 export interface AddToCartResult {
   success: boolean;
   message?: string;
-  warnings?: string[];
+  warnings?: Array<{ code: string; message: string; [key: string]: unknown }>;
 }
 
 export async function addToCart(params: AddToCartParams): Promise<AddToCartResult> {

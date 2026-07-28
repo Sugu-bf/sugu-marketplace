@@ -301,12 +301,14 @@ describe("CartResponseSchema", () => {
         items: [],
         totals: {},
       },
-      warnings: ["Stock ajusté pour un article"],
+      warnings: [{ code: "STOCK_CLAMPED", message: "Stock ajusté pour un article" }],
     };
     const result = CartResponseSchema.safeParse(response);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.warnings).toEqual(["Stock ajusté pour un article"]);
+      expect(result.data.warnings).toEqual([
+        { code: "STOCK_CLAMPED", message: "Stock ajusté pour un article" },
+      ]);
     }
   });
 });

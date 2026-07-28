@@ -66,7 +66,8 @@ export const ShippingAddressSchema = z.object({
 // ─── Order Summary Item (compact version for checkout) ───────
 
 export const OrderSummaryItemSchema = z.object({
-  productId: z.number(),
+  productId: z.string(),
+  variantId: z.string().nullable(),
   name: z.string(),
   quantity: z.number(),
   price: z.number(),
