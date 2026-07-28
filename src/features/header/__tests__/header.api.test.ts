@@ -106,4 +106,20 @@ describe("header.schemas", () => {
     const result = WishlistPreviewItemSchema.safeParse(valid);
     expect(result.success).toBe(true);
   });
+
+  it("validates WishlistPreviewResponseSchema with null wishlist_id", async () => {
+    const { WishlistPreviewResponseSchema } = await import("../api/header.schemas");
+
+    const validWithNullWishlistId = {
+      success: true,
+      data: { items: [] },
+      meta: {
+        wishlist_id: null,
+        count: 0,
+      },
+    };
+
+    const result = WishlistPreviewResponseSchema.safeParse(validWithNullWishlistId);
+    expect(result.success).toBe(true);
+  });
 });

@@ -118,7 +118,7 @@ export const WishlistPreviewResponseSchema = z.object({
   }),
   meta: z
     .object({
-      wishlist_id: z.union([z.string(), z.number()]).optional(),
+      wishlist_id: z.union([z.string(), z.number()]).nullable().optional(),
       count: z.number(),
     })
     .optional(),
