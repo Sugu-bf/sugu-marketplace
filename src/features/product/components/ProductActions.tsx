@@ -15,6 +15,10 @@ import { ProductPricing } from "./ProductPricing";
 import { BulkPriceTable } from "./BulkPriceTable";
 import { useToast } from "@/features/toast/toast-store";
 import { emitCartChanged } from "@/features/cart/events/cart-events";
+import {
+  isStockQuantityUnknown,
+  resolveApiVariant,
+} from "../utils/product-availability";
 
 interface ProductActionsProps {
   product: Product;
@@ -72,28 +76,7 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
 
   // ─── Resolve active API variant from selected options ────
   const resolvedApiVariant = useMemo(() => {
-    if (!apiData?.variants.length || !apiData?.options.length) return null;
-
-    // Build the selection map: option_name -> selected value label
-    const selectionMap: Record<string, string> = {};
-    for (const option of apiData.options) {
-      const selectedOptionId = selectedVariants[String(option.id)];
-      if (selectedOptionId !== undefined) {
-        const value = option.values.find((v) => String(v.id) === selectedOptionId);
-        if (value) selectionMap[option.name] = value.label;
-      }
-    }
-
-    if (Object.keys(selectionMap).length !== apiData.options.length) {
-      return null;
-    }
-
-    // Find the variant that matches all selected option values
-    return apiData.variants.find((variant) => {
-      return apiData.options.every(
-        (option) => variant.option_values[option.name] === selectionMap[option.name]
-      );
-    }) ?? null;
+    return resolveApiVariant(apiData, selectedVariants);
   }, [apiData, selectedVariants]);
 
   const selectableVariants = useMemo(() => {
@@ -189,8 +172,10 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
     if (resolvedApiVariant) {
       return resolvedApiVariant.stock.quantity;
     }
-    return product.isStockUnlimited ? null : product.stock;
-  }, [resolvedApiVariant, product.isStockUnlimited, product.stock]);
+    return product.isStockUnlimited || isStockQuantityUnknown(apiData)
+      ? null
+      : product.stock;
+  }, [apiData, resolvedApiVariant, product.isStockUnlimited, product.stock]);
 
   const isInStock = resolvedApiVariant
     ? resolvedApiVariant.stock.in_stock

@@ -10,6 +10,7 @@
 
 import type { Product, ProductListItem, BulkPriceTier, ProductVariant, ProductImage } from "../models/product";
 import type { ApiProductDetail, ApiRelatedProduct, ApiBulkPrice, ApiVariant, ApiOption } from "./product-detail.schemas";
+import { toLegacyStockQuantity } from "../utils/product-availability";
 
 /**
  * Map API product detail → UI Product type.
@@ -35,7 +36,7 @@ export function mapApiProductToProduct(api: ApiProductDetail): Product {
     vendorSlug: api.seller?.slug,
     rating: api.rating.avg,
     reviewCount: api.rating.count,
-    stock: api.stock.quantity_available ?? 0,
+    stock: toLegacyStockQuantity(api.stock),
     isInStock: api.stock.in_stock,
     isStockUnlimited: api.stock.is_unlimited ?? false,
     minOrderQuantity: api.min_order_quantity ?? 1,
