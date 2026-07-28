@@ -14,10 +14,20 @@ interface ProductTabsProps {
   descriptionHtml?: string;
 }
 
+function isWhitelistedImageUrl(url: string): boolean {
+  try {
+    if (url.startsWith("/")) return true;
+    const parsed = new URL(url);
+    return parsed.hostname.endsWith("sugu.pro") || parsed.hostname.endsWith("mysugu.com");
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Converts raw description text/HTML to formatted HTML:
- * 1. Replaces standalone image URLs with <img> tags
- * 2. Replaces markdown images ![alt](url) with <img> tags
+ * 1. Replaces standalone image URLs with <img> tags (whitelisted sugu CDN/domains only)
+ * 2. Replaces markdown images ![alt](url) with <img> tags (whitelisted sugu CDN/domains only)
  * 3. Wraps plain text paragraphs with <p> tags if no HTML structure is present
  */
 function formatDescriptionHtml(rawContent: string): string {
@@ -28,16 +38,23 @@ function formatDescriptionHtml(rawContent: string): string {
   // 1. Replace standalone image URLs (not inside src="..." or href="...") with <img> tags
   const standaloneImageUrlRegex = /(?<!src=["']|href=["'])(https?:\/\/[^\s<"']+\.(?:png|jpe?g|webp|gif|svg)(\?[^\s<"']*)?)/gi;
   html = html.replace(standaloneImageUrlRegex, (url) => {
+    if (!isWhitelistedImageUrl(url)) return "";
     return `<img src="${url}" alt="Illustration produit" class="max-w-full h-auto rounded-2xl my-4 border border-border/80 shadow-sm bg-white p-2" />`;
   });
 
   // 2. Replace markdown images ![alt](url)
   const markdownImageRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s\)]+)\)/gi;
   html = html.replace(markdownImageRegex, (_, alt, url) => {
+    if (!isWhitelistedImageUrl(url)) return "";
     return `<img src="${url}" alt="${alt || "Illustration"}" class="max-w-full h-auto rounded-2xl my-4 border border-border/80 shadow-sm bg-white p-2" />`;
   });
 
-  // 3. If plain text without HTML tags, wrap paragraphs for spacing
+  // 3. Filter existing <img> tags to ensure src is whitelisted
+  html = html.replace(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
+    return isWhitelistedImageUrl(src) ? match : "";
+  });
+
+  // 4. If plain text without HTML tags, wrap paragraphs for spacing
   if (!/<[a-z][\s\S]*>/i.test(html)) {
     html = html
       .split(/\n\s*\n/)
