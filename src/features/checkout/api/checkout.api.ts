@@ -98,7 +98,7 @@ export async function updateCheckoutSession(
  * Idempotent via X-Idempotency-Key header.
  */
 export async function createCheckoutSession(
-  payload: CreateCheckoutSessionPayload
+  payload: CreateCheckoutSessionPayload = {}
 ): Promise<{ sessionId: string; session: CheckoutSessionApi }> {
   await initCsrf();
 

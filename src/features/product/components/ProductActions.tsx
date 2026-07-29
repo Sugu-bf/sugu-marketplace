@@ -15,6 +15,7 @@ import { ProductPricing } from "./ProductPricing";
 import { BulkPriceTable } from "./BulkPriceTable";
 import { useToast } from "@/features/toast/toast-store";
 import { emitCartChanged } from "@/features/cart/events/cart-events";
+import { createCheckoutSession } from "@/features/checkout";
 import {
   isStockQuantityUnknown,
   resolveApiVariant,
@@ -335,7 +336,21 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
       }
       await addToCart(payload);
 
-      // Redirect to checkout
+      // Create a checkout session
+      try {
+        const { sessionId } = await createCheckoutSession({});
+        if (sessionId) {
+          window.location.href = `/checkout?session=${sessionId}`;
+          return;
+        }
+      } catch (sessionError) {
+        if (isApiError(sessionError) && (sessionError.code === "UNAUTHORIZED" || sessionError.status === 401)) {
+          router.push("/login?redirect=/checkout");
+          return;
+        }
+      }
+
+      // Fallback: Redirect to checkout
       router.push("/checkout");
     } catch (error) {
       if (isApiError(error)) {

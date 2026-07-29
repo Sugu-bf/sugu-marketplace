@@ -3,7 +3,7 @@ import { createMetadata } from "@/lib/metadata";
 import { Container, Breadcrumb, Stepper } from "@/components/ui";
 import type { StepperStep } from "@/components/ui";
 import { getAuthUser } from "@/lib/api/auth";
-import { queryCheckoutSession } from "@/features/checkout";
+import { queryCheckoutSession, createCheckoutSession } from "@/features/checkout";
 import { CheckoutOrchestrator } from "@/features/checkout/components/CheckoutOrchestrator";
 import { CheckoutError } from "@/features/checkout/components/CheckoutError";
 
@@ -61,7 +61,19 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
   }
 
   const params = await searchParams;
-  const sessionId = params.session;
+  let sessionId = params.session;
+
+  // Auto-create session if missing from URL (e.g. redirected from login or direct nav)
+  if (!sessionId) {
+    try {
+      const created = await createCheckoutSession({});
+      if (created?.sessionId) {
+        sessionId = created.sessionId;
+      }
+    } catch {
+      // Failed to auto-create (cart is empty or backend error)
+    }
+  }
 
   // No session ID → redirect suggestion
   if (!sessionId) {
@@ -80,7 +92,19 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
   }
 
   // Fetch checkout data from backend (no-store, SSR)
-  const result = await queryCheckoutSession(sessionId);
+  let result = await queryCheckoutSession(sessionId);
+
+  // If session is invalid (e.g. created as guest before login), auto-create a fresh user session
+  if (result.error || !result.session) {
+    try {
+      const created = await createCheckoutSession({});
+      if (created?.sessionId) {
+        result = await queryCheckoutSession(created.sessionId);
+      }
+    } catch {
+      // Fallback failed (e.g. empty cart), proceed to render error
+    }
+  }
 
   // Error fetching session
   if (result.error || !result.session) {
