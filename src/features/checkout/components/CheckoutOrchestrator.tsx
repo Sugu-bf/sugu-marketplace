@@ -51,6 +51,7 @@ interface CheckoutOrchestratorProps {
   partners: DeliveryPartner[];
   zones: DeliveryZone[];
   sessionId: string;
+  initialPaymentMethod?: "cod" | "ligdicash";
 }
 
 // ─── Mapping helpers (backend → existing UI types) ───────────
@@ -118,6 +119,7 @@ function CheckoutOrchestrator({
   partners,
   zones: _zones,
   sessionId,
+  initialPaymentMethod,
 }: CheckoutOrchestratorProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -158,7 +160,9 @@ function CheckoutOrchestrator({
   const [addressNotice, setAddressNotice] = useState<string | null>(null);
 
   // Payment method state (WARN-01 fix)
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cod" | "ligdicash">("cod");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cod" | "ligdicash">(
+    initialPaymentMethod ?? "cod"
+  );
 
   // Modal states
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);

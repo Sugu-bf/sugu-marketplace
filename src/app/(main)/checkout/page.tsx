@@ -47,7 +47,7 @@ function getStepProgress(session: { totals: { shipping_amount: number } } | null
 // ─── Page Component (Server) ─────────────────────────────────
 
 interface CheckoutPageProps {
-  searchParams: Promise<{ session?: string }>;
+  searchParams: Promise<{ session?: string; payment_method?: string }>;
 }
 
 export default async function CheckoutPage({ searchParams }: CheckoutPageProps) {
@@ -159,6 +159,7 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
           partners={result.partners}
           zones={result.zones}
           sessionId={sessionId}
+          initialPaymentMethod={params.payment_method === "ligdicash" ? "ligdicash" : "cod"}
         />
       </Container>
     </main>

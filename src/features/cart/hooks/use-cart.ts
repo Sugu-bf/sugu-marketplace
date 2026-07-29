@@ -334,32 +334,10 @@ export function useCart(initialCart: CartUI): UseCartReturn {
 
     const idempotencyKey = generateIdempotencyKey();
 
-    // Step 1: Create checkout session (required by backend)
     createCheckoutSession(idempotencyKey)
       .then((session) => {
-        // Step 2: Place order with the session + correct payment method
-        return placeOrder(
-          {
-            checkout_session_id: session.sessionId,
-            // Online-payment selector (NOT a provider). The backend validates
-            // "cod" | "ligdicash" and chooses the actual provider via its own flag,
-            // so this value stays "ligdicash" across the provider cutover.
-            payment_method: "ligdicash",
-          },
-          idempotencyKey
-        );
-      })
-      .then((result) => {
-        // ✅ Order placed — destroy cart before navigating
-        destroyCartAfterOrder();
-
-        if (result.paymentUrl) {
-          // Redirect to payment provider page
-          window.location.href = result.paymentUrl;
-        } else {
-          // Fallback: navigate to order confirmation
-          window.location.href = `/track-order?order=${result.orderNumber}`;
-        }
+        // Navigate to checkout with session ID and mobile money payment pre-selected
+        window.location.href = `/checkout?session=${session.sessionId}&payment_method=ligdicash`;
       })
       .catch((err) => {
         setError(getCartErrorMessage(err));
