@@ -34,7 +34,9 @@ export async function generateMetadata({
       ? `Trouvez ${q} parmi des milliers de produits sur Sugu. Prix, avis et livraison rapide.`
       : "Recherchez parmi des milliers de produits sur Sugu. Fruits, légumes, électronique, vêtements et plus encore.",
     path: "/search",
-    noIndex: !q, // Don't index empty search page
+    // Internal search result URLs create effectively unlimited query/filter
+    // combinations. Product and category pages are the canonical index targets.
+    noIndex: true,
   });
 }
 

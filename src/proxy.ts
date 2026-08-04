@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAllowedDuringComingSoon, isComingSoon } from "@/lib/coming-soon";
 
 /**
  * Next.js Edge Middleware — SEO redirect resolution.
@@ -40,6 +41,11 @@ const KNOWN_APP_ROUTE_PREFIXES = [
   // ── Static routes ──────────────────────────────────
   "/",                           // (main)/page.tsx
   "/search",                     // (main)/search
+  "/acheter",                    // (main)/acheter
+  "/vendeurs",                   // (main)/vendeurs
+  "/agences-de-livraison",       // (main)/agences-de-livraison
+  "/coursiers",                  // (main)/coursiers
+  "/sugupay",                    // (main)/sugupay
   "/fournisseurs",               // (main)/fournisseurs
   "/blog",                       // (main)/blog
   "/cart",                       // (main)/cart
@@ -148,7 +154,7 @@ const SKIP_PREFIXES = [
 
 export default async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const isComingSoon = process.env.COMING_SOON_ENABLED === "true";
+  const comingSoon = isComingSoon();
 
   // 1. Skip infrastructure paths
   if (SKIP_PREFIXES.some((p) => pathname.startsWith(p))) {
@@ -161,9 +167,11 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ─── 3. COMING SOON WALL ──────────────────────────────────────────────────
-  // If coming soon is ON, we only allow access to the root "/"
-  if (isComingSoon && pathname !== "/") {
-    return NextResponse.redirect(new URL("/", request.url));
+  // The wall keeps the catalogue closed but lets the editorial and ecosystem
+  // pages through — they are the ones robots.txt and the sitemap advertise, and
+  // the ones the pre-launch footer links to. See @/lib/coming-soon.
+  if (comingSoon && !isAllowedDuringComingSoon(pathname)) {
+    return NextResponse.redirect(new URL("/", request.url), 307);
   }
 
   // ─── 4. OPTIMISATION: Skip known app routes (zero API call) ────────────────

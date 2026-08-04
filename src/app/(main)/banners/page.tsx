@@ -6,6 +6,9 @@ export const metadata = createMetadata({
   title: "Promotions & Bannières",
   description: "Découvrez nos offres spéciales et promotions en cours sur Sugu.",
   path: "/banners",
+  // Promo shell with no standalone content — kept out of the index, and aligned
+  // with the X-Robots-Tag set for /banners in next.config.ts.
+  noIndex: true,
 });
 
 export default function BannersPage() {

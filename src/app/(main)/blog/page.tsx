@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { SITE_URL, SEO } from "@/lib/constants";
+import { createMetadata } from "@/lib/metadata";
 import { API_BASE_URL } from "@/lib/api/config";
 
 const API_BASE = `${API_BASE_URL}/v1`;
@@ -76,19 +76,21 @@ async function fetchCategories(): Promise<BlogCategory[]> {
 
 // ─── Metadata ────────────────────────────────────────────
 
-export const metadata: Metadata = {
-  title: "Blog — Sugu",
-  description:
-    "Découvrez nos derniers articles, conseils et actualités sur Sugu.",
-  alternates: { canonical: `${SITE_URL}/blog` },
-  openGraph: {
-    title: "Blog — Sugu",
-    description:
-      "Découvrez nos derniers articles, conseils et actualités sur Sugu.",
-    url: `${SITE_URL}/blog`,
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const category = typeof params.category === "string" ? params.category : undefined;
+  const q = typeof params.q === "string" ? params.q : undefined;
+  const page = typeof params.page === "string" ? Math.max(1, Number.parseInt(params.page, 10) || 1) : 1;
+  const hasSearchOrFilter = Boolean(category || q);
+
+  return createMetadata({
+    title: page > 1 && !hasSearchOrFilter ? `Blog — Page ${page}` : "Blog",
+    description: "Découvrez les derniers articles, conseils et actualités de l’écosystème Sugu.",
+    path: page > 1 && !hasSearchOrFilter ? `/blog?page=${page}` : "/blog",
+    noIndex: hasSearchOrFilter,
     type: "website",
-  },
-};
+  });
+}
 
 // ─── Page Component ──────────────────────────────────────
 

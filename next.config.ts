@@ -1,5 +1,29 @@
 import type { NextConfig } from "next";
 
+const privateNoIndexHeaders = [
+  { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+];
+
+// `:path*` matches zero or more segments, so "/account/:path*" covers both
+// /account and /account/orders. Verified against Next's path-to-regexp.
+const privateRoutePatterns = [
+  "/account/:path*",
+  "/cart",
+  "/checkout/:path*",
+  "/messages/:path*",
+  "/payments/:path*",
+  "/track-order",
+  "/support-chat",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/onboarding",
+  // Promo shell with no standalone content — indexing it only adds bloat.
+  "/banners",
+  "/invoices/:path*",
+  "/api/:path*",
+];
+
 const nextConfig: NextConfig = {
   output: "standalone",
   reactCompiler: true,
@@ -42,6 +66,10 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      ...privateRoutePatterns.map((source) => ({
+        source,
+        headers: privateNoIndexHeaders,
+      })),
     ];
   },
 

@@ -644,21 +644,29 @@ export default function ComingSoon() {
           </div>
           <ul className={s.fLinks}>
             <li>
-              <a href="#">À propos</a>
+              <a href="/acheter">Acheter sur Sugu</a>
             </li>
             <li>
-              <a href="#">Confidentialité</a>
+              <a href="/politique-de-confidentialite">Confidentialité</a>
             </li>
             <li>
-              <a href="#">Contact</a>
+              <a href="/help">Contact</a>
             </li>
             <li>
-              <button 
-                onClick={(e) => { e.preventDefault(); setIsSellerModalOpen(true); }}
+              {/* A real link, not a link that cancels itself: /vendeurs is the
+                  page that explains selling on Sugu and carries the CTA. */}
+              <a href="/vendeurs">Vendre sur Sugu</a>
+            </li>
+            <li>
+              <button
+                onClick={() => setIsSellerModalOpen(true)}
                 className={s.fLinkBtn}
               >
-                Vendre sur Sugu
+                Être contacté
               </button>
+            </li>
+            <li>
+              <a href="https://sugupay.net/">SuguPay</a>
             </li>
           </ul>
           <span className={s.fCopy}>

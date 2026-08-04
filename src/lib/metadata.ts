@@ -8,6 +8,12 @@ interface PageMetadataOptions {
   image?: string;
   noIndex?: boolean;
   /**
+   * Absolute canonical URL, for pages whose indexable version lives on another
+   * Sugu domain (e.g. /vendeurs is canonicalised to pro.sugu.pro).
+   * Ignored when `noIndex` is set — the two directives contradict each other.
+   */
+  canonicalUrl?: string;
+  /**
    * og:type override.
    * Note: Next.js OpenGraph API only accepts "website" | "article".
    * For "product" pages, pass type: "website" here and inject
@@ -32,6 +38,7 @@ export function createMetadata({
   path = "/",
   image,
   noIndex = false,
+  canonicalUrl,
   type,
 }: PageMetadataOptions): Metadata {
   const url = `${SITE_URL}${path}`;
@@ -43,7 +50,10 @@ export function createMetadata({
     title,
     description,
     metadataBase: new URL(SITE_URL),
-    alternates: { canonical: url },
+    // A noindex page must NOT point its canonical at a different URL: Google
+    // treats that as contradictory and can carry the noindex over to the
+    // canonical target, deindexing the page we actually want ranked.
+    alternates: noIndex ? undefined : { canonical: canonicalUrl ?? url },
     openGraph: {
       title: fullTitle,
       description,
@@ -60,8 +70,9 @@ export function createMetadata({
       images: [ogImage],
       creator: SEO.twitterHandle,
     },
-    robots: noIndex
-      ? { index: false, follow: false }
-      : { index: true, follow: true },
+    // Always `follow`: /search and faceted category pages are noindex but they
+    // are also the biggest internal link hubs into the product catalogue —
+    // nofollow there would cut off product discovery.
+    robots: { index: !noIndex, follow: true },
   };
 }

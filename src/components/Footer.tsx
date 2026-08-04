@@ -16,7 +16,10 @@ const footerColumns = [
     links: [
       { label: "Tous nos magasins", href: "/stores" },
       { label: "Nos fournisseurs", href: "/fournisseurs" },
-      { label: "Espace vendeur", href: "https://pro.sugu.pro/" },
+      { label: "Espace vendeur", href: "/vendeurs" },
+      { label: "Agences de livraison", href: "/agences-de-livraison" },
+      { label: "Devenir coursier", href: "/coursiers" },
+      { label: "SuguPay", href: "/sugupay" },
       { label: "Contactez-nous", href: "/help" },
     ],
   },
@@ -50,7 +53,7 @@ const footerColumns = [
       { label: "Politique de confidentialité", href: "/politique-de-confidentialite" },
       { label: "Livraison & Retours", href: "/politique-livraison-retours" },
       { label: "Politique anti-fraude", href: "/politique-anti-fraude" },
-      { label: "Devenir vendeur", href: "https://pro.sugu.pro/" },
+      { label: "Devenir vendeur", href: "/vendeurs" },
     ],
   },
 ];

@@ -9,7 +9,6 @@ import FreshCategories from "@/components/FreshCategories";
 import PromotionalDeals from "@/components/PromotionalDeals";
 import ShopByBrands from "@/components/ShopByBrands";
 import DailyBestSales from "@/components/DailyBestSales";
-import { SITE_NAME, SITE_URL, SEO } from "@/lib/constants";
 import {
   queryBannerSlides,
   queryHeroBanner,
@@ -84,40 +83,8 @@ export default async function HomePage() {
     queryWeeklyDeal(),
   ]);
 
-  // ─── JSON-LD structured data for SEO ────────────────────────
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: SITE_NAME,
-    url: SITE_URL,
-    description: SEO.defaultDescription,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    },
-    publisher: {
-      "@type": "Organization",
-      name: SITE_NAME,
-      url: SITE_URL,
-      logo: {
-        "@type": "ImageObject",
-        url: `${SITE_URL}/logo.svg`,
-      },
-    },
-  };
-
   return (
     <>
-      {/* JSON-LD for SEO */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-
       {/* Hidden h1 for SEO — the visual header is in the hero section */}
       <h1 className="sr-only">
         Sugu — Votre marketplace en ligne

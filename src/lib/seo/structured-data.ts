@@ -13,8 +13,16 @@ export function organizationJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": `${SITE_URL}/#organization`,
     name: SITE_NAME,
     url: SITE_URL,
+    // Same asset the other Sugu properties declare for this @id. public/logo.png
+    // is a JPEG with a checkerboard baked in — it must not be the brand logo
+    // Google shows in a knowledge panel.
+    logo: {
+      "@type": "ImageObject",
+      url: "https://cdn.sugu.pro/p/sugu_logo.png",
+    },
     contactPoint: {
       "@type": "ContactPoint",
       telephone: CONTACT.phone,
@@ -31,22 +39,18 @@ export function organizationJsonLd() {
   };
 }
 
-// ─── WebSite (for sitelinks search box) ──────────────────────
+// ─── WebSite (site name and publisher identity) ──────────────
 
 export function webSiteJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": `${SITE_URL}/#website`,
     name: SITE_NAME,
+    alternateName: ["SUGU", "sugu.pro"],
     url: SITE_URL,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    },
+    inLanguage: "fr-BF",
+    publisher: { "@id": `${SITE_URL}/#organization` },
   };
 }
 

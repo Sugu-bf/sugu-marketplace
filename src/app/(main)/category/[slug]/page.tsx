@@ -33,13 +33,26 @@ export async function generateMetadata({
   }
 
   const pageLabel = filters.page > 1 ? ` — Page ${filters.page}` : "";
+  const hasFacetedFilters =
+    filters.subcats.length > 0 ||
+    filters.priceMin !== null ||
+    filters.priceMax !== null ||
+    filters.ratingMin !== null ||
+    filters.inStock ||
+    filters.sort !== "relevance" ||
+    filters.view !== "grid";
+  const canonicalPath =
+    !hasFacetedFilters && filters.page > 1
+      ? `/category/${slug}?page=${filters.page}`
+      : `/category/${slug}`;
 
   return createMetadata({
     title: `${data.category.name}${pageLabel}`,
     description:
       data.category.description ??
       `Parcourez les produits de la catégorie ${data.category.name} sur Sugu. ${data.totalProducts} produits disponibles.`,
-    path: `/category/${slug}`,
+    path: canonicalPath,
+    noIndex: hasFacetedFilters,
   });
 }
 

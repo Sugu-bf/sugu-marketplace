@@ -13,24 +13,37 @@ import { ProductDetailTabs } from "@/features/product/components/ProductDetailTa
 import { RelatedProducts } from "@/features/product/components/RelatedProducts";
 import { FacebookPixel } from "@/components/analytics/FacebookPixel";
 
-// ─── ISR — top products pre-rendered at build time ───────────
-
+// ─── Caching ─────────────────────────────────────────────────
+//
+// Product pages are rendered on demand and cached at the edge, not pre-rendered
+// at build time.
+//
+// A `generateStaticParams` used to sit here, but it never pre-rendered a single
+// page: it read `NEXT_PUBLIC_API_URL` (the env var is `NEXT_PUBLIC_API_BASE_URL`)
+// and called `/api/v1/products/top-slugs`, which no Laravel route declares. Its
+// catch swallowed both failures and returned [].
+//
+// Bringing it back would not pay for itself either — product data revalidates
+// every 120s (RevalidatePresets.frequent), so anything pre-rendered at build is
+// stale two minutes later. The speed users experience comes from the edge:
+// next.config.ts serves /product/:slug* with `CDN-Cache-Control: max-age=120,
+// stale-while-revalidate=600`, so Cloudflare answers every request after the
+// first one for a given slug — including while it revalidates in the background.
+// Only the very first visitor of a slug ever waits for a render.
+//
+// Returning [] on purpose. It looks like a no-op but it is not: declaring
+// generateStaticParams is what puts the route in Next's Full Route Cache (ISR
+// with a blocking fallback), so each slug is rendered once and its HTML reused.
+// Drop it and the route becomes `ƒ Dynamic` — re-rendered on every Cloudflare
+// miss. Nothing is built ahead of time; slugs are filled in on first request.
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/top-slugs?limit=200`,
-      { next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.slugs as string[]).map((slug) => ({ slug }));
-  } catch {
-    return [];
-  }
+  return [];
 }
 
-// Unknown slugs (outside the pre-rendered list) are still rendered dynamically
 export const dynamicParams = true;
+
+// 120s matches RevalidatePresets.frequent and CACHE_TTL in ProductDetailService.php.
+export const revalidate = 120;
 
 // ─── Dynamic SEO Metadata ────────────────────────────────────
 
