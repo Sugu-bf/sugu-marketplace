@@ -1,4 +1,4 @@
-import { api, publicUrl } from "@/lib/api";
+import { api, v1Url } from "@/lib/api";
 import { OrderTrackingResponseSchema } from "../models/order";
 import { mapApiToTrackedOrder } from "../mappers/order-mapper";
 import type { TrackedOrder, OrderTrackingApiData } from "../models/order";
@@ -6,8 +6,8 @@ import type { TrackedOrder, OrderTrackingApiData } from "../models/order";
 /**
  * Fetch tracked order data from the real backend API.
  *
- * Endpoint: GET /api/v1/public/orders/{orderId}
- * Auth: None (public — ULID acts as obscure token)
+ * Endpoint: GET /api/v1/orders/{orderId}/status
+ * Auth: Bearer token injected by the Web BFF
  * Cache: no-store (sensitive, real-time data)
  *
  * @param orderId — Order ULID from URL ?order=...
@@ -16,14 +16,13 @@ import type { TrackedOrder, OrderTrackingApiData } from "../models/order";
 export async function queryTrackedOrder(
   orderId: string
 ): Promise<TrackedOrder> {
-  const url = publicUrl(`orders/${encodeURIComponent(orderId)}`);
+  const url = v1Url(`orders/${encodeURIComponent(orderId)}/status`);
 
   const { data } = await api.get(url, {
     schema: OrderTrackingResponseSchema,
     cache: "no-store",
     revalidate: false, // Force no-store for Next.js SSR
     timeout: 8_000,
-    skipCredentials: true, // Public endpoint — no auth needed
   });
 
   return mapApiToTrackedOrder(data.data.order);
@@ -39,12 +38,11 @@ export async function queryTrackedOrder(
 export async function queryTrackedOrderRaw(
   orderId: string
 ): Promise<OrderTrackingApiData> {
-  const url = publicUrl(`orders/${encodeURIComponent(orderId)}`);
+  const url = v1Url(`orders/${encodeURIComponent(orderId)}/status`);
 
   const { data } = await api.get(url, {
     schema: OrderTrackingResponseSchema,
     timeout: 6_000,
-    skipCredentials: true, // Public endpoint — no auth needed
   });
 
   return data.data.order;
