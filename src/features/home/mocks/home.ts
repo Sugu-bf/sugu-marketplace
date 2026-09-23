@@ -176,8 +176,8 @@ export const mockWeeklyDeal: WeeklyDeal = {
 // ─── Trust Badges ───────────────────────────────────────────
 
 export const mockTrustBadges: TrustBadge[] = [
-  { iconName: "truck", title: "Livraison rapide", subtitle: "Suivi de commande en temps réel" },
-  { iconName: "award", title: "Qualité contrôlée", subtitle: "Vendeurs vérifiés sur Sugu" },
-  { iconName: "shield-check", title: "Paiements sécurisés", subtitle: "Transactions protégées" },
-  { iconName: "headphones", title: "Support client", subtitle: "Une équipe à votre écoute" },
+  { iconName: "truck", title: "Livraison Gratuite", subtitle: "Livraison gratuite partout" },
+  { iconName: "award", title: "100% Satisfaction", subtitle: "Garantie de satisfaction totale" },
+  { iconName: "shield-check", title: "Paiements Sécurisés", subtitle: "Transactions 100% sécurisées" },
+  { iconName: "headphones", title: "Support 24/7", subtitle: "Support client disponible 24/7" },
 ];
