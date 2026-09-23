@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Star, ShoppingCart, Camera, Loader2 } from "lucide-react";
+import { ShoppingCart, Camera, Loader2 } from "lucide-react";
 import { Container } from "@/components/ui";
 import { formatPrice } from "@/lib/constants";
 import { addToCart } from "@/features/home";
@@ -50,11 +50,6 @@ function ProductRow({ product, index }: { product: ProductColumnItem; index: num
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="text-xs font-semibold text-foreground">{product.rating}</span>
-          <Star size={11} className="text-primary fill-primary" />
-          <span className="text-[10px] text-muted-foreground">({product.reviews})</span>
-        </div>
         <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-200">
           {product.name}
         </p>
@@ -188,26 +183,18 @@ export default function TrendingStoresSecond({
               )}
             </div>
 
-            {/* Rating */}
-            <div className="flex items-center gap-0.5 mb-1.5">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={13} className="text-accent fill-accent" />
-              ))}
-              <span className="text-xs text-muted-foreground ml-1">({weeklyDeal.reviews})</span>
-            </div>
+            {/* Product name */}
+            <p className="text-sm font-bold text-foreground mb-1.5 leading-snug hover:text-primary transition-colors">
+              {weeklyDeal.name}
+            </p>
 
             {/* Price */}
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-3">
               <span className="text-lg font-bold text-primary">{formatPrice(weeklyDeal.price)}</span>
               {weeklyDeal.originalPrice && (
                 <span className="text-sm text-muted-foreground line-through">{formatPrice(weeklyDeal.originalPrice)}</span>
               )}
             </div>
-
-            {/* Product name */}
-            <p className="text-sm font-medium text-foreground mb-3 leading-snug hover:text-primary transition-colors">
-              {weeklyDeal.name}
-            </p>
           </Link>
 
           {/* Stock notice */}

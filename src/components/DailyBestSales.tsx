@@ -4,21 +4,19 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Star, ShoppingCart, ArrowRight, Camera, ShoppingBag, Loader2 } from "lucide-react";
+import { ShoppingCart, ArrowRight, Camera, ShoppingBag, Loader2 } from "lucide-react";
 import { Container, SectionHeader } from "@/components/ui";
 import { formatPrice } from "@/lib/constants";
 import { addToCart } from "@/features/home";
-import type { DailyBestSaleProduct } from "@/features/home";
+import type { DailyBestSaleProduct, DailyBestSalesPromo } from "@/features/home";
 import { emitCartChanged } from "@/features/cart/events/cart-events";
 
 interface DailyBestSalesProps {
   products: DailyBestSaleProduct[];
+  promo?: DailyBestSalesPromo | null;
 }
 
 function ProductCard({ product, index }: { product: DailyBestSaleProduct; index: number }) {
-  const soldPercent = product.totalStock > 0
-    ? (product.soldCount / product.totalStock) * 100
-    : 0;
   const [isAdding, setIsAdding] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const router = useRouter();
@@ -83,48 +81,27 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
 
       {/* Product Info */}
       <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
-        {/* Price */}
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-1">
-          <span className="text-xs text-muted-foreground line-through">
-            {formatPrice(product.originalPrice)}
-          </span>
-          <span className="text-sm font-bold text-primary">
-            {formatPrice(product.price)}
-          </span>
-          <span className="text-[10px] text-muted-foreground">/Qté</span>
-        </div>
-
-        {/* Rating */}
-        <div className="flex items-center gap-1 mb-1">
-          <span className="text-xs text-muted-foreground">{product.rating.toFixed(1)}</span>
-          <Star size={10} className="text-accent fill-accent" />
-          <span className="text-[10px] text-muted-foreground">({product.reviews})</span>
-        </div>
-
         {/* Name */}
-        <p className="text-sm font-semibold text-foreground truncate mb-1.5 group-hover:text-primary transition-colors duration-200">
+        <p className="text-sm font-bold text-foreground truncate mb-1 group-hover:text-primary transition-colors duration-200">
           {product.name}
         </p>
 
-        {/* Store */}
-        <div className="flex items-center gap-1 mb-1.5 min-w-0">
-          <ShoppingBag size={11} className="text-primary flex-shrink-0" />
-          <span className="text-[11px] text-muted-foreground truncate">Par {product.store}</span>
+        {/* Price */}
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-1.5">
+          <span className="text-sm font-bold text-primary">
+            {formatPrice(product.price)}
+          </span>
+          {product.originalPrice > product.price && (
+            <span className="text-xs text-muted-foreground line-through">
+              {formatPrice(product.originalPrice)}
+            </span>
+          )}
         </div>
 
-        {/* Sold progress */}
-        <div className="mb-2">
-          <div className="flex items-center justify-between mb-0.5">
-            <span className="text-[10px] text-muted-foreground">
-              Vendus : {product.soldCount}/{product.totalStock}
-            </span>
-          </div>
-          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{ width: `${Math.min(soldPercent, 100)}%` }}
-            />
-          </div>
+        {/* Store */}
+        <div className="flex items-center gap-1 mb-2 min-w-0">
+          <ShoppingBag size={11} className="text-primary flex-shrink-0" />
+          <span className="text-[11px] text-muted-foreground truncate">Par {product.store}</span>
         </div>
 
         {/* Feedback */}
@@ -140,9 +117,10 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
 
         {/* Add to cart */}
         <button
+          type="button"
           onClick={(e) => { e.preventDefault(); handleAdd(); }}
           disabled={isAdding || product.isInStock === false}
-          className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline transition-colors duration-200 disabled:opacity-50"
+          className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline transition-colors duration-200 disabled:opacity-50 mt-auto"
         >
           {isAdding ? (
             <>
@@ -161,7 +139,17 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
   );
 }
 
-export default function DailyBestSales({ products }: DailyBestSalesProps) {
+const DEFAULT_PROMO: DailyBestSalesPromo = {
+  title: "5 000 F de réduction sur votre première commande",
+  subtitle: "Livraison avant 6h15",
+  ctaLabel: "Acheter maintenant",
+  href: "/search",
+  image: "/promos/grocery-bag.png",
+};
+
+export default function DailyBestSales({ products, promo }: DailyBestSalesProps) {
+  const card = promo ?? DEFAULT_PROMO;
+
   return (
     <Container
       as="section"
@@ -178,45 +166,42 @@ export default function DailyBestSales({ products }: DailyBestSalesProps) {
         ))}
 
         {/* Promo card */}
-        <div
-          className="rounded-2xl overflow-hidden relative flex flex-col md:col-span-2 lg:col-span-1 lg:row-span-2 lg:col-start-4 lg:row-start-1 order-first lg:order-none"
+        <Link
+          href={card.href}
+          className="rounded-2xl overflow-hidden relative flex flex-col md:col-span-2 lg:col-span-1 lg:row-span-2 lg:col-start-4 lg:row-start-1 order-first lg:order-none group"
           style={{
             background: "linear-gradient(180deg, #FFF8F0 0%, #FEF3E8 100%)",
             animation: "fadeSlideUp 0.5s ease-out 300ms both",
           }}
         >
           <div className="p-5 flex-1 flex flex-col">
-            {/* Icon */}
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
               <ShoppingBag size={20} className="text-primary" />
             </div>
 
-            {/* Text */}
             <p className="text-base font-bold text-foreground leading-snug mb-2">
-              {formatPrice(5000)} de réduction sur votre première commande
+              {card.title}
             </p>
             <p className="text-xs text-muted-foreground mb-4">
-              Livraison avant 6h15
+              {card.subtitle}
             </p>
 
-            {/* CTA */}
-            <button className="group flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-primary-dark hover:shadow-lg hover:shadow-primary/25 active:scale-95 w-fit">
-              Acheter maintenant
+            <span className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 group-hover:bg-primary-dark group-hover:shadow-lg group-hover:shadow-primary/25 w-fit">
+              {card.ctaLabel}
               <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </button>
+            </span>
           </div>
 
-          {/* Grocery Image */}
           <div className="relative w-full h-[180px] mt-auto">
             <Image
-              src="/promos/grocery-bag.png"
-              alt="Promotion panier de courses"
+              src={card.image || "/promos/grocery-bag.png"}
+              alt={card.title}
               fill
               className="object-cover object-top"
               sizes="280px"
             />
           </div>
-        </div>
+        </Link>
       </div>
     </Container>
   );
