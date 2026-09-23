@@ -26,13 +26,13 @@ export default function FreshCategories({ categories }: FreshCategoriesProps) {
           scrollRef={scrollRef}
           direction="left"
           scrollAmount={320}
-          className="absolute -left-3 top-1/2 -translate-y-1/2 z-10"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 hidden sm:flex"
         />
 
         {/* Category Cards */}
         <div
           ref={scrollRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide scroll-smooth -mx-4 px-4 lg:mx-0 lg:px-2"
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-10"
         >
           {categories.map((category, index) => (
             <Link
@@ -92,7 +92,7 @@ export default function FreshCategories({ categories }: FreshCategoriesProps) {
           scrollRef={scrollRef}
           direction="right"
           scrollAmount={320}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 z-10"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 hidden sm:flex"
         />
       </div>
     </Container>

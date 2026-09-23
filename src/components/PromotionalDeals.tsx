@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/ui";
@@ -77,11 +78,13 @@ export default function PromotionalDeals({ deals }: PromotionalDealsProps) {
         {deals.map((deal, index) => {
           const c = countdowns[index];
           const isLight = deal.variant === "light";
+          const href = deal.href || "/search";
 
           return (
-            <div
+            <Link
               key={deal.id}
-              className={`group relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-500 hover:shadow-xl ${
+              href={href}
+              className={`group relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-500 hover:shadow-xl block ${
                 isLight
                   ? "bg-white border border-border-light shadow-sm"
                   : "bg-gray-900"
@@ -151,15 +154,15 @@ export default function PromotionalDeals({ deals }: PromotionalDealsProps) {
                 )}
 
                 {/* Shop Now */}
-                <button className="group/btn flex items-center gap-1.5 w-fit rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition-all duration-300 hover:bg-primary-dark hover:shadow-lg hover:shadow-primary/25 active:scale-95">
+                <span className="group/btn inline-flex items-center gap-1.5 w-fit rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition-all duration-300 group-hover:bg-primary-dark group-hover:shadow-lg group-hover:shadow-primary/25">
                   Acheter
                   <ArrowRight
                     size={14}
                     className="transition-transform duration-300 group-hover/btn:translate-x-1"
                   />
-                </button>
+                </span>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

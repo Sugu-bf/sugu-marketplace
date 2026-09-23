@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +19,7 @@ interface ViewAllButtonProps {
 function ViewAllButton({
   label = "Voir tout",
   count,
-  href,
+  href = "/search",
   onClick,
   className,
 }: ViewAllButtonProps) {
@@ -39,18 +40,18 @@ function ViewAllButton({
     className
   );
 
-  if (href) {
+  if (onClick && !href) {
     return (
-      <a href={href} className={classes}>
+      <button type="button" onClick={onClick} className={classes}>
         {content}
-      </a>
+      </button>
     );
   }
 
   return (
-    <button onClick={onClick} className={classes}>
+    <Link href={href} className={classes} onClick={onClick}>
       {content}
-    </button>
+    </Link>
   );
 }
 

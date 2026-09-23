@@ -22,7 +22,7 @@ export default function BestSeller({ products }: BestSellerProps) {
         title="Meilleures Ventes"
         action={
           <div className="flex items-center gap-3">
-            <ViewAllButton label="Voir tout" count={40} />
+            <ViewAllButton label="Voir tout" count={40} href="/search" />
             <div className="hidden sm:block">
               <ScrollArrows scrollRef={scrollRef} />
             </div>

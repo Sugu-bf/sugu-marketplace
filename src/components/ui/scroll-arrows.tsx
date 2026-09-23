@@ -37,6 +37,7 @@ function ScrollArrows({
   const btnClasses = cn(
     "flex items-center justify-center rounded-full border border-border bg-white transition-all duration-200",
     "hover:border-primary/40 hover:bg-primary-50 hover:shadow-md active:scale-90",
+    "pointer-events-auto relative z-20",
     size === "sm" ? "h-8 w-8" : "h-9 w-9"
   );
 
@@ -45,6 +46,7 @@ function ScrollArrows({
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
       <button
+        type="button"
         onClick={() => scroll("left")}
         className={btnClasses}
         aria-label="Défiler vers la gauche"
@@ -52,6 +54,7 @@ function ScrollArrows({
         <ChevronLeft size={iconSize} className="text-muted-foreground" />
       </button>
       <button
+        type="button"
         onClick={() => scroll("right")}
         className={btnClasses}
         aria-label="Défiler vers la droite"
@@ -95,10 +98,11 @@ function ScrollArrow({
 
   return (
     <button
+      type="button"
       onClick={scroll}
       className={cn(
         "flex items-center justify-center rounded-full border border-border bg-white shadow-md transition-all duration-200",
-        "hover:shadow-lg hover:scale-110 active:scale-90",
+        "hover:shadow-lg hover:scale-110 active:scale-90 pointer-events-auto relative z-20",
         size === "sm" ? "h-8 w-8" : "h-9 w-9",
         className
       )}

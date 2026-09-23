@@ -25,7 +25,7 @@ export default function TrendingStores({ tags, products }: TrendingStoresProps) 
         title="Favoris des Boutiques"
         action={
           <div className="flex items-center gap-3">
-            <ViewAllButton label="Voir tout" />
+            <ViewAllButton label="Voir tout" href="/stores" />
             <div className="hidden sm:block">
               <ScrollArrows scrollRef={productScrollRef} />
             </div>

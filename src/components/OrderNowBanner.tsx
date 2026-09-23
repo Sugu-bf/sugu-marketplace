@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Image from "next/image";
 import { ShoppingCart } from "lucide-react";
 import { Container, ProductCard } from "@/components/ui";
@@ -10,6 +11,9 @@ interface OrderNowBannerProps {
 }
 
 export default function OrderNowBanner({ products, dealCard }: OrderNowBannerProps) {
+  const href = dealCard.href || "/search";
+  const ctaLabel = dealCard.ctaLabel || "Explorer la boutique";
+
   return (
     <Container
       as="section"
@@ -32,9 +36,10 @@ export default function OrderNowBanner({ products, dealCard }: OrderNowBannerPro
           ))}
         </div>
 
-        {/* Right side - Deals of the Day */}
-        <div
-          className="lg:w-[380px] flex-shrink-0 relative overflow-hidden rounded-3xl bg-primary"
+        {/* Right side - Offres du jour */}
+        <Link
+          href={href}
+          className="lg:w-[380px] flex-shrink-0 relative overflow-hidden rounded-3xl bg-primary block group"
           style={{
             minHeight: "340px",
             animation: "fadeSlideUp 0.6s ease-out 500ms both",
@@ -59,23 +64,23 @@ export default function OrderNowBanner({ products, dealCard }: OrderNowBannerPro
               {dealCard.expiry}
             </p>
 
-            <button className="group flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-foreground transition-all duration-300 hover:shadow-lg hover:shadow-black/10 hover:scale-105 active:scale-95">
-              Explorer la boutique
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-foreground transition-all duration-300 group-hover:shadow-lg group-hover:shadow-black/10 group-hover:scale-105">
+              {ctaLabel}
               <ShoppingCart size={16} className="transition-transform duration-300 group-hover:translate-x-0.5" />
-            </button>
+            </span>
           </div>
 
           {/* Grocery basket image */}
           <div className="absolute bottom-0 right-0 w-[55%] h-[60%]">
             <Image
               src={dealCard.image}
-              alt="Panier de courses"
+              alt={dealCard.title}
               fill
               className="object-contain object-bottom-right"
               sizes="250px"
             />
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Bottom divider */}
