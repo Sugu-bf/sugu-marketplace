@@ -9,6 +9,7 @@ import type {
   TrustBadge,
   DailyDealCard,
   DailyBestSaleProduct,
+  DailyBestSalesPromo,
   WeeklyDeal,
   ProductColumnItem,
   Tag,
@@ -78,6 +79,16 @@ export class MockHomeService implements HomeRepository {
 
   async getDailyBestSaleProducts(): Promise<DailyBestSaleProduct[]> {
     return mockDailyBestSaleProducts;
+  }
+
+  async getDailyBestSalesPromo(): Promise<DailyBestSalesPromo> {
+    return {
+      title: "5 000 F de réduction sur votre première commande",
+      subtitle: "Livraison avant 6h15",
+      ctaLabel: "Acheter maintenant",
+      href: "/search",
+      image: "/promos/grocery-bag.png",
+    };
   }
 
   async getProduitsVedettes(): Promise<ProductColumnItem[]> {

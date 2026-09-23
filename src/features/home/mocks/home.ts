@@ -16,14 +16,15 @@ import type {
 // ─── Hero Banner Slides ─────────────────────────────────────
 
 export const mockBannerSlides: BannerSlide[] = [
-  { id: 1, image: "https://cdn.sugu.pro/p/banners/buy-smart.avif", alt: "Achetez malin La marketplace qui simplifie vos achats" },
-  { id: 2, image: "https://cdn.sugu.pro/p/banners/deliver-to-your-home.avif", alt: "Livré chez vous en moins de 2h" },
-  { id: 3, image: "https://cdn.sugu.pro/p/banners/factory-price.avif", alt: "Prix usine Direct fournisseurs pour revendeurs et achats en gros" },
+  { id: 1, image: "https://cdn.sugu.pro/p/banners/buy-smart.avif", alt: "Achetez malin La marketplace qui simplifie vos achats", href: "/search" },
+  { id: 2, image: "https://cdn.sugu.pro/p/banners/deliver-to-your-home.avif", alt: "Livré chez vous en moins de 2h", href: "/search" },
+  { id: 3, image: "https://cdn.sugu.pro/p/banners/factory-price.avif", alt: "Prix usine Direct fournisseurs pour revendeurs et achats en gros", href: "/search" },
 ];
 
 export const mockHeroBanner: HeroBanner = {
   image: "https://cdn.sugu.pro/p/banners/unprecedented-prices.avif",
   alt: "Prix sans précédent Offres exclusives",
+  href: "/search",
 };
 
 // ─── Category Pills ─────────────────────────────────────────
@@ -50,10 +51,10 @@ export const mockCategoryPills: CategoryPill[] = [
 // ─── Fresh Categories ───────────────────────────────────────
 
 export const mockFreshCategories: FreshCategory[] = [
-  { id: 1, title: "Frais Tous les Jours", subtitle: "Viande", price: 6099, image: "/categories/meat.png", bgColor: "#E8EDF3" },
-  { id: 2, title: "Frais Quotidien", subtitle: "Légumes", price: 6099, image: "/categories/vegetables.png", bgColor: "#EAF0E4" },
-  { id: 3, title: "Frais Tous les Jours", subtitle: "Lait", price: 100, image: "/categories/milk.png", bgColor: "#E3EEF0" },
-  { id: 4, title: "Frais Tous les Jours", subtitle: "Fruits", price: 6099, image: "/categories/fruits.png", bgColor: "#F0EDE3" },
+  { id: 1, title: "Frais Tous les Jours", subtitle: "Viande", price: 6099, image: "/categories/meat.png", bgColor: "#E8EDF3", href: "/search?q=Viande" },
+  { id: 2, title: "Frais Tous les Jours", subtitle: "Légumes", price: 6099, image: "/categories/vegetables.png", bgColor: "#EAF0E4", href: "/search?q=Légumes" },
+  { id: 3, title: "Frais Tous les Jours", subtitle: "Lait", price: 100, image: "/categories/milk.png", bgColor: "#E3EEF0", href: "/search?q=Lait" },
+  { id: 4, title: "Frais Tous les Jours", subtitle: "Fruits", price: 6099, image: "/categories/fruits.png", bgColor: "#F0EDE3", href: "/search?q=Fruits" },
 ];
 
 // ─── Promotional Deals ──────────────────────────────────────
@@ -61,19 +62,21 @@ export const mockFreshCategories: FreshCategory[] = [
 export const mockPromotionalDeals: PromotionalDeal[] = [
   {
     id: 1,
-    title: "X-Connect Smart Television",
+    title: "Offres du jour",
     subtitle: "Temps restant jusqu'à la fin de l'offre.",
     image: "/promos/pasta.png",
     variant: "light",
-    countdown: { days: 677, hours: 15, minutes: 32, seconds: 37 },
+    countdown: { days: 2, hours: 15, minutes: 32, seconds: 37 },
+    href: "/search",
   },
   {
     id: 2,
-    title: "Vegetables Combo Box",
+    title: "Panier légumes du marché",
     subtitle: "Temps restant jusqu'à la fin de l'offre.",
     image: "/promos/vegetables.png",
     variant: "dark",
-    countdown: { days: 616, hours: 15, minutes: 32, seconds: 37 },
+    countdown: { days: 1, hours: 8, minutes: 12, seconds: 5 },
+    href: "/search",
   },
 ];
 
@@ -95,11 +98,13 @@ export const mockTrendingTags: Tag[] = [
 // ─── Daily Deal Card (sidebar orange) ───────────────────────
 
 export const mockDailyDealCard: DailyDealCard = {
-  category: "Équipement médical",
+  category: "Offres du jour",
   title: "Offres du jour",
   subtitle: "Économisez jusqu'à 50% sur votre première commande",
-  expiry: "Offre expirée actualisation...",
+  expiry: "Offre limitée",
   image: "/promos/grocery-basket.png",
+  href: "/search",
+  ctaLabel: "Explorer la boutique",
 };
 
 // ─── Brands ─────────────────────────────────────────────────
@@ -171,8 +176,8 @@ export const mockWeeklyDeal: WeeklyDeal = {
 // ─── Trust Badges ───────────────────────────────────────────
 
 export const mockTrustBadges: TrustBadge[] = [
-  { iconName: "truck", title: "Livraison Gratuite", subtitle: "Livraison gratuite partout" },
-  { iconName: "award", title: "100% Satisfaction", subtitle: "Garantie de satisfaction totale" },
-  { iconName: "shield-check", title: "Paiements Sécurisés", subtitle: "Transactions 100% sécurisées" },
-  { iconName: "headphones", title: "Support 24/7", subtitle: "Support client disponible 24/7" },
+  { iconName: "truck", title: "Livraison rapide", subtitle: "Suivi de commande en temps réel" },
+  { iconName: "award", title: "Qualité contrôlée", subtitle: "Vendeurs vérifiés sur Sugu" },
+  { iconName: "shield-check", title: "Paiements sécurisés", subtitle: "Transactions protégées" },
+  { iconName: "headphones", title: "Support client", subtitle: "Une équipe à votre écoute" },
 ];

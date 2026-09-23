@@ -21,6 +21,7 @@ import {
   queryDailyDealCard,
   queryBrands,
   queryDailyBestSaleProducts,
+  queryDailyBestSalesPromo,
   queryProduitsVedettes,
   queryMeilleuresVentes,
   queryEnPromotion,
@@ -60,6 +61,7 @@ export default async function HomePage() {
     dailyDealCard,
     brands,
     dailyBestSaleProducts,
+    dailyBestSalesPromo,
     produitsVedettes,
     meilleuresVentes,
     enPromotion,
@@ -77,6 +79,7 @@ export default async function HomePage() {
     queryDailyDealCard(),
     queryBrands(),
     queryDailyBestSaleProducts(),
+    queryDailyBestSalesPromo(),
     queryProduitsVedettes(),
     queryMeilleuresVentes(),
     queryEnPromotion(),
@@ -126,7 +129,7 @@ export default async function HomePage() {
       <ShopByBrands brands={brands} />
 
       {/* SECTION 9: Daily Best Sales */}
-      <DailyBestSales products={dailyBestSaleProducts} />
+      <DailyBestSales products={dailyBestSaleProducts} promo={dailyBestSalesPromo} />
     </>
   );
 }

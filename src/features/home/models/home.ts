@@ -80,6 +80,16 @@ export const DailyDealCardSchema = z.object({
   expiry: z.string(),
   image: z.string(),
   href: z.string().optional(),
+  ctaLabel: z.string().optional(),
+});
+
+/** Promo sidebar card on "Meilleures Ventes du Jour" */
+export const DailyBestSalesPromoSchema = z.object({
+  title: z.string(),
+  subtitle: z.string(),
+  ctaLabel: z.string(),
+  href: z.string(),
+  image: z.string().optional(),
 });
 
 // ─── Daily Best Sale product (horizontal card) ──────────────
@@ -155,6 +165,7 @@ export type PromotionalDeal = z.infer<typeof PromotionalDealSchema>;
 export type Brand = z.infer<typeof BrandSchema>;
 export type TrustBadge = z.infer<typeof TrustBadgeSchema>;
 export type DailyDealCard = z.infer<typeof DailyDealCardSchema>;
+export type DailyBestSalesPromo = z.infer<typeof DailyBestSalesPromoSchema>;
 export type DailyBestSaleProduct = z.infer<typeof DailyBestSaleProductSchema>;
 export type WeeklyDeal = z.infer<typeof WeeklyDealSchema>;
 export type ProductColumnItem = z.infer<typeof ProductColumnItemSchema>;

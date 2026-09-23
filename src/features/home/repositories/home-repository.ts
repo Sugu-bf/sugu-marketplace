@@ -8,6 +8,7 @@ import type {
   TrustBadge,
   DailyDealCard,
   DailyBestSaleProduct,
+  DailyBestSalesPromo,
   WeeklyDeal,
   ProductColumnItem,
   Tag,
@@ -31,6 +32,7 @@ export interface HomeRepository {
   getDailyDealCard(): Promise<DailyDealCard>;
   getBrands(): Promise<Brand[]>;
   getDailyBestSaleProducts(): Promise<DailyBestSaleProduct[]>;
+  getDailyBestSalesPromo(): Promise<DailyBestSalesPromo>;
   getProduitsVedettes(): Promise<ProductColumnItem[]>;
   getMeilleuresVentes(): Promise<ProductColumnItem[]>;
   getEnPromotion(): Promise<ProductColumnItem[]>;

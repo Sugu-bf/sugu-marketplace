@@ -9,6 +9,7 @@ import type {
   TrustBadge,
   DailyDealCard,
   DailyBestSaleProduct,
+  DailyBestSalesPromo,
   WeeklyDeal,
   ProductColumnItem,
   Tag,
@@ -113,6 +114,14 @@ export async function queryBrands(): Promise<Brand[]> {
  */
 export async function queryDailyBestSaleProducts(): Promise<DailyBestSaleProduct[]> {
   return homeService.getDailyBestSaleProducts();
+}
+
+/**
+ * Promo card beside daily best sells.
+ * Cache: short (1 min) — same endpoint as daily best sells.
+ */
+export async function queryDailyBestSalesPromo(): Promise<DailyBestSalesPromo> {
+  return homeService.getDailyBestSalesPromo();
 }
 
 /**

@@ -225,6 +225,7 @@ export interface DailyBestSellsResult {
     logo_url?: string | null;
     title?: string | null;
     subtitle?: string | null;
+    delivery_by_text?: string | null;
     cta_label?: string | null;
     cta_url?: string | null;
     bg_image_url?: string | null;

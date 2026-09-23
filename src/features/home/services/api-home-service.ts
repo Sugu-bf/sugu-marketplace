@@ -18,6 +18,7 @@ import type {
   TrustBadge,
   DailyDealCard,
   DailyBestSaleProduct,
+  DailyBestSalesPromo,
   WeeklyDeal,
   ProductColumnItem,
   Tag,
@@ -59,6 +60,12 @@ import {
 } from "../mocks/home";
 import { getMockProducts } from "@/features/product/mocks/products";
 
+/** Dead / legacy paths from banners → real marketplace routes */
+function resolveHomeHref(url?: string | null, fallback = "/search"): string {
+  if (!url || url === "#" || url === "/deals" || url === "/shop") return fallback;
+  return url;
+}
+
 // ─── Transform Helpers ───────────────────────────────────────
 
 function bannerItemToSlide(item: ApiBannerItem, index: number): BannerSlide {
@@ -66,7 +73,7 @@ function bannerItemToSlide(item: ApiBannerItem, index: number): BannerSlide {
     id: Number(item.id) || index + 1,
     image: item.media?.url ?? "/banners/placeholder.png",
     alt: item.media?.alt ?? item.title ?? "Banner",
-    href: item.cta_url ?? undefined,
+    href: resolveHomeHref(item.cta_url, "/search"),
   };
 }
 
@@ -74,7 +81,7 @@ function bannerItemToHero(item: ApiBannerItem): HeroBanner {
   return {
     image: item.media?.url ?? "/banners/placeholder.png",
     alt: item.media?.alt ?? item.title ?? "Hero Banner",
-    href: item.cta_url ?? undefined,
+    href: resolveHomeHref(item.cta_url, "/search"),
   };
 }
 
@@ -208,28 +215,37 @@ export class ApiHomeService implements HomeRepository {
 
   async getFreshCategories(): Promise<FreshCategory[]> {
     // Fresh Categories are stored as banners in slot "marketplace.home.promotional"
-    // Each banner has meta: { title_highlight, price, bg_color, desktop_url, position }
+    // Prefer structured meta: title_highlight (eyebrow), subtitle (category), title fallback
     const banners = await fetchBannerSlot("marketplace.home.promotional");
     if (banners.length === 0) return mockFreshCategories;
 
     const defaultBgColors = ["#E8EDF3", "#EAF0E4", "#E3EEF0", "#F0EDE3", "#F0E8E3", "#E3F0EA"];
 
     return banners.map((b, i) => {
-      // title_highlight contains something like "Everyday Fresh Meat"
-      // title contains the same or similar — split into title + subtitle
-      const highlight = b.title_highlight ?? b.title ?? "";
-      const parts = highlight.split(/\s+/);
-      // If title_highlight looks like "Everyday Fresh Meat", split at last word as subtitle
-      // Otherwise use the full banner title as subtitle
-      let title = "Everyday Fresh";
-      let subtitle = b.title ?? highlight;
+      const highlight = (b.title_highlight ?? "").trim();
+      const bannerTitle = (b.title ?? "").trim();
+      const bannerSubtitle = (b.subtitle ?? "").trim();
 
-      if (parts.length >= 3) {
-        // e.g. "Everyday Fresh Meat" → title="Everyday Fresh", subtitle="Meat"
-        // or "Daily Fresh Vegetables" → title="Daily Fresh", subtitle="Vegetables"
-        subtitle = parts[parts.length - 1];
-        title = parts.slice(0, -1).join(" ");
+      let title = "Frais Tous les Jours";
+      let subtitle = bannerSubtitle || bannerTitle || "Sélection";
+
+      if (bannerSubtitle) {
+        title = highlight || bannerTitle || title;
+        subtitle = bannerSubtitle;
+      } else if (highlight) {
+        const parts = highlight.split(/\s+/);
+        if (parts.length >= 3) {
+          subtitle = parts[parts.length - 1]!;
+          title = parts.slice(0, -1).join(" ");
+        } else {
+          title = highlight;
+          subtitle = bannerTitle || subtitle;
+        }
+      } else if (bannerTitle) {
+        title = bannerTitle;
       }
+
+      const searchFallback = `/search?q=${encodeURIComponent(subtitle)}`;
 
       return {
         id: Number(b.id) || i + 1,
@@ -237,8 +253,8 @@ export class ApiHomeService implements HomeRepository {
         subtitle,
         price: b.price ?? undefined,
         image: b.media?.url ?? "/categories/placeholder.png",
-        bgColor: b.bg_color ?? defaultBgColors[i % defaultBgColors.length],
-        href: b.cta_url ?? undefined,
+        bgColor: b.bg_color ?? defaultBgColors[i % defaultBgColors.length]!,
+        href: resolveHomeHref(b.cta_url, searchFallback),
       };
     });
   }
@@ -264,12 +280,12 @@ export class ApiHomeService implements HomeRepository {
           image: bannerImage,
           variant: "light",
           countdown,
-          href: result.banner.cta_url ?? undefined,
+          href: resolveHomeHref(result.banner.cta_url, "/search"),
         });
       }
 
       if (result.items.length > 0) {
-        const firstItem = result.items[0];
+        const firstItem = result.items[0]!;
         // Use real image if available, skip generic fallback-product.png
         const rawImage = firstItem.product.image?.url;
         const productImage =
@@ -283,7 +299,9 @@ export class ApiHomeService implements HomeRepository {
           image: productImage,
           variant: "dark",
           countdown,
-          href: firstItem.product.slug ? `/product/${firstItem.product.slug}` : undefined,
+          href: firstItem.product.slug
+            ? `/product/${firstItem.product.slug}`
+            : "/search",
         });
       }
 
@@ -317,13 +335,19 @@ export class ApiHomeService implements HomeRepository {
     if (result.banner) {
       return {
         category: result.banner.badge_label ?? "Offres du jour",
-        title: "Deals of the day",
-        subtitle: result.banner.subtitle ?? "Save up to 50% off on your first order",
+        title: result.banner.title ?? "Offres du jour",
+        subtitle:
+          result.banner.subtitle ??
+          "Économisez jusqu'à 50% sur votre première commande",
         expiry: result.countdown?.ends_at
           ? `Expire le ${new Date(result.countdown.ends_at).toLocaleDateString("fr-FR")}`
           : "Offre limitée",
-        image: result.banner.thumb_url ?? result.banner.image_url ?? "/promos/grocery-basket.png",
-        href: result.banner.cta_url ?? undefined,
+        image:
+          result.banner.thumb_url ??
+          result.banner.image_url ??
+          "/promos/grocery-basket.png",
+        href: resolveHomeHref(result.banner.cta_url, "/search"),
+        ctaLabel: result.banner.cta_label ?? "Explorer la boutique",
       };
     }
     return mockDailyDealCard;
@@ -347,6 +371,27 @@ export class ApiHomeService implements HomeRepository {
     const result = await fetchDailyBestSells(6);
     if (result.items.length > 0) return result.items.map(apiDailyBestSellToProduct);
     return mockDailyBestSaleProducts;
+  }
+
+  async getDailyBestSalesPromo(): Promise<DailyBestSalesPromo> {
+    const result = await fetchDailyBestSells(6);
+    const banner = result.promoBanner;
+    if (banner?.title) {
+      return {
+        title: banner.title,
+        subtitle: banner.subtitle ?? banner.delivery_by_text ?? "Offre limitée",
+        ctaLabel: banner.cta_label ?? "Acheter maintenant",
+        href: resolveHomeHref(banner.cta_url, "/search"),
+        image: banner.bg_image_url ?? undefined,
+      };
+    }
+    return {
+      title: "5 000 F de réduction sur votre première commande",
+      subtitle: "Livraison avant 6h15",
+      ctaLabel: "Acheter maintenant",
+      href: "/search",
+      image: "/promos/grocery-bag.png",
+    };
   }
 
   async getProduitsVedettes(): Promise<ProductColumnItem[]> {
