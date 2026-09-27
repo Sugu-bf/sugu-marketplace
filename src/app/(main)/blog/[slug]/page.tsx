@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { ArrowLeft, Clock } from "lucide-react";
 import { SITE_URL, SEO } from "@/lib/constants";
 import { API_BASE_URL } from "@/lib/api/config";
+import { Container, Breadcrumb } from "@/components/ui";
 
 const API_BASE = `${API_BASE_URL}/v1`;
 
@@ -56,6 +58,14 @@ async function fetchPost(slug: string): Promise<BlogPostData | null> {
   }
 }
 
+function formatLongDate(iso: string) {
+  return new Date(iso).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 // ─── Dynamic Metadata ────────────────────────────────────
 
 type MetadataProps = { params: Promise<{ slug: string }> };
@@ -91,15 +101,11 @@ export async function generateMetadata({
       authors: post.author ? [post.author.name] : undefined,
       ...(post.seo.og_image_url
         ? {
-            images: [
-              { url: post.seo.og_image_url, width: 1200, height: 630 },
-            ],
+            images: [{ url: post.seo.og_image_url, width: 1200, height: 630 }],
           }
         : post.cover
           ? {
-              images: [
-                { url: post.cover.url, width: 1200, height: 630 },
-              ],
+              images: [{ url: post.cover.url, width: 1200, height: 630 }],
             }
           : {}),
     },
@@ -129,172 +135,152 @@ export default async function BlogPostPage({ params }: PageProps) {
   }
 
   return (
-    <article className="min-h-screen bg-white">
-      {/* Cover Image */}
+    <article className="min-h-screen bg-background">
+      <Container className="py-3">
+        <Breadcrumb
+          items={[
+            { label: "Blog", href: "/blog" },
+            { label: post.title },
+          ]}
+        />
+      </Container>
+
+      {/* Cover */}
       {post.cover && (
-        <div className="relative w-full h-[320px] md:h-[480px] overflow-hidden bg-gray-100">
-          <Image
-            src={post.cover.url}
-            alt={post.cover.alt}
-            fill
-            className="object-cover"
-            priority
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12">
-            <div className="max-w-4xl mx-auto">
-              {/* Categories on cover */}
+        <Container className="pb-2">
+          <div className="relative overflow-hidden rounded-2xl border border-border-light bg-muted shadow-sm h-[240px] sm:h-[360px] md:h-[420px]">
+            <Image
+              src={post.cover.url}
+              alt={post.cover.alt}
+              fill
+              className="object-cover"
+              priority
+              sizes="(max-width: 1400px) 100vw, 1400px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8 md:p-10">
               {post.categories.length > 0 && (
-                <div className="flex gap-2 mb-4">
+                <div className="mb-3 flex flex-wrap gap-2">
                   {post.categories.map((cat) => (
                     <Link
                       key={cat.slug}
                       href={`/blog?category=${cat.slug}`}
-                      className="text-xs font-bold bg-white/20 text-white px-3 py-1 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors"
+                      className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm hover:bg-white/30 transition-colors"
                     >
                       {cat.name}
                     </Link>
                   ))}
                 </div>
               )}
-              <h1 className="text-3xl md:text-5xl font-extrabold text-white drop-shadow-lg leading-tight">
+              <h1 className="max-w-3xl text-2xl sm:text-3xl md:text-4xl font-extrabold text-white leading-tight drop-shadow-sm">
                 {post.title}
               </h1>
-              {/* Meta on cover */}
-              <div className="flex items-center gap-4 mt-4 text-sm text-white/80">
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/85">
                 {post.author && (
                   <span className="font-medium">{post.author.name}</span>
                 )}
-                <time>
-                  {new Date(post.published_at).toLocaleDateString("fr-FR", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
+                <time dateTime={post.published_at}>
+                  {formatLongDate(post.published_at)}
                 </time>
-                {post.reading_time && (
-                  <span className="flex items-center gap-1">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"
-                      />
-                    </svg>
+                {post.reading_time != null && (
+                  <span className="inline-flex items-center gap-1">
+                    <Clock size={14} />
                     {post.reading_time} min de lecture
                   </span>
                 )}
               </div>
             </div>
           </div>
-        </div>
+        </Container>
       )}
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8 md:py-16">
-        {/* Title without cover */}
-        {!post.cover && (
-          <header className="mb-10">
-            {post.categories.length > 0 && (
-              <div className="flex gap-2 mb-4">
-                {post.categories.map((cat) => (
+      <Container className="py-8 md:py-12">
+        <div className="mx-auto max-w-3xl">
+          {!post.cover && (
+            <header className="mb-8">
+              {post.categories.length > 0 && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {post.categories.map((cat) => (
+                    <Link
+                      key={cat.slug}
+                      href={`/blog?category=${cat.slug}`}
+                      className="rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary hover:bg-primary hover:text-white transition-colors"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-foreground leading-tight">
+                {post.title}
+              </h1>
+              <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                {post.author && (
+                  <span className="font-medium text-foreground/80">
+                    {post.author.name}
+                  </span>
+                )}
+                <time dateTime={post.published_at}>
+                  {formatLongDate(post.published_at)}
+                </time>
+                {post.reading_time != null && (
+                  <span className="inline-flex items-center gap-1">
+                    <Clock size={14} />
+                    {post.reading_time} min de lecture
+                  </span>
+                )}
+              </div>
+            </header>
+          )}
+
+          <div
+            className="prose prose-lg max-w-none
+              prose-headings:font-bold prose-headings:text-foreground
+              prose-p:text-foreground/80 prose-p:leading-relaxed
+              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+              prose-img:rounded-xl prose-img:border prose-img:border-border-light
+              prose-blockquote:border-l-primary prose-blockquote:bg-primary-50/50 prose-blockquote:py-1 prose-blockquote:rounded-r-lg
+              prose-th:bg-muted
+              prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
+              prose-li:marker:text-primary"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
+
+          {post.tags.length > 0 && (
+            <div className="mt-10 border-t border-border-light pt-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Tags
+                </span>
+                {post.tags.map((tag) => (
                   <Link
-                    key={cat.slug}
-                    href={`/blog?category=${cat.slug}`}
-                    className="text-xs font-bold bg-orange-50 text-orange-600 px-3 py-1 rounded-full hover:bg-orange-100 transition-colors"
+                    key={tag.slug}
+                    href={`/blog?tag=${tag.slug}`}
+                    className="rounded-full border border-border bg-white px-3 py-1 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
                   >
-                    {cat.name}
+                    #{tag.name}
                   </Link>
                 ))}
               </div>
-            )}
-            <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 leading-tight">
-              {post.title}
-            </h1>
-            <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
-              {post.author && (
-                <span className="font-medium text-gray-700">
-                  {post.author.name}
-                </span>
-              )}
-              <time>
-                {new Date(post.published_at).toLocaleDateString("fr-FR", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </time>
-              {post.reading_time && (
-                <span>{post.reading_time} min de lecture</span>
-              )}
             </div>
-          </header>
-        )}
+          )}
 
-        {/* Article Content */}
-        <div
-          className="prose prose-lg prose-gray max-w-none
-            prose-headings:font-extrabold prose-headings:text-gray-900
-            prose-p:text-gray-700 prose-p:leading-relaxed
-            prose-a:text-orange-600 prose-a:no-underline hover:prose-a:underline
-            prose-img:rounded-xl prose-img:shadow-md
-            prose-blockquote:border-l-orange-500 prose-blockquote:bg-orange-50/50 prose-blockquote:py-1 prose-blockquote:rounded-r-lg
-            prose-table:border prose-th:bg-gray-50
-            prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-            prose-li:marker:text-orange-500"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
-
-        {/* Tags */}
-        {post.tags.length > 0 && (
-          <div className="mt-12 pt-8 border-t border-gray-100">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Tags:
-              </span>
-              {post.tags.map((tag) => (
-                <Link
-                  key={tag.slug}
-                  href={`/blog?tag=${tag.slug}`}
-                  className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium hover:bg-gray-200 transition-colors"
-                >
-                  #{tag.name}
-                </Link>
-              ))}
-            </div>
+          <div className="mt-10 flex flex-col gap-3 border-t border-border-light pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              Dernière mise à jour :{" "}
+              {formatLongDate(post.updated_at || post.published_at)}
+            </p>
+            <Link
+              href="/blog"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Retour au blog
+            </Link>
           </div>
-        )}
-
-        {/* Footer */}
-        <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-between">
-          <div className="text-sm text-gray-500">
-            Dernière mise à jour :{" "}
-            {new Date(post.updated_at || post.published_at).toLocaleDateString(
-              "fr-FR",
-              {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              }
-            )}
-          </div>
-          <Link
-            href="/blog"
-            className="text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors flex items-center gap-1"
-          >
-            ← Retour au blog
-          </Link>
         </div>
-      </div>
+      </Container>
 
-      {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
