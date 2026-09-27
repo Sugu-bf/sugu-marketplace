@@ -30,22 +30,22 @@ export const mockHeroBanner: HeroBanner = {
 // ─── Category Pills ─────────────────────────────────────────
 
 export const mockCategoryPills: CategoryPill[] = [
-  { name: "Pain", icon: "wheat", slug: "pain" },
-  { name: "Fromage", icon: "cheese", slug: "fromage" },
-  { name: "Boissons", icon: "wine", slug: "boissons" },
-  { name: "Yaourt", icon: "cup-soda", slug: "yaourt" },
-  { name: "Fruits", icon: "apple", slug: "fruits" },
-  { name: "Pastèque", icon: "citrus", slug: "pasteque" },
-  { name: "Snacks", icon: "popcorn", slug: "snacks" },
-  { name: "Gâteau", icon: "cake-slice", slug: "gateau" },
-  { name: "Bonbons", icon: "candy", slug: "bonbons" },
-  { name: "Légumes", icon: "carrot", slug: "legumes" },
-  { name: "Agrumes", icon: "citrus", slug: "agrumes" },
-  { name: "Surgelés", icon: "snowflake", slug: "surgeles" },
-  { name: "Viande", icon: "beef", slug: "viande" },
-  { name: "Fruits de mer", icon: "fish", slug: "fruits-de-mer" },
-  { name: "Boulangerie", icon: "croissant", slug: "boulangerie" },
-  { name: "Jus", icon: "glass-water", slug: "jus" },
+  { name: "Pain", icon: "wheat", slug: "pain", image: "/categories/fruits.png", bgColor: "#E8EDF3" },
+  { name: "Fromage", icon: "cheese", slug: "fromage", image: "/categories/milk.png", bgColor: "#EAF0E4" },
+  { name: "Boissons", icon: "wine", slug: "boissons", image: "/categories/milk.png", bgColor: "#E3EEF0" },
+  { name: "Yaourt", icon: "cup-soda", slug: "yaourt", image: "/categories/milk.png", bgColor: "#F0EDE3" },
+  { name: "Fruits", icon: "apple", slug: "fruits", image: "/categories/fruits.png", bgColor: "#F0E8E3" },
+  { name: "Pastèque", icon: "citrus", slug: "pasteque", image: "/categories/fruits.png", bgColor: "#E3F0EA" },
+  { name: "Snacks", icon: "popcorn", slug: "snacks", image: "/categories/vegetables.png", bgColor: "#E8EDF3" },
+  { name: "Gâteau", icon: "cake-slice", slug: "gateau", image: "/categories/milk.png", bgColor: "#EAF0E4" },
+  { name: "Bonbons", icon: "candy", slug: "bonbons", image: "/categories/fruits.png", bgColor: "#E3EEF0" },
+  { name: "Légumes", icon: "carrot", slug: "legumes", image: "/categories/vegetables.png", bgColor: "#F0EDE3" },
+  { name: "Agrumes", icon: "citrus", slug: "agrumes", image: "/categories/fruits.png", bgColor: "#F0E8E3" },
+  { name: "Surgelés", icon: "snowflake", slug: "surgeles", image: "/categories/vegetables.png", bgColor: "#E3F0EA" },
+  { name: "Viande", icon: "beef", slug: "viande", image: "/categories/meat.png", bgColor: "#E8EDF3" },
+  { name: "Fruits de mer", icon: "fish", slug: "fruits-de-mer", image: "/categories/meat.png", bgColor: "#EAF0E4" },
+  { name: "Boulangerie", icon: "croissant", slug: "boulangerie", image: "/categories/fruits.png", bgColor: "#E3EEF0" },
+  { name: "Jus", icon: "glass-water", slug: "jus", image: "/categories/fruits.png", bgColor: "#F0EDE3" },
 ];
 
 // ─── Fresh Categories ───────────────────────────────────────

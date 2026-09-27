@@ -15,6 +15,7 @@ const CategoryChildSchema = z.object({
   slug: z.string(),
   name: z.string(),
   product_count: z.number().default(0),
+  image: z.string().nullable().optional(),
   icon_url: z.string().nullable().optional(),
 });
 

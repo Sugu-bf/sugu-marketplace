@@ -14,7 +14,7 @@ import {
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { formatPrice, DEFAULT_PRICE_RANGES } from "@/lib/constants";
-import { ProductCard, Pagination, Badge } from "@/components/ui";
+import { ProductCard, Pagination, Badge, CategoryTile } from "@/components/ui";
 import type { ProductListItem } from "@/features/product";
 import type { Subcategory } from "@/features/category";
 import {
@@ -340,50 +340,28 @@ export default function CategoryPageClient({
 
   return (
     <div>
-      {/* ─── Subcategory Chips ───────────────────────────────────── */}
+      {/* ─── Subcategory tiles (SWAPP) ─────────────────────────── */}
       {subcategories.length > 0 && (
         <div className="mb-6 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          <button
+          <CategoryTile
+            subtitle="Tout voir"
+            footer={`${totalProducts} produits`}
+            selected={filters.subcats.length === 0}
             onClick={clearAllFilters}
-            className={cn(
-              "flex items-center gap-2 flex-shrink-0 rounded-full px-4 py-2 text-sm font-medium shadow-sm transition-all duration-200",
-              filters.subcats.length === 0
-                ? "bg-primary text-white hover:bg-primary-dark"
-                : "border border-border bg-background text-foreground hover:border-primary/40 hover:bg-primary-50 hover:text-primary"
-            )}
-          >
-            Tout voir
-          </button>
-          {subcategories.map((sub) => (
-            <button
+            index={0}
+            size="sm"
+          />
+          {subcategories.map((sub, index) => (
+            <CategoryTile
               key={sub.slug}
+              subtitle={sub.name}
+              image={sub.image}
+              footer={`${sub.productCount} produits`}
+              selected={filters.subcats.includes(sub.slug)}
               onClick={() => toggleSubcategory(sub.slug)}
-              className={cn(
-                "flex items-center gap-2 flex-shrink-0 rounded-full px-4 py-2 text-sm shadow-sm transition-all duration-200",
-                filters.subcats.includes(sub.slug)
-                  ? "bg-primary text-white hover:bg-primary-dark font-medium"
-                  : "border border-border bg-background text-foreground hover:border-primary/40 hover:bg-primary-50 hover:text-primary"
-              )}
-            >
-              {sub.image && (
-                <div className="relative h-5 w-5 overflow-hidden rounded-full">
-                  <Image
-                    src={sub.image}
-                    alt={sub.name}
-                    fill
-                    className="object-cover"
-                    sizes="20px"
-                  />
-                </div>
-              )}
-              {sub.name}
-              <span className={cn(
-                "text-xs",
-                filters.subcats.includes(sub.slug) ? "text-white/70" : "text-muted-foreground"
-              )}>
-                ({sub.productCount})
-              </span>
-            </button>
+              index={index + 1}
+              size="sm"
+            />
           ))}
         </div>
       )}

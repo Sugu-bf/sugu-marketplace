@@ -39,7 +39,7 @@ export function mapApiChildToSubcategory(
     id: parseInt(child.id, 10) || 0,
     slug: child.slug,
     name: child.name,
-    image: child.icon_url ?? "",
+    image: child.image ?? child.icon_url ?? "",
     productCount: child.product_count,
     parentSlug,
   };

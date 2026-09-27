@@ -21,3 +21,9 @@ export { CountdownTimer } from "./countdown-timer";
 export { AssuranceBadge } from "./assurance-badge";
 export { Stepper, type StepperStep } from "./stepper";
 export { ToggleSwitch } from "./toggle-switch";
+export {
+  CategoryTile,
+  categoryTileBgColor,
+  CATEGORY_TILE_BG_COLORS,
+  type CategoryTileProps,
+} from "./category-tile";

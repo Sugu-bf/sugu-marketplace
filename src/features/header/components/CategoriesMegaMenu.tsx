@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Menu,
   ChevronRight,
   Tag,
-  Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CategoryTile } from "@/components/ui";
 import type { HeaderCategory } from "../api/header.schemas";
 
 /**
@@ -220,65 +219,36 @@ export default function CategoriesMegaMenu({ categories }: CategoriesMegaMenuPro
                         </Link>
                       </div>
 
-                      {/* Children Grid */}
-                      <div className="grid grid-cols-5 xl:grid-cols-7 gap-4">
-                        {(activeCategory.children ?? []).map((child) => (
-                          <Link
+                      {/* Children Grid — SWAPP-style tiles */}
+                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                        {(activeCategory.children ?? []).map((child, index) => (
+                          <CategoryTile
                             key={child.id}
+                            subtitle={child.name}
+                            image={child.image ?? child.icon_url}
                             href={`/category/${child.slug}`}
-                            className="group flex flex-col items-center gap-2 text-center"
+                            footer={
+                              child.product_count != null
+                                ? `${child.product_count} produits`
+                                : undefined
+                            }
+                            index={index}
+                            size="sm"
+                            className="!w-full"
                             onClick={() => setOpen(false)}
-                          >
-                            <div className="w-[72px] h-[72px] rounded-full bg-muted flex items-center justify-center transition-all duration-200 group-hover:bg-orange-50 group-hover:shadow-md overflow-hidden">
-                              {child.icon_url ? (
-                                // SVG Lucide depuis R2 — filtre CSS pour coloriser
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={child.icon_url}
-                                  alt=""
-                                  width={32}
-                                  height={32}
-                                  className="object-contain transition-all duration-200 group-hover:scale-110"
-                                  style={{ filter: LUCIDE_SVG_FILTER }}
-                                  onError={(e) => {
-                                    // Fallback silencieux si l'image ne charge pas
-                                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              ) : child.image ? (
-                                <Image
-                                  src={child.image}
-                                  alt={child.name}
-                                  width={48}
-                                  height={48}
-                                  className="object-contain"
-                                  sizes="48px"
-                                />
-                              ) : (
-                                <Camera
-                                  size={22}
-                                  className="text-border group-hover:text-primary transition-colors duration-200"
-                                />
-                              )}
-                            </div>
-                            <span className="text-[11px] leading-tight text-muted-foreground group-hover:text-primary transition-colors duration-200 max-w-[90px]">
-                              {child.name}
-                            </span>
-                          </Link>
+                          />
                         ))}
 
                         {/* "Voir plus" Link */}
-                        <Link
+                        <CategoryTile
+                          subtitle="Voir plus"
                           href={`/category/${activeCategory.slug}`}
-                          className="group flex flex-col items-center gap-2 text-center"
+                          footer="Toutes les sélections"
+                          index={(activeCategory.children ?? []).length}
+                          size="sm"
+                          className="!w-full opacity-90"
                           onClick={() => setOpen(false)}
-                        >
-                          <div className="w-[72px] h-[72px] rounded-full bg-muted/50 border-2 border-dashed border-border flex items-center justify-center transition-all duration-200 group-hover:border-primary/40 group-hover:bg-primary-50">
-                            <span className="text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors duration-200">
-                              Voir plus
-                            </span>
-                          </div>
-                        </Link>
+                        />
                       </div>
                     </div>
                   )}

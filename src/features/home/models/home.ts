@@ -15,12 +15,15 @@ export const HeroBannerSchema = z.object({
   href: z.string().optional(),
 });
 
-// ─── Category Bar (Lucide icon pills) ───────────────────────
+// ─── Category Bar (SWAPP-style tiles) ───────────────────────
 
 export const CategoryPillSchema = z.object({
   name: z.string(),
   icon: z.string(),
   slug: z.string().optional(),
+  image: z.string().optional(),
+  bgColor: z.string().optional(),
+  productCount: z.number().optional(),
 });
 
 // ─── Fresh Category Cards ────────────────────────────────────

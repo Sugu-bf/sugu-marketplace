@@ -85,14 +85,18 @@ function bannerItemToHero(item: ApiBannerItem): HeroBanner {
   };
 }
 
-function apiCategoryToPill(cat: ApiCategory): CategoryPill {
+function apiCategoryToPill(cat: ApiCategory, index = 0): CategoryPill {
   const iconName = typeof cat.icon === "object" && cat.icon !== null
     ? (cat.icon as { name?: string }).name ?? null
     : null;
+  const defaultBgColors = ["#E8EDF3", "#EAF0E4", "#E3EEF0", "#F0EDE3", "#F0E8E3", "#E3F0EA"];
   return {
     name: cat.name,
     icon: iconName ?? "tag",
     slug: cat.slug,
+    image: cat.image ?? undefined,
+    bgColor: defaultBgColors[index % defaultBgColors.length],
+    productCount: cat.product_count,
   };
 }
 
