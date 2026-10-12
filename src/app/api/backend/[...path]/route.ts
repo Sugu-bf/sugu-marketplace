@@ -30,6 +30,11 @@ const FORWARDED_REQUEST_HEADERS = [
   "x-cart-token",
   "x-wishlist-token",
   "x-idempotency-key",
+  // The address of the visitor, as the proxy in front of this app wrote it.
+  // Laravel reads it only where it trusts the hop it comes from
+  // (TRUSTED_PROXIES): its limits by address then count each visitor, not
+  // this server.
+  "x-forwarded-for",
 ] as const;
 
 function isMutatingMethod(method: string): boolean {
