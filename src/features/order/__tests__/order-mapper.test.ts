@@ -6,7 +6,7 @@
 
 import { describe, test, expect } from "vitest";
 import { mapApiToTrackedOrder } from "../mappers/order-mapper";
-import { OrderTrackingApiSchema } from "../models/order";
+import { OrderTrackingApiSchema, canPrepayCodClassic } from "../models/order";
 import type { OrderTrackingApiData } from "../models/order";
 
 type CodMixteApi = NonNullable<OrderTrackingApiData["codMixte"]>;
@@ -83,6 +83,52 @@ describe("mapApiToTrackedOrder — COD Mixte shipmentId", () => {
   test("leaves codMixte null for a non-COD-Mixte order", () => {
     const mapped = mapApiToTrackedOrder(baseApiOrder());
     expect(mapped.codMixte).toBeNull();
+  });
+});
+
+describe("OrderTrackingApiSchema — payment status contract", () => {
+  // Every word Order::paymentSituation() can answer on the backend. "refunded"
+  // and "hold" were refused: the tracking page of a refunded order, or of one
+  // whose payment is held for review, showed an error instead of the order.
+  test.each(["paid", "partial", "cod_pending", "pending", "hold", "refunded", "failed"] as const)(
+    "accepts an order whose payment is %s, and maps it through",
+    (paymentStatus) => {
+      const base = baseApiOrder();
+      const api = { ...base, pricing: { ...base.pricing, paymentStatus } };
+
+      const parsed = OrderTrackingApiSchema.parse(api);
+
+      expect(mapApiToTrackedOrder(parsed).paymentStatus).toBe(paymentStatus);
+    },
+  );
+
+  test("still refuses a word the backend never answers", () => {
+    const base = baseApiOrder();
+    const api = { ...base, pricing: { ...base.pricing, paymentStatus: "settled" } };
+
+    expect(OrderTrackingApiSchema.safeParse(api).success).toBe(false);
+  });
+});
+
+describe("canPrepayCodClassic — the online prepayment of a COD classic order", () => {
+  const cash = { codFlowType: "legacy", codPrepaid: false, total: 102000, paymentStatus: "cod_pending", codMixte: null } as const;
+
+  test("is offered while the cash is still to collect", () => {
+    expect(canPrepayCodClassic(cash)).toBe(true);
+    // A prepayment started and left unfinished can be tried again.
+    expect(canPrepayCodClassic({ ...cash, paymentStatus: "pending" })).toBe(true);
+    expect(canPrepayCodClassic({ ...cash, paymentStatus: "failed" })).toBe(true);
+  });
+
+  test.each(["paid", "refunded", "hold"] as const)("is not offered once the payment is %s", (paymentStatus) => {
+    expect(canPrepayCodClassic({ ...cash, paymentStatus })).toBe(false);
+  });
+
+  test("is not offered when already prepaid, on a COD Mixte order, or on an order that is not COD", () => {
+    expect(canPrepayCodClassic({ ...cash, codPrepaid: true })).toBe(false);
+    expect(canPrepayCodClassic({ ...cash, codMixte: codMixteBlock() })).toBe(false);
+    expect(canPrepayCodClassic({ ...cash, codFlowType: null })).toBe(false);
+    expect(canPrepayCodClassic({ ...cash, total: 0 })).toBe(false);
   });
 });
 

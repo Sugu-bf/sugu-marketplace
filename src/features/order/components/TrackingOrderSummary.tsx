@@ -19,9 +19,11 @@ import {
   ArrowRight,
   Banknote,
   MessageCircle,
+  Undo2,
 } from "lucide-react";
 import { useStartCourierConversation } from "@/features/messaging/hooks";
 import { formatPrice } from "@/lib/constants";
+import { canPrepayCodClassic } from "@/features/order";
 import type { OrderItem, TrackedOrder } from "@/features/order";
 
 // ─── COD Mixte step labels ────────────────────────────────────
@@ -113,7 +115,7 @@ function TrackingOrderSummary({
   const isCodMixte = codMixte?.isCodMixte ?? false;
   // C2-paiement — COD classic can be prepaid online (cumulative). OPTION only:
   // the cash-at-delivery path stays available while not yet prepaid.
-  const showCodClassicPay = codFlowType === "legacy" && !codPrepaid && !isCodMixte && total > 0;
+  const showCodClassicPay = canPrepayCodClassic({ codFlowType: codFlowType ?? null, codPrepaid: codPrepaid ?? false, total, paymentStatus, codMixte });
   const startCourierConv = useStartCourierConversation();
   const router = useRouter();
   const canContactCourier = !!(shipmentId && hasCourier);
@@ -704,6 +706,29 @@ function PaymentStatusBanner({
         <AlertCircle size={18} className="text-red-600 flex-shrink-0" />
         <span className="text-sm font-medium text-red-700">
           Paiement échoué
+        </span>
+      </div>
+    );
+  }
+
+  if (paymentStatus === "refunded") {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2.5">
+        <Undo2 size={18} className="text-muted-foreground flex-shrink-0" />
+        <span className="text-sm font-medium text-foreground">
+          Commande remboursée
+        </span>
+      </div>
+    );
+  }
+
+  // Payment held for review: nothing is asked of the buyer meanwhile.
+  if (paymentStatus === "hold") {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2.5">
+        <Clock size={18} className="text-amber-600 flex-shrink-0" />
+        <span className="text-sm font-medium text-amber-700">
+          Paiement en cours de vérification
         </span>
       </div>
     );

@@ -8,6 +8,8 @@ export {
   TrackedOrderSchema,
   OrderTrackingApiSchema,
   OrderTrackingResponseSchema,
+  PaymentStatusSchema,
+  canPrepayCodClassic,
 } from "./models/order";
 
 export type {
@@ -19,6 +21,7 @@ export type {
   OrderItem,
   TrackedOrder,
   OrderTrackingApiData,
+  PaymentStatus,
 } from "./models/order";
 
 export { mapApiToTrackedOrder } from "./mappers/order-mapper";

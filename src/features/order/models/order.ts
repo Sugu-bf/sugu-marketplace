@@ -25,6 +25,23 @@ export const OrderStatusSchema = z.enum([
   "cancelled",
 ]);
 
+// ─── Payment status (matches Order::paymentSituation() on the backend) ──
+// "refunded" and "hold" are answered for a refunded order and for a payment
+// held for review: left out, the whole tracking payload of such an order
+// failed validation and the page showed an error instead of the order.
+// "unpaid" is no longer emitted; kept so an older payload still parses.
+
+export const PaymentStatusSchema = z.enum([
+  "paid",
+  "pending",
+  "failed",
+  "unpaid",
+  "partial",
+  "cod_pending",
+  "refunded",
+  "hold",
+]);
+
 // ─── Tracking Step (from backend statusSteps) ────────────────
 
 export const TrackingStepSchema = z.object({
@@ -140,7 +157,7 @@ export const OrderTrackingApiSchema = z.object({
     discount: z.number(),
     total: z.number(),
     currency: z.string(),
-    paymentStatus: z.enum(["paid", "pending", "failed", "unpaid", "partial", "cod_pending"]),
+    paymentStatus: PaymentStatusSchema,
     paymentMethod: z.string(),
   }),
 
@@ -216,7 +233,7 @@ export const TrackedOrderSchema = z.object({
   discount: z.number(),
   total: z.number(),
   paymentMethod: z.string(),
-  paymentStatus: z.enum(["paid", "pending", "failed", "unpaid", "partial", "cod_pending"]),
+  paymentStatus: PaymentStatusSchema,
 
   // COD Mixte split-payment state
   codMixte: z.object({
@@ -240,6 +257,7 @@ export const TrackedOrderSchema = z.object({
 
 export type BackendOrderStatus = z.infer<typeof BackendOrderStatusSchema>;
 export type OrderStatus = z.infer<typeof OrderStatusSchema>;
+export type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
 export type TrackingStep = z.infer<typeof TrackingStepSchema>;
 export type TimelineEvent = z.infer<typeof TimelineEventSchema>;
 export type ApiTimelineEvent = z.infer<typeof ApiTimelineEventSchema>;
@@ -247,3 +265,18 @@ export type DeliveryDriver = z.infer<typeof DeliveryDriverSchema>;
 export type OrderItem = z.infer<typeof OrderItemSchema>;
 export type OrderTrackingApiData = z.infer<typeof OrderTrackingApiSchema>;
 export type TrackedOrder = z.infer<typeof TrackedOrderSchema>;
+
+// ─── Rules ───────────────────────────────────────────────────
+
+/**
+ * C2-paiement — whether a COD classic order may still be prepaid online.
+ * An OPTION while the cash is still to collect; nothing is left to prepay once
+ * the order is paid (cash collected at the door included), refunded, or its
+ * payment held for review.
+ */
+export function canPrepayCodClassic(
+  order: Pick<TrackedOrder, "codFlowType" | "codPrepaid" | "total" | "paymentStatus" | "codMixte">,
+): boolean {
+  const paymentOpen = order.paymentStatus !== "paid" && order.paymentStatus !== "refunded" && order.paymentStatus !== "hold";
+  return order.codFlowType === "legacy" && !order.codPrepaid && !order.codMixte?.isCodMixte && order.total > 0 && paymentOpen;
+}
