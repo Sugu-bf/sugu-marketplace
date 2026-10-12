@@ -30,7 +30,7 @@ const HEADING_ID = "delivery-code-heading";
  * il ne le peut pas, la raison est dite et aucun code n'est affiché.
  */
 export function DeliveryCodeCard({ orderId, signal, className }: DeliveryCodeCardProps) {
-  const { deliveries, isLoading, isRefreshing, problem, retry } = useDeliveryCode(orderId, signal);
+  const { deliveries, isLoading, isRetrying, problem, retry } = useDeliveryCode(orderId, signal);
 
   // Commande close ou sans livraison : rien à confirmer, rien à afficher.
   const shown = (deliveries ?? []).filter((d) => d.state !== "order_closed");
@@ -52,7 +52,7 @@ export function DeliveryCodeCard({ orderId, signal, className }: DeliveryCodeCar
       </div>
 
       <div className="mt-3 space-y-3" role="status" aria-live="polite" aria-busy={isLoading}>
-        {isLoading && (
+        {isLoading && !problem && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 size={16} className="animate-spin" aria-hidden="true" />
             Chargement de votre code…
@@ -82,24 +82,24 @@ export function DeliveryCodeCard({ orderId, signal, className }: DeliveryCodeCar
           />
         ))}
 
-        {problem === "network" && (
+        {/* La vérification a échoué : rien de ce qui a été lu avant n'est affiché, code compris. */}
+        {problem === "unverified" && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
             <p className="flex items-start gap-2 text-sm text-red-700">
               <WifiOff size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
               <span>
-                {shown.length > 0
-                  ? "La dernière vérification a échoué. Vérifiez votre connexion : l'état affiché peut ne plus être à jour."
-                  : "Impossible de charger votre code pour le moment. Vérifiez votre connexion, puis réessayez."}
+                L&apos;état de votre code ne peut pas être vérifié pour le moment : il reste masqué
+                tant que la vérification n&apos;a pas réussi. Vérifiez votre connexion, puis réessayez.
               </span>
             </p>
             <button
               type="button"
               onClick={retry}
-              disabled={isRefreshing}
+              disabled={isRetrying}
               className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-full border border-red-300 bg-white px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
             >
-              <RefreshCw size={14} className={cn(isRefreshing && "animate-spin")} aria-hidden="true" />
-              {isRefreshing ? "Nouvel essai…" : "Réessayer"}
+              <RefreshCw size={14} className={cn(isRetrying && "animate-spin")} aria-hidden="true" />
+              {isRetrying ? "Nouvel essai…" : "Réessayer"}
             </button>
           </div>
         )}

@@ -8,7 +8,8 @@
  * pas un code d'un état passé.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { renderWithProviders, screen, waitFor, fireEvent } from "@/test/render";
+import { focusManager } from "@tanstack/react-query";
+import { renderWithProviders, screen, waitFor, fireEvent, act } from "@/test/render";
 
 const { getMock } = vi.hoisted(() => ({ getMock: vi.fn() }));
 
@@ -24,6 +25,7 @@ vi.mock("@/lib/api", async () => {
 
 import { ApiError } from "@/lib/api/errors";
 import { DeliveryCodeCard } from "../components/DeliveryCodeCard";
+import { MAX_VERIFIED_AGE } from "../hooks/useDeliveryCode";
 import { queryDeliveryCode } from "../queries/order-queries";
 import { isDeliveryCodeSettled, mapDeliveryCodeEntry } from "../models/delivery-code";
 
@@ -51,6 +53,13 @@ const refused = (status: number) =>
   new ApiError({ status, code: status === 401 ? "UNAUTHORIZED" : "NOT_FOUND", message: "Refusé" });
 
 const card = (signal = "shipping") => <DeliveryCodeCard orderId={ORDER} signal={signal} />;
+const UNVERIFIED = /L'état de votre code ne peut pas être vérifié pour le moment : il reste masqué/;
+/** The customer comes back to the tab: the code is checked again. */
+const comeBack = () =>
+  act(() => {
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+  });
 const shownCode = () => screen.queryByTestId("delivery-code");
 
 beforeEach(() => {
@@ -145,11 +154,7 @@ describe("DeliveryCodeCard", () => {
 
     expect(
       // A cut is tried once more before it is announced.
-      await screen.findByText(
-        "Impossible de charger votre code pour le moment. Vérifiez votre connexion, puis réessayez.",
-        undefined,
-        { timeout: 5_000 }
-      )
+      await screen.findByText(UNVERIFIED, undefined, { timeout: 5_000 })
     ).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledTimes(2);
     expect(shownCode()).toBeNull();
@@ -160,6 +165,131 @@ describe("DeliveryCodeCard", () => {
 
     await waitFor(() => expect(shownCode()).toHaveTextContent(CODE));
     expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  });
+
+  // ─── A code that can no longer be confirmed is no longer shown (V4.2) ───
+
+  test("hides a code it was showing as soon as checking it again fails", async () => {
+    getMock.mockResolvedValueOnce(answer(AVAILABLE));
+    const view = renderWithProviders(card());
+    await waitFor(() => expect(shownCode()).toHaveTextContent(CODE));
+
+    // The network drops: the check and its one retry both fail.
+    getMock.mockRejectedValue(networkError());
+    comeBack();
+
+    expect(await screen.findByText(UNVERIFIED, undefined, { timeout: 5_000 })).toBeInTheDocument();
+    expect(shownCode()).toBeNull();
+    expect(view.container.textContent).not.toContain(CODE);
+    // Nor what to do with it: nothing read before is presented as true.
+    expect(screen.queryByText(AVAILABLE.message)).toBeNull();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  });
+
+  test("keeps the code hidden while it tries again, and shows it once the server confirms it", async () => {
+    getMock.mockResolvedValueOnce(answer(AVAILABLE));
+    const view = renderWithProviders(card());
+    await waitFor(() => expect(shownCode()).toHaveTextContent(CODE));
+
+    getMock.mockRejectedValue(networkError());
+    comeBack();
+    await screen.findByText(UNVERIFIED, undefined, { timeout: 5_000 });
+
+    let release: (value: unknown) => void = () => {};
+    getMock.mockReset();
+    getMock.mockReturnValueOnce(new Promise((resolve) => (release = resolve)));
+    fireEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+
+    // The new answer is on its way: still no code.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Nouvel essai…" })).toBeDisabled());
+    expect(view.container.textContent).not.toContain(CODE);
+
+    await act(async () => release(answer(AVAILABLE)));
+    await waitFor(() => expect(shownCode()).toHaveTextContent(CODE));
+    expect(screen.queryByText(UNVERIFIED)).toBeNull();
+  });
+
+  test("hides the code when the server fails, as when the network does", async () => {
+    getMock.mockResolvedValueOnce(answer(AVAILABLE));
+    const view = renderWithProviders(card());
+    await waitFor(() => expect(shownCode()).toHaveTextContent(CODE));
+
+    getMock.mockRejectedValue(new ApiError({ status: 503, code: "SERVER_ERROR", message: "Indisponible" }));
+    comeBack();
+
+    expect(await screen.findByText(UNVERIFIED, undefined, { timeout: 5_000 })).toBeInTheDocument();
+    expect(view.container.textContent).not.toContain(CODE);
+  });
+
+  test("does not hide the code for one request that fails and passes at its retry", async () => {
+    getMock.mockResolvedValueOnce(answer(AVAILABLE));
+    renderWithProviders(card());
+    await waitFor(() => expect(shownCode()).toHaveTextContent(CODE));
+
+    // An unstable network: one failure, then the answer.
+    getMock.mockRejectedValueOnce(networkError()).mockResolvedValue(answer(AVAILABLE));
+    comeBack();
+
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(3), { timeout: 5_000 });
+    expect(shownCode()).toHaveTextContent(CODE);
+    expect(screen.queryByText(UNVERIFIED)).toBeNull();
+  });
+
+  test("removes the code when the check says the session is gone", async () => {
+    getMock.mockResolvedValueOnce(answer(AVAILABLE));
+    const view = renderWithProviders(card());
+    await waitFor(() => expect(shownCode()).toHaveTextContent(CODE));
+
+    getMock.mockRejectedValue(refused(401));
+    comeBack();
+
+    expect(await screen.findByText(/Connectez-vous avec le compte qui a passé la commande/)).toBeInTheDocument();
+    expect(view.container.textContent).not.toContain(CODE);
+  });
+
+  test("no longer shows an answer too old to prove anything, and asks again", async () => {
+    getMock.mockResolvedValueOnce(answer(AVAILABLE));
+    const view = renderWithProviders(card());
+    await waitFor(() => expect(shownCode()).toHaveTextContent(CODE));
+    expect(getMock).toHaveBeenCalledTimes(1);
+
+    // The phone slept: no check ran, and the answer is now older than two of them.
+    let release: (value: unknown) => void = () => {};
+    getMock.mockReturnValueOnce(new Promise((resolve) => (release = resolve)));
+    const later = Date.now() + MAX_VERIFIED_AGE + 1_000;
+    const clock = vi.spyOn(Date, "now").mockReturnValue(later);
+    try {
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+
+      await waitFor(() => expect(shownCode()).toBeNull());
+      expect(view.container.textContent).not.toContain(CODE);
+      expect(screen.getByText("Chargement de votre code…")).toBeInTheDocument();
+      await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+
+      await act(async () => release(answer(AVAILABLE)));
+      await waitFor(() => expect(shownCode()).toHaveTextContent(CODE));
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  test("keeps saying a delivery is done however old the answer: nothing can change any more", async () => {
+    getMock.mockResolvedValueOnce(answer(DELIVERED));
+    renderWithProviders(card("delivered"));
+    expect(await screen.findByText(DELIVERED.message)).toBeInTheDocument();
+
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10 * MAX_VERIFIED_AGE);
+    try {
+      act(() => {
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+      expect(screen.getByText(DELIVERED.message)).toBeInTheDocument();
+      expect(getMock).toHaveBeenCalledTimes(1);
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   test("shows the code as soon as the payment is known, and not the wait any more", async () => {
