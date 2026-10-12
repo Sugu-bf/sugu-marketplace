@@ -26,4 +26,7 @@ export type {
 
 export { mapApiToTrackedOrder } from "./mappers/order-mapper";
 
-export { queryTrackedOrder, queryTrackedOrderRaw } from "./queries/order-queries";
+export { queryTrackedOrder, queryTrackedOrderRaw, queryDeliveryCode } from "./queries/order-queries";
+
+export { isDeliveryCodeSettled } from "./models/delivery-code";
+export type { DeliveryCodeEntry, DeliveryCodeState } from "./models/delivery-code";

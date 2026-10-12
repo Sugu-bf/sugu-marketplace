@@ -2,6 +2,8 @@ import { api, v1Url } from "@/lib/api";
 import { OrderTrackingResponseSchema } from "../models/order";
 import { mapApiToTrackedOrder } from "../mappers/order-mapper";
 import type { TrackedOrder, OrderTrackingApiData } from "../models/order";
+import { DeliveryCodeResponseSchema, mapDeliveryCodeEntry } from "../models/delivery-code";
+import type { DeliveryCodeEntry } from "../models/delivery-code";
 
 /**
  * Fetch tracked order data from the real backend API.
@@ -48,3 +50,28 @@ export async function queryTrackedOrderRaw(
   return data.data.order;
 }
 
+
+/**
+ * Code de confirmation de livraison du client de la commande.
+ *
+ * Endpoint: GET /api/v1/orders/{orderId}/delivery-code
+ * Auth: Bearer token injected by the Web BFF (the owner of the order only)
+ * Cache: no-store — a secret, never kept anywhere
+ *
+ * @param orderId — Order ULID
+ * @throws ApiError
+ */
+export async function queryDeliveryCode(
+  orderId: string
+): Promise<DeliveryCodeEntry[]> {
+  const url = v1Url(`orders/${encodeURIComponent(orderId)}/delivery-code`);
+
+  const { data } = await api.get(url, {
+    schema: DeliveryCodeResponseSchema,
+    cache: "no-store",
+    revalidate: false,
+    timeout: 8_000,
+  });
+
+  return data.data.deliveries.map(mapDeliveryCodeEntry);
+}

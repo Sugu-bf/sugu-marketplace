@@ -6,6 +6,7 @@ import type { StepperStep } from "@/components/ui";
 
 import { Stepper } from "@/components/ui";
 import { TrackingMap } from "./TrackingMap";
+import { DeliveryCodeCard } from "./DeliveryCodeCard";
 import { DeliveryDetails } from "./DeliveryDetails";
 import { TrackingTimeline } from "./TrackingTimeline";
 import { TrackingOrderSummary } from "./TrackingOrderSummary";
@@ -41,6 +42,17 @@ export function TrackingLiveWrapper({
 
   const currentStepId =
     order.trackingSteps.find((s) => s.status === "current")?.id ?? "";
+
+  // What the tracking knows of the order: the delivery code is asked again
+  // as soon as any of it changes, so a code of a past state never stays.
+  const deliveryCodeSignal = [
+    order.status,
+    order.paymentStatus,
+    order.timeline.length,
+    order.driver?.name ?? "",
+    order.codMixte?.currentStep ?? "",
+    order.codMixte?.productFeePaid ? "paid" : "",
+  ].join("|");
 
   // Determine map status message
   const mapStatusMessage = (() => {
@@ -117,6 +129,9 @@ export function TrackingLiveWrapper({
               completedStepIds={completedStepIds}
             />
           </section>
+
+          {/* Delivery confirmation code — read by the customer, told to the courier */}
+          <DeliveryCodeCard orderId={orderId} signal={deliveryCodeSignal} />
 
           {/* Live Tracking Map */}
           <TrackingMap statusMessage={mapStatusMessage} />

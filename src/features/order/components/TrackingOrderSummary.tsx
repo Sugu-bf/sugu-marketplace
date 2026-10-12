@@ -61,7 +61,7 @@ const COD_MIXTE_STEP_LABELS: Record<string, { label: string; description: string
   },
   awaiting_code: {
     label: "Code de livraison",
-    description: "Communiquez le code reçu au coursier pour finaliser.",
+    description: "Communiquez au coursier le code affiché sur cette page pour finaliser.",
     icon: ShieldCheck,
   },
   completed: {
