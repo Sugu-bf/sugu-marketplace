@@ -613,7 +613,7 @@ function CheckoutOrchestrator({
             shippingCost={shippingCost}
             discount={discount}
             total={total}
-            initialCouponCode={null}
+            initialCouponCode={session.coupon_code ?? null}
             shippingLabel={
               selectedMethod?.icon === "zap" ? "Express" : undefined
             }

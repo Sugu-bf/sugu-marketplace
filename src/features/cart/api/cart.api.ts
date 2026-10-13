@@ -89,7 +89,7 @@ function mapApiResponseToCartUI(responseData: ApiCartResponse): CartUI {
   return {
     lines: responseData.data.items.map(mapLineToUI),
     totals: mapTotalsToUI(responseData.data.totals, currency),
-    couponCode: null,
+    couponCode: responseData.data.coupon_code ?? null,
     warnings: responseData.warnings ?? [],
     isEmpty: responseData.data.items.length === 0,
   };

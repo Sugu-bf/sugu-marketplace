@@ -107,6 +107,8 @@ export const CheckoutSessionApiSchema = z.object({
   shipping_address: CheckoutAddressSchema.nullable().optional(),
   shipping_partner_id: z.string().nullable().optional(),
   shipping_rate_id: z.string().nullable().optional(),
+  // Le coupon que portent les totaux de la session (celui du panier).
+  coupon_code: z.string().nullable().optional(),
 });
 
 // ─── Create Session Response ─────────────────────────────────

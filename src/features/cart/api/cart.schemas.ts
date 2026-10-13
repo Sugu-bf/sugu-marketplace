@@ -99,6 +99,8 @@ export const CartMetaSchema = z.object({
 export const CartDataSchema = z.object({
   items: z.array(ApiCartLineSchema),
   totals: ApiCartTotalsSchema,
+  // The coupon the cart carries: its discount is already in `totals`.
+  coupon_code: z.string().nullable().optional(),
 });
 
 export const ApiCartResponseSchema = z.object({
