@@ -343,7 +343,8 @@ export default function TermsPage() {
               <p>
                 La saisie correcte du code de livraison par le coursier constitue la preuve de remise
                 du colis. Cette vérification déclenche le passage du statut de commande à « Livré »
-                et le crédit du wallet vendeur (après déduction de la commission Sugu).
+                et ouvre la période de garantie de 72 heures, au terme de laquelle le wallet du
+                vendeur est crédité (après déduction de la commission Sugu).
               </p>
             </Sub>
           </Section>
@@ -352,7 +353,9 @@ export default function TermsPage() {
           <Section icon={CreditCard} title="Portefeuille vendeur (Wallet)" id="wallet">
             <Sub title="8.1 Crédit du wallet">
               <p>
-                Le wallet du vendeur est crédité après confirmation de livraison (code de livraison vérifié).
+                Le wallet du vendeur est crédité <strong>72 heures après la confirmation de livraison</strong>{" "}
+                (code de livraison vérifié). Pendant cette période de garantie, le montant de la vente
+                n&apos;est pas encore dans le wallet et ne peut pas être retiré.
                 Le montant crédité correspond au prix de vente <strong>moins la commission Sugu</strong> et
                 les éventuels frais de livraison pris en charge.
               </p>
@@ -366,6 +369,11 @@ export default function TermsPage() {
                 <li>Maximum <strong>3 demandes de retrait simultanées</strong> en attente</li>
                 <li>Frais de retrait : <strong>gratuit</strong> (inclus dans la commission de vente de 5%)</li>
                 <li>Délai de traitement : <strong>24 à 48 heures ouvrées</strong></li>
+                <li>
+                  Le compte de versement (mobile money ou bancaire) doit avoir été{" "}
+                  <strong>vérifié par Sugu</strong> avant tout retrait ; le modifier demande une nouvelle vérification
+                </li>
+                <li>Le montant demandé est réservé dès la demande et restitué si elle est refusée</li>
               </ul>
             </Sub>
             <Sub title="8.3 Sécurité financière">
