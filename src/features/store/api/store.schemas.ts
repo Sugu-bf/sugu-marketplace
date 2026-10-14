@@ -48,11 +48,17 @@ export const VendorProfileSchema = z.object({
   location_text: z.string(),
   categories: z.array(VendorCategorySchema),
   hours: z.string().nullable().optional(),
+  // Filled since V9 (the API answered them empty): the links the seller
+  // chose to show, already safe http(s) or wa.me addresses.
   social_links: z.object({
     facebook: z.string().nullable(),
     instagram: z.string().nullable(),
     x: z.string().nullable(),
     linkedin: z.string().nullable(),
+    tiktok: z.string().nullable().optional(),
+    youtube: z.string().nullable().optional(),
+    website: z.string().nullable().optional(),
+    whatsapp: z.string().nullable().optional(),
   }),
 });
 

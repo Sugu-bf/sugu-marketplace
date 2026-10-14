@@ -1,10 +1,37 @@
-import { MapPin, Phone, Clock, Mail, Star, ChevronRight } from "lucide-react";
+import {
+  MapPin,
+  Phone,
+  Clock,
+  Mail,
+  Star,
+  ChevronRight,
+  Globe,
+  MessageCircle,
+  Facebook,
+  Instagram,
+  Music2,
+  Youtube,
+  Twitter,
+  Linkedin,
+  type LucideIcon,
+} from "lucide-react";
 import { StarRating } from "@/components/ui";
 import type { Store } from "../models/store";
 
 interface StoreAboutSectionProps {
   store: Store;
 }
+
+const SOCIAL: Record<Store["socialLinks"][number]["network"], { label: string; icon: LucideIcon }> = {
+  website: { label: "Site web", icon: Globe },
+  whatsapp: { label: "WhatsApp", icon: MessageCircle },
+  facebook: { label: "Facebook", icon: Facebook },
+  instagram: { label: "Instagram", icon: Instagram },
+  tiktok: { label: "TikTok", icon: Music2 },
+  youtube: { label: "YouTube", icon: Youtube },
+  x: { label: "X", icon: Twitter },
+  linkedin: { label: "LinkedIn", icon: Linkedin },
+};
 
 /**
  * Store about section — Server Component.
@@ -75,6 +102,27 @@ export default function StoreAboutSection({ store }: StoreAboutSectionProps) {
               </div>
             )}
           </div>
+
+          {/* Links the seller chose to show (settings of the pro portal) */}
+          {store.socialLinks.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1" aria-label={`Retrouver ${store.name} en ligne`}>
+              {store.socialLinks.map(({ network, url }) => {
+                const { label, icon: Icon } = SOCIAL[network];
+                return (
+                  <a
+                    key={network}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border-light px-3 py-1.5 text-xs font-medium text-foreground transition-colors duration-200 hover:border-primary hover:text-primary"
+                  >
+                    <Icon size={14} className="text-primary" aria-hidden="true" />
+                    {label}
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ─── Right: Reviews ──────────────────────────────────── */}

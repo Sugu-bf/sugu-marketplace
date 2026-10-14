@@ -47,7 +47,21 @@ export function mapVendorToStore(
       address: vendor.contact.address_line || undefined,
       hours: vendor.hours || undefined,
     },
+    socialLinks: mapSocialLinks(vendor.social_links),
   };
+}
+
+// ─── Social links ────────────────────────────────────────────
+
+const SOCIAL_ORDER = ["website", "whatsapp", "facebook", "instagram", "tiktok", "youtube", "x", "linkedin"] as const;
+
+/** Links the seller chose to show, in a fixed order; only http(s) addresses. */
+export function mapSocialLinks(links: VendorProfile["social_links"] | undefined): Store["socialLinks"] {
+  if (!links) return [];
+  return SOCIAL_ORDER.flatMap((network) => {
+    const url = links[network];
+    return typeof url === "string" && /^https?:\/\//i.test(url) ? [{ network, url }] : [];
+  });
 }
 
 // ─── Category mapping ────────────────────────────────────────

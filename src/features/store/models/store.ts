@@ -51,6 +51,14 @@ export const StoreSchema = z.object({
     address: z.string().optional(),
     hours: z.string().optional(), // "Lun-Sam: 8h-19h | Dim: Fermé"
   }),
+  socialLinks: z
+    .array(
+      z.object({
+        network: z.enum(["website", "whatsapp", "facebook", "instagram", "tiktok", "youtube", "x", "linkedin"]),
+        url: z.string(),
+      }),
+    )
+    .default([]),
 });
 
 // ─── Store List Item (for /stores listing page) ─────────
