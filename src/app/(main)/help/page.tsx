@@ -1,9 +1,10 @@
 import { createMetadata } from "@/lib/metadata";
-import { Container, Breadcrumb, Button } from "@/components/ui";
+import { Container, Breadcrumb, buttonVariants } from "@/components/ui";
 import Link from "next/link";
 import { queryFaqItems, groupFaqsByCategory } from "@/features/faq";
 import { FaqSection } from "@/features/faq/components/FaqSection";
-import { Headphones, Mail, MessageCircle, Phone } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Headphones, Mail } from "lucide-react";
 import Script from "next/script";
 
 export const metadata = createMetadata({
@@ -60,25 +61,27 @@ export default async function HelpCenterPage() {
             </div>
           </div>
 
-          {/* Contact sidebar */}
+          {/* Contact sidebar — only real ways to reach Sugu */}
           <div className="space-y-4">
             <div className="rounded-2xl border border-border-light bg-background p-5 sm:p-6">
               <h2 className="text-base font-bold text-foreground mb-4">Contactez-nous</h2>
               <div className="space-y-3">
-                <ContactRow icon={<Phone size={16} />} label="Téléphone" value="+226 25 00 00 00" href="tel:+22625000000" />
-                <ContactRow icon={<MessageCircle size={16} />} label="WhatsApp" value="+226 70 00 00 00" href="https://wa.me/22670000000" />
-                <ContactRow icon={<Mail size={16} />} label="Email" value="support@sugu.bf" href="mailto:support@sugu.bf" />
+                <ContactRow icon={<Mail size={16} />} label="Email" value="support@sugu.pro" href="mailto:support@sugu.pro" />
               </div>
             </div>
 
             <div className="rounded-2xl bg-gradient-to-br from-primary to-primary-light p-6 text-white text-center">
               <Headphones size={32} className="mx-auto mb-3 opacity-80" />
               <p className="text-base font-bold">Besoin d&apos;aide ?</p>
-              <p className="text-sm opacity-80 mt-1">Notre équipe est disponible 24/7</p>
-              <Link href="/support-chat" className="block mt-4">
-                <Button variant="secondary" size="md" className="bg-white/20 text-white border-white/30 hover:bg-white/30 w-full">
-                  Démarrer un chat
-                </Button>
+              <p className="text-sm opacity-80 mt-1">Écrivez à l&apos;équipe Sugu depuis le chat.</p>
+              <Link
+                href="/support-chat"
+                className={cn(
+                  buttonVariants({ variant: "secondary", size: "md", fullWidth: true }),
+                  "mt-4 bg-white/20 text-white border-white/30 hover:bg-white/30"
+                )}
+              >
+                Ouvrir le chat
               </Link>
             </div>
           </div>

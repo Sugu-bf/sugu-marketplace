@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldAlert, Eye, Lock, UserX, BarChart3, Bell, Scale, Shield, Fingerprint, Ban, AlertTriangle, Phone } from "lucide-react";
+import { ShieldAlert, Eye, Lock, UserX, BarChart3, Bell, Scale, Shield, Fingerprint, Ban, AlertTriangle, Mail } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Politique Anti-Fraude — Sugu",
@@ -387,8 +387,15 @@ export default function AntiFraudPolicyPage() {
               {[
                 { method: "Depuis l'application", desc: "Menu « Signaler un abus » disponible sur chaque fiche produit, profil vendeur et commande" },
                 { method: "Par email", desc: "Envoyez les détails et preuves à fraude@sugu.pro" },
-                { method: "Via le chat support", desc: "Accessible depuis votre espace client" },
-                { method: "Par téléphone", desc: "+226 00 00 00 00 — Ligne fraude dédiée (siège régional Ouagadougou, joignable depuis les 8 pays AES et CEDEAO desservis)" },
+                {
+                  method: "Via le chat support",
+                  desc: (
+                    <>
+                      Écrivez à l&apos;équipe Sugu depuis le{" "}
+                      <Link href="/support-chat" className="text-[#F15412] hover:underline">chat support</Link>
+                    </>
+                  ),
+                },
               ].map((item) => (
                 <div key={item.method} className="flex gap-3 items-start bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <div className="h-2 w-2 rounded-full bg-[#F15412] mt-1.5 flex-shrink-0" />
@@ -429,13 +436,13 @@ export default function AntiFraudPolicyPage() {
           </Section>
 
           {/* 10 — Contact */}
-          <Section icon={Phone} title="Contact anti-fraude" id="contact-fraude">
+          <Section icon={Mail} title="Contact anti-fraude" id="contact-fraude">
             <p>Pour signaler une fraude ou poser une question sur nos mesures de sécurité :</p>
             <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-1.5 text-sm">
               <p><strong>Équipe Anti-Fraude Sugu</strong></p>
               <p>Email : <a href="mailto:fraude@sugu.pro" className="text-[#F15412] hover:underline">fraude@sugu.pro</a></p>
               <p>Email DPO : <a href="mailto:dpo@sugu.pro" className="text-[#F15412] hover:underline">dpo@sugu.pro</a></p>
-              <p>Téléphone : +226 00 00 00 00</p>
+              <p>Chat : <Link href="/support-chat" className="text-[#F15412] hover:underline">ouvrir le chat support</Link></p>
             </div>
           </Section>
         </div>

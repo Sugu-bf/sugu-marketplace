@@ -122,7 +122,6 @@ export default function PrivacyPolicyPage() {
               <p>Zone de service : 8 pays UEMOA — <strong>AES</strong> (Burkina Faso, Mali, Niger)
                 et <strong>CEDEAO</strong> (Bénin, Côte d&apos;Ivoire, Guinée-Bissau, Sénégal, Togo)</p>
               <p>Email du DPO : <a href="mailto:dpo@sugu.pro" className="text-[#F15412] hover:underline">dpo@sugu.pro</a></p>
-              <p>Téléphone : +226 00 00 00 00</p>
             </div>
             <p>
               Conformément à la <strong>Convention de Malabo</strong> de l&apos;Union Africaine (2014),
@@ -453,7 +452,6 @@ export default function PrivacyPolicyPage() {
               <p><strong>Délégué à la Protection des Données (DPO)</strong></p>
               <p>Email : <a href="mailto:dpo@sugu.pro" className="text-[#F15412] hover:underline">dpo@sugu.pro</a></p>
               <p>Adresse : SUGU SARL — 3252 Avenue Bobo Dioula, Ouagadougou, Burkina Faso</p>
-              <p>Téléphone : +226 00 00 00 00</p>
             </div>
           </Section>
         </div>

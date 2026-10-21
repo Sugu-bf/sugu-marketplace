@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Truck, Package, RotateCcw, Clock, MapPin, Shield, AlertTriangle, CreditCard, CheckCircle, XCircle, Phone } from "lucide-react";
+import { Truck, Package, RotateCcw, Clock, MapPin, Shield, AlertTriangle, CreditCard, CheckCircle, XCircle, Mail } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Politique de Livraison & Retours — Sugu",
@@ -465,13 +465,12 @@ export default function DeliveryPolicyPage() {
           </Section>
 
           {/* 10 — Contact */}
-          <Section icon={Phone} title="Contact livraison" id="contact-livraison">
+          <Section icon={Mail} title="Contact livraison" id="contact-livraison">
             <p>Pour toute question relative à votre livraison :</p>
             <div className="bg-gray-50 rounded-xl p-5 border border-gray-100 space-y-1.5 text-sm">
               <p><strong>Support Client Sugu</strong></p>
               <p>Email : <a href="mailto:support@sugu.pro" className="text-[#F15412] hover:underline">support@sugu.pro</a></p>
-              <p>Chat en ligne : disponible depuis votre espace client</p>
-              <p>Téléphone : +226 00 00 00 00 (Lun-Sam, 8h-18h)</p>
+              <p>Chat en ligne : <Link href="/support-chat" className="text-[#F15412] hover:underline">ouvrir le chat support</Link></p>
             </div>
           </Section>
         </div>

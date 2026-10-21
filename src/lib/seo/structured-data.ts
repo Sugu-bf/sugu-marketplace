@@ -25,7 +25,6 @@ export function organizationJsonLd() {
     },
     contactPoint: {
       "@type": "ContactPoint",
-      telephone: CONTACT.phone,
       email: CONTACT.email,
       contactType: "customer service",
       areaServed: "BF",

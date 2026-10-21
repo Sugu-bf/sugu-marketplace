@@ -9,8 +9,8 @@ export const CDN_URL = "https://cdn.sugu.pro";
 export const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
 
 // ─── Contact ─────────────────────────────────────────────────
+// No phone: Sugu has no published number yet (the placeholder was removed).
 export const CONTACT = {
-  phone: "+226 00 00 00 00",
   email: "contact@sugu.pro",
   address: "3252 Bobo Dioula Avenue, Guimbi Ouattara koko, Burkina Faso",
 } as const;
