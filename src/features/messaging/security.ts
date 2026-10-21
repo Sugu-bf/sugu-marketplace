@@ -37,6 +37,39 @@ export function safeHref(url: string | null | undefined): string {
 }
 
 /**
+ * Where each kind of attachment is read, as the API names it. Ids are ULIDs
+ * (26 letters or digits), a media id is a number: nothing else gets through,
+ * no other route, no `..`, no query, no other host.
+ */
+const ULID = "[0-9A-Za-z]{26}";
+const ATTACHMENT_PATHS = {
+  /** A buyer ↔ seller / courier conversation. */
+  conversation: new RegExp(`^me/conversations/${ULID}/messages/(${ULID})/attachments/\\d{1,20}$`),
+  /** The buyer's live support chat. */
+  supportChat: new RegExp(`^me/support-chat/${ULID}/messages/(${ULID})/attachments/\\d{1,20}$`),
+} as const;
+
+export type AttachmentScope = keyof typeof ATTACHMENT_PATHS;
+
+/**
+ * The address the browser reads an attachment from: the API path the server
+ * gave, through the marketplace relay, which adds the session. Null when the
+ * path is not one of `scope`, or belongs to another message than `messageId`:
+ * such an attachment is not rendered at all.
+ */
+export function attachmentUrl(
+  path: unknown,
+  scope: AttachmentScope,
+  messageId?: string,
+): string | null {
+  if (typeof path !== "string") return null;
+  const match = ATTACHMENT_PATHS[scope].exec(path);
+  if (!match) return null;
+  if (messageId !== undefined && match[1] !== messageId) return null;
+  return `/api/backend/api/v1/${path}`;
+}
+
+/**
  * Validate that a slug only contains safe characters for URL path segments.
  * Prevents path traversal (e.g. "../admin") via slugs.
  */

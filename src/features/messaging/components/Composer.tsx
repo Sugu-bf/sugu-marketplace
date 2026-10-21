@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, type KeyboardEvent, type ChangeEvent } from "react";
-import { Send, ImagePlus, Smile, X, Loader2 } from "lucide-react";
+import { Send, ImagePlus, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTypingIndicator } from "@/lib/messaging/hooks/useTypingIndicator";
+import { isApiError } from "@/lib/api/errors";
 import { useSendMessage, sendTyping } from "../hooks";
 import { isAllowedMime } from "../security";
+import { newClientMessageId, draftSignature } from "../client-message-id";
 
 interface ComposerProps {
   conversationId: string;
@@ -16,15 +18,33 @@ const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_TYPES = ".jpeg,.jpg,.png,.gif,.webp,.pdf,.doc,.docx";
 
+/** What the buyer is told when a send fails: the server's words for a refusal. */
+function sendErrorText(error: unknown): string {
+  if (isApiError(error) && error.isClientError && error.message) return error.message;
+  return "Votre message n'est pas parti. Réessayez.";
+}
+
 /**
- * Composer — message input with file upload, emoji, and send button.
+ * Composer — message input with file upload and send button.
+ *
+ * One draft per conversation: when the conversation changes, what was typed,
+ * the files and the identifier of a pending send are all dropped, so nothing
+ * written to one seller is sent in another conversation.
  */
-export function Composer({ conversationId, disabled }: ComposerProps) {
+export function Composer(props: ComposerProps) {
+  return <ConversationComposer key={props.conversationId} {...props} />;
+}
+
+function ConversationComposer({ conversationId, disabled }: ComposerProps) {
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // The identifier of the message being sent, kept until it has gone: the
+  // same message sent again after a failure reuses it, so the server never
+  // writes it twice. A changed text or file makes it another message.
+  const draftRef = useRef<{ id: string; signature: string } | null>(null);
 
   const sendMutation = useSendMessage();
 
@@ -50,14 +70,25 @@ export function Composer({ conversationId, disabled }: ComposerProps) {
     if (!trimmed && files.length === 0) return;
     if (sendMutation.isPending) return;
 
+    const body = trimmed || " ";
+    const signature = draftSignature(conversationId, body, files);
+    if (!draftRef.current || draftRef.current.signature !== signature) {
+      draftRef.current = { id: newClientMessageId(), signature };
+    }
+
     sendMutation.mutate(
       {
         conversationId,
-        body: trimmed || " ",
+        body,
         attachments: files.length > 0 ? files : undefined,
+        clientMessageId: draftRef.current.id,
       },
       {
         onSuccess: () => {
+          draftRef.current = null;
+          filePreviews.forEach((url) => {
+            if (url) URL.revokeObjectURL(url);
+          });
           setText("");
           setFiles([]);
           setFilePreviews([]);
@@ -67,7 +98,7 @@ export function Composer({ conversationId, disabled }: ComposerProps) {
         },
       }
     );
-  }, [text, files, conversationId, sendMutation]);
+  }, [text, files, filePreviews, conversationId, sendMutation]);
 
   // Enter to send, Shift+Enter for newline
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -191,16 +222,6 @@ export function Composer({ conversationId, disabled }: ComposerProps) {
           className="hidden"
         />
 
-        {/* Emoji (placeholder) */}
-        <button
-          type="button"
-          className="flex-shrink-0 p-2 text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-primary-50"
-          aria-label="Emoji"
-          disabled={disabled}
-        >
-          <Smile size={20} />
-        </button>
-
         {/* Textarea */}
         <div className="flex-1 relative">
           <textarea
@@ -241,6 +262,13 @@ export function Composer({ conversationId, disabled }: ComposerProps) {
           )}
         </button>
       </div>
+
+      {/* A send that failed: the text and files stay, sending again is safe */}
+      {sendMutation.isError && (
+        <p role="alert" className="mt-1.5 px-1 text-xs text-error">
+          {sendErrorText(sendMutation.error)}
+        </p>
+      )}
     </div>
   );
 }

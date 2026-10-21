@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useCallback, useMemo } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 import {
   useMessages,
   useConversation,
@@ -16,6 +16,7 @@ import { ChatRoomSkeleton } from "./ChatSkeleton";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/lib/messaging/types";
 import { safeSrc } from "../security";
+import { conversationMaskedKinds, contactPolicyNotice } from "../contact-policy";
 
 interface ChatRoomProps {
   conversationId: string;
@@ -79,6 +80,8 @@ export function ChatRoom({
   const displayName = store?.name ?? conversation?.participants?.[0]?.name ?? "Chat";
   const avatarUrl = store?.logo_url ?? null;
   const isOnline = store?.is_online ?? false;
+  // What this conversation does not pass on (numbers, e-mails, links).
+  const contactNotice = contactPolicyNotice(conversationMaskedKinds(conversation));
 
   // ─── Auto-scroll logic ──────────────────────────────────────
   const scrollToBottom = useCallback(() => {
@@ -242,6 +245,12 @@ export function ChatRoom({
       </div>
 
       {/* ─── Composer ───────────────────────────────────────── */}
+      {contactNotice && (
+        <p className="flex items-start gap-1.5 px-4 py-1.5 border-t border-border-light bg-muted/30 text-[11px] leading-snug text-muted-foreground flex-shrink-0">
+          <ShieldCheck size={12} className="mt-px flex-shrink-0 text-primary" />
+          {contactNotice}
+        </p>
+      )}
       <Composer conversationId={conversationId} />
     </div>
   );

@@ -18,6 +18,14 @@ const ALLOWED_RESPONSE_HEADERS = [
   "x-request-id",
   "x-cart-token",
   "x-wishlist-token",
+  // A file read through the relay (a message attachment): shown inline or
+  // downloaded as Laravel decides, never sniffed into another type, and
+  // sandboxed when opened on its own.
+  "content-disposition",
+  "x-content-type-options",
+  "content-security-policy",
+  // Given the length of the bytes actually relayed (see proxyToBackend).
+  "content-length",
 ] as const;
 
 const FORWARDED_REQUEST_HEADERS = [
@@ -259,6 +267,14 @@ async function proxyToBackend(request: NextRequest, context: RouteContext): Prom
     }
   } else if (upstream.status !== 204 && upstream.status !== 304) {
     responseBody = await upstream.arrayBuffer();
+  }
+
+  // The length of what leaves here, never Laravel's word for it: fetch has
+  // already decoded a compressed body, and a session reply is rewritten.
+  if (responseBody instanceof ArrayBuffer) {
+    headers.set("content-length", String(responseBody.byteLength));
+  } else {
+    headers.delete("content-length");
   }
 
   const response = new NextResponse(responseBody, {

@@ -126,27 +126,39 @@ export async function fetchMessages(
   return { messages: data.data.messages, has_more: data.data.has_more };
 }
 
+/**
+ * A send carries its `client_message_id`: sent twice, it is written once
+ * (the server answers the first one). That makes it safe to try a send again
+ * by itself once when the network fails or times out, as GETs are.
+ */
+const SEND_RETRIES = 1;
+
+/** Files take longer than the default 10 s to go up on a slow line. */
+const ATTACHMENT_SEND_TIMEOUT_MS = 60_000;
+
 export async function sendMessage(
   conversationId: string,
   body: string,
-  attachments?: File[]
+  attachments: File[] | undefined,
+  clientMessageId: string
 ): Promise<Message> {
   if (attachments && attachments.length > 0) {
     const formData = new FormData();
     formData.append("body", body);
+    formData.append("client_message_id", clientMessageId);
     for (const file of attachments) {
       formData.append("attachments[]", file);
     }
     const { data } = await api.post<ApiEnvelope<Message>>(
       meUrl(`conversations/${conversationId}/messages`),
-      { body: formData }
+      { body: formData, retries: SEND_RETRIES, timeout: ATTACHMENT_SEND_TIMEOUT_MS }
     );
     return data.data;
   }
 
   const { data } = await api.post<ApiEnvelope<Message>>(
     meUrl(`conversations/${conversationId}/messages`),
-    { body: { body } }
+    { body: { body, client_message_id: clientMessageId }, retries: SEND_RETRIES }
   );
   return data.data;
 }
@@ -154,11 +166,15 @@ export async function sendMessage(
 export async function sendProductCard(
   conversationId: string,
   productId: string,
+  clientMessageId: string,
   body?: string
 ): Promise<Message> {
   const { data } = await api.post<ApiEnvelope<Message>>(
     meUrl(`conversations/${conversationId}/product-card`),
-    { body: { product_id: productId, ...(body ? { body } : {}) } }
+    {
+      body: { product_id: productId, client_message_id: clientMessageId, ...(body ? { body } : {}) },
+      retries: SEND_RETRIES,
+    }
   );
   return data.data;
 }

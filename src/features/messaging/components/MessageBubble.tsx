@@ -6,8 +6,9 @@ import { ProductCardBubble } from "./ProductCardBubble";
 import { SystemEventBubble } from "./SystemEventBubble";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { X } from "lucide-react";
-import { safeSrc, safeHref, safeFilename } from "../security";
+import { X, Paperclip, ShieldCheck } from "lucide-react";
+import { safeSrc, safeHref, safeFilename, attachmentUrl } from "../security";
+import { messageMaskedKinds } from "../contact-policy";
 
 interface MessageBubbleProps {
   message: Message;
@@ -41,6 +42,19 @@ export function MessageBubble({
   }
 
   const isOwn = message.is_own;
+
+  // Attachments are read through the relay, from a path of this very
+  // message; one whose path is anything else is not rendered.
+  const attachments = (message.attachments ?? []).flatMap((att) => {
+    const relayUrl = attachmentUrl(att.path, "conversation", message.id);
+    return relayUrl ? [{ ...att, relayUrl }] : [];
+  });
+  const images = attachments.filter((att) => att.type === "image");
+  const files = attachments.filter((att) => att.type !== "image");
+  const hasBody = !!message.body?.trim();
+
+  // The server took a number, an e-mail or a link out of what the buyer wrote.
+  const contactsMasked = isOwn && messageMaskedKinds(message).length > 0;
 
   // Avatar initials fallback
   const initials = (message.sender_name ?? "")
@@ -96,7 +110,7 @@ export function MessageBubble({
             )}
           >
             {/* Text body */}
-            {message.body && message.message_type !== "product_card" && (
+            {hasBody && message.message_type !== "product_card" && (
               <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
                 {message.body}
               </p>
@@ -119,72 +133,48 @@ export function MessageBubble({
               </div>
             )}
 
-            {/* Image type */}
-            {message.message_type === "image" && message.attachments.length > 0 && (
-              <div className="space-y-1.5">
-                {message.body && (
-                  <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
-                    {message.body}
-                  </p>
-                )}
-                <div className="grid grid-cols-2 gap-1.5">
-                  {message.attachments
-                    .filter((a) => a.type === "image")
-                    .map((attachment) => (
+            {/* Attachments (text and image messages), read through the relay */}
+            {message.message_type !== "product_card" && attachments.length > 0 && (
+              <div className={cn("space-y-1.5", hasBody && "mt-2")}>
+                {images.length > 0 && (
+                  <div className={cn("grid gap-1.5", images.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+                    {images.map((att) => (
                       <button
-                        key={attachment.id}
-                        onClick={() => setLightboxUrl(safeSrc(attachment.url))}
-                        className="rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                        key={att.id}
+                        type="button"
+                        onClick={() => setLightboxUrl(att.relayUrl)}
+                        aria-label={`Agrandir ${safeFilename(att.name)}`}
+                        className="block rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                       >
                         <img
-                          src={safeSrc(attachment.thumb_url ?? attachment.url)}
-                          alt={attachment.name}
-                          className="w-full h-auto max-h-40 object-cover"
+                          src={safeSrc(att.relayUrl)}
+                          alt={att.name}
+                          className="w-full h-auto max-h-48 object-cover"
                           loading="lazy"
                         />
                       </button>
                     ))}
-                </div>
+                  </div>
+                )}
+                {files.map((att) => (
+                  <a
+                    key={att.id}
+                    href={safeHref(att.relayUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs underline",
+                      isOwn
+                        ? "text-white/80 hover:text-white"
+                        : "text-primary hover:text-primary-dark"
+                    )}
+                  >
+                    <Paperclip size={12} className="flex-shrink-0" />
+                    <span className="truncate">{safeFilename(att.name)}</span>
+                  </a>
+                ))}
               </div>
             )}
-
-            {/* Text with attachments */}
-            {message.message_type === "text" &&
-              message.attachments.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {message.attachments.map((att) =>
-                    att.type === "image" ? (
-                      <button
-                        key={att.id}
-                        onClick={() => setLightboxUrl(safeSrc(att.url))}
-                        className="rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity block"
-                      >
-                        <img
-                          src={safeSrc(att.thumb_url ?? att.url)}
-                          alt={att.name}
-                          className="max-w-full max-h-48 rounded-lg"
-                          loading="lazy"
-                        />
-                      </button>
-                    ) : (
-                      <a
-                        key={att.id}
-                        href={safeHref(att.url)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn(
-                          "block text-xs underline",
-                          isOwn
-                            ? "text-white/80 hover:text-white"
-                            : "text-primary hover:text-primary-dark"
-                        )}
-                      >
-                        📎 {safeFilename(att.name)}
-                      </a>
-                    )
-                  )}
-                </div>
-              )}
           </div>
 
           {/* Timestamp + Read receipt */}
@@ -194,6 +184,15 @@ export function MessageBubble({
               isOwn ? "justify-end" : "justify-start"
             )}
           >
+            {contactsMasked && (
+              <span
+                className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"
+                title="Un numéro, un e-mail ou un lien externe n'a pas été transmis."
+              >
+                <ShieldCheck size={10} />
+                Coordonnées masquées ·
+              </span>
+            )}
             <span className="text-[10px] text-muted-foreground">
               {formatTime(message.created_at)}
             </span>
@@ -225,8 +224,10 @@ export function MessageBubble({
           onClick={() => setLightboxUrl(null)}
         >
           <button
+            type="button"
             className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
             onClick={() => setLightboxUrl(null)}
+            aria-label="Fermer"
           >
             <X size={24} />
           </button>

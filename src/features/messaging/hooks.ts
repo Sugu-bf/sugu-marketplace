@@ -190,11 +190,14 @@ export function useSendMessage() {
       conversationId,
       body,
       attachments,
+      clientMessageId,
     }: {
       conversationId: string;
       body: string;
       attachments?: File[];
-    }) => sendMessage(conversationId, body, attachments),
+      /** Chosen once per message (newClientMessageId), kept for its retries. */
+      clientMessageId: string;
+    }) => sendMessage(conversationId, body, attachments, clientMessageId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: messagingKeys.messages(variables.conversationId),
@@ -213,12 +216,15 @@ export function useSendProductCard() {
     mutationFn: ({
       conversationId,
       productId,
+      clientMessageId,
       body,
     }: {
       conversationId: string;
       productId: string;
+      /** Chosen once per card (newClientMessageId), kept for its retries. */
+      clientMessageId: string;
       body?: string;
-    }) => sendProductCard(conversationId, productId, body),
+    }) => sendProductCard(conversationId, productId, clientMessageId, body),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: messagingKeys.messages(variables.conversationId),

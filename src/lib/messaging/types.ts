@@ -43,6 +43,16 @@ export interface Conversation {
   updated_at: string;
   created_at: string;
   participants: ConversationParticipant[];
+  /**
+   * What the server takes out of the messages of this conversation before
+   * they are sent ("phone", "email", "link"). Absent from an older answer:
+   * read it with conversationMaskedKinds(), which treats that as nothing.
+   */
+  contact_policy?: ContactPolicy;
+}
+
+export interface ContactPolicy {
+  masked: string[];
 }
 
 // ── Message ───────────────────────────────────────
@@ -50,11 +60,15 @@ export interface Conversation {
 export type MessageType = "text" | "product_card" | "image" | "system_event";
 export type SenderType = "customer" | "seller" | "admin" | "courier" | "system";
 
+/**
+ * An attachment is not public: it is read through the API, at `path`
+ * (`me/conversations/{c}/messages/{m}/attachments/{media}`), by way of the
+ * relay — see attachmentUrl() in features/messaging/security.ts.
+ */
 export interface MessageAttachment {
   id: number;
   type: "image" | "file";
-  url: string;
-  thumb_url: string | null;
+  path: string;
   name: string;
   size: number;
   mime_type: string;
@@ -76,11 +90,14 @@ export interface ProductCardMetadata {
 
 export interface Message {
   id: string;
+  /** The identifier the sender chose for it, so a send can be replayed. */
+  client_message_id?: string | null;
   sender_id: string | null;
   sender_type: SenderType;
   sender_name: string;
   body: string;
   message_type: MessageType;
+  /** May hold `masked: ["phone" | "email" | "link"]`: see messageMaskedKinds(). */
   metadata: ProductCardMetadata | Record<string, unknown> | null;
   is_own: boolean;
   attachments: MessageAttachment[];
