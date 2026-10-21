@@ -146,3 +146,44 @@ describe("OrderTrackingApiSchema — shipmentId contract", () => {
     expect(parsed.codMixte?.shipmentId).toBeUndefined();
   });
 });
+
+// The stores of the order, to which the buyer can write about it. Optional
+// in the payload, read entry by entry: a bad one is left out, never fails
+// the tracking page.
+describe("stores of the order", () => {
+  const STORE_A = { id: "01jkqz3m5baxnp9c7hd2fewst1", name: "Boutique Awa" };
+  const STORE_B = { id: "01jkqz3m5baxnp9c7hd2fewst2", name: "Marché Kalam" };
+
+  const mapped = (stores: unknown) =>
+    mapApiToTrackedOrder(OrderTrackingApiSchema.parse({ ...baseApiOrder(), stores }));
+
+  test("maps each store of the order", () => {
+    expect(mapped([STORE_A, STORE_B]).stores).toEqual([STORE_A, STORE_B]);
+  });
+
+  test("is empty when the payload does not carry them", () => {
+    expect(mapApiToTrackedOrder(OrderTrackingApiSchema.parse(baseApiOrder())).stores).toEqual([]);
+  });
+
+  test("leaves out an entry without a store id or a name, and a store given twice", () => {
+    expect(
+      mapped([
+        STORE_A,
+        { id: null, name: "Sans id" },
+        { id: "../admin", name: "Chemin" },
+        { id: STORE_B.id },
+        "01jkqz3m5baxnp9c7hd2fewst3",
+        { ...STORE_A, name: "Boutique Awa (bis)" },
+      ]).stores,
+    ).toEqual([STORE_A]);
+  });
+
+  test("never fails the page when the list is not a list", () => {
+    expect(mapped({ id: STORE_A.id }).stores).toEqual([]);
+    expect(mapped("stores").stores).toEqual([]);
+  });
+
+  test("keeps only the id and the name of a store", () => {
+    expect(mapped([{ ...STORE_A, owner_phone: "+22670000000" }]).stores).toEqual([STORE_A]);
+  });
+});

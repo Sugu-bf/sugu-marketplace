@@ -4,11 +4,26 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { MessageCircle, Loader2 } from "lucide-react";
 import { startConversation } from "@/features/messaging/api";
+import { useToast } from "@/features/toast/toast-store";
+import { isApiError } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
+
+/** The server's words for a refusal; ours for anything else. */
+function startErrorText(err: unknown): string {
+  if (isApiError(err) && err.isClientError && err.message) return err.message;
+  return "La conversation n'a pas pu s'ouvrir. Réessayez.";
+}
 
 interface ContactSellerButtonProps {
   storeId: string;
   productId?: string;
+  /**
+   * An order of the buyer's with this store: the conversation is about it
+   * (type order_support), found again or reopened by the server.
+   */
+  orderId?: string;
+  /** Where to come back after signing in (relative path). */
+  loginRedirect?: string;
   variant?: "outline" | "primary" | "compact";
   label?: string;
   className?: string;
@@ -18,22 +33,31 @@ interface ContactSellerButtonProps {
  * ContactSellerButton — starts or resumes a conversation with a seller.
  *
  * Checks auth via cookie presence, redirects to login if not authenticated.
- * On success, navigates to /messages/{conversationId}.
+ * On success, navigates to /messages/{conversationId}. Any other failure is
+ * said in a toast, and the buyer stays where they are.
  */
 export function ContactSellerButton({
   storeId,
   productId,
+  orderId,
+  loginRedirect = "/messages",
   variant = "outline",
   label = "Contacter",
   className,
 }: ContactSellerButtonProps) {
   const router = useRouter();
+  const showError = useToast((s) => s.error);
   const [isPending, setIsPending] = useState(false);
 
   const handleClick = useCallback(async () => {
     setIsPending(true);
     try {
-      const conversation = await startConversation(storeId, undefined, undefined, productId);
+      const conversation = await startConversation(
+        storeId,
+        orderId,
+        orderId ? "order_support" : undefined,
+        productId,
+      );
       router.push(`/messages/${conversation.id}`);
     } catch (err: unknown) {
       // 401 = not authenticated → redirect to login
@@ -41,14 +65,14 @@ export function ContactSellerButton({
         ? (err as { status: number }).status
         : 0;
       if (status === 401) {
-        router.push("/login?redirect=/messages");
+        router.push(`/login?redirect=${encodeURIComponent(loginRedirect)}`);
       } else {
-        router.push("/messages");
+        showError(startErrorText(err));
       }
     } finally {
       setIsPending(false);
     }
-  }, [storeId, productId, router]);
+  }, [storeId, orderId, productId, loginRedirect, router, showError]);
 
   if (variant === "primary") {
     return (

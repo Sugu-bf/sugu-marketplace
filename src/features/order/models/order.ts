@@ -106,6 +106,15 @@ export const OrderItemSchema = z.object({
   image: z.string().nullable(),
 });
 
+// ─── Store of the order (the buyer may write to it about the order) ──
+// An order can hold several stores. Read leniently: an entry without a
+// store ULID is left out, and the list never fails the tracking payload.
+
+export const OrderStoreSchema = z.object({
+  id: z.string().regex(/^[0-9A-Za-z]{26}$/),
+  name: z.string().min(1),
+});
+
 // ─── API Response Schema (matches backend formatOrderTracking) ─
 
 export const OrderTrackingApiSchema = z.object({
@@ -150,6 +159,11 @@ export const OrderTrackingApiSchema = z.object({
   }),
 
   items: z.array(OrderItemSchema),
+
+  // The stores the order was bought from, `[{ id, name }]`. Optional: absent,
+  // the page offers no « Contacter le vendeur ». Entries are checked one by
+  // one in the mapper, so a bad one never fails the whole page.
+  stores: z.array(z.unknown()).optional().catch(undefined),
 
   pricing: z.object({
     subtotal: z.number(),
@@ -227,6 +241,8 @@ export const TrackedOrderSchema = z.object({
 
   // Order items + pricing
   items: z.array(OrderItemSchema),
+  // Stores of the order the buyer can write to (empty when not known)
+  stores: z.array(OrderStoreSchema),
   subtotal: z.number(),
   shippingCost: z.number(),
   shippingLabel: z.string().nullable(),
@@ -263,6 +279,7 @@ export type TimelineEvent = z.infer<typeof TimelineEventSchema>;
 export type ApiTimelineEvent = z.infer<typeof ApiTimelineEventSchema>;
 export type DeliveryDriver = z.infer<typeof DeliveryDriverSchema>;
 export type OrderItem = z.infer<typeof OrderItemSchema>;
+export type OrderStore = z.infer<typeof OrderStoreSchema>;
 export type OrderTrackingApiData = z.infer<typeof OrderTrackingApiSchema>;
 export type TrackedOrder = z.infer<typeof TrackedOrderSchema>;
 

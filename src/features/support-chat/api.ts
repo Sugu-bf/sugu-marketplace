@@ -29,16 +29,22 @@ export interface ChatConversation {
 
 export interface ChatMessage {
   id: string;
+  /** The identifier the sender chose for it, so a send can be replayed. */
+  client_message_id?: string | null;
   sender_id: string;
   sender_type: "customer" | "admin" | "seller";
   sender_name: string;
   body: string;
   is_own: boolean;
+  /**
+   * Not public: read through the API at `path`
+   * (`me/support-chat/{c}/messages/{m}/attachments/{media}`), by way of the
+   * relay — see attachmentUrl() in features/messaging/security.ts.
+   */
   attachments: {
     id: number;
     type: "image" | "file";
-    url: string;
-    thumb_url: string | null;
+    path: string;
     name: string;
     size: number;
     mime_type: string;
@@ -46,16 +52,47 @@ export interface ChatMessage {
   created_at: string;
 }
 
+// ── Realtime (private channel support.chat.customer.{userId}) ──
+
+/** `.support.message.created` — a message was written in a support chat. */
+export interface SupportMessageCreatedPayload {
+  message_id: string;
+  conversation_id: string;
+  sender_type: string;
+  sender_id: string | null;
+  sender_name: string;
+  body_snippet: string;
+  created_at: string;
+}
+
+/** `.support.status.updated` — waiting → active → ended, or a new agent. */
+export interface SupportStatusUpdatedPayload {
+  conversation_id: string;
+  chat_status: ChatConversation["chat_status"] | null;
+  status: string;
+  assigned_admin_id: string | null;
+}
+
+/** `.support.typing` — an agent is typing (sent to the customer only). */
+export interface SupportTypingPayload {
+  conversation_id: string;
+  user_id: string;
+  user_name: string;
+  participant_type: string;
+}
+
 type SupportChatRequestOptions = {
   method?: "GET" | "POST";
   body?: unknown;
+  /** Retries of a POST on a network failure: only for a replayable send. */
+  retries?: number;
 };
 
 async function apiFetch<T>(path: string, options: SupportChatRequestOptions = {}): Promise<T> {
   const url = buildApiUrl(`/api/v1${path}`);
 
   if (options.method === "POST") {
-    const { data } = await api.post<T>(url, { body: options.body });
+    const { data } = await api.post<T>(url, { body: options.body, retries: options.retries });
     return data;
   }
 
@@ -101,7 +138,7 @@ export async function getChatHistory(
   const res = await apiFetch<{
     success: boolean;
     data: ChatConversation[];
-    meta: any;
+    meta: { total: number };
   }>(`/me/support-chat/history?page=${page}&per_page=${perPage}`);
   return { data: res.data, meta: res.meta };
 }
@@ -125,15 +162,19 @@ export async function getMessages(
 }
 
 /**
- * Send a message in a support chat.
+ * Send a message in a support chat, with its `client_message_id`: sent
+ * again with it, the same message is answered (HTTP 200), written once.
+ * That makes one retry on a network failure safe.
  */
 export async function sendMessage(
   conversationId: string,
   body: string,
+  clientMessageId: string,
   attachments?: File[]
 ): Promise<ChatMessage> {
   const formData = new FormData();
   formData.append("body", body);
+  formData.append("client_message_id", clientMessageId);
 
   if (attachments) {
     attachments.forEach((f) => formData.append("attachments[]", f));
@@ -141,7 +182,7 @@ export async function sendMessage(
 
   const res = await apiFetch<{ success: boolean; data: ChatMessage }>(
     `/me/support-chat/${conversationId}/messages`,
-    { method: "POST", body: formData }
+    { method: "POST", body: formData, retries: 1 }
   );
   return res.data;
 }

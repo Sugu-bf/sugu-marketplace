@@ -1,6 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getAuthUser } from "@/lib/api/auth";
+import { isApiError } from "@/lib/api/errors";
+import { useEchoChannel } from "@/lib/messaging/hooks/useEchoChannel";
+import { attachmentUrl, safeHref, safeSrc, safeFilename } from "@/features/messaging/security";
+import { newClientMessageId, draftSignature } from "@/features/messaging/client-message-id";
+import { useSupportChatLauncher } from "./launcher";
 import {
   startChat,
   getActiveChat,
@@ -10,61 +16,175 @@ import {
   endChat as endChatApi,
   type ChatConversation,
   type ChatMessage,
+  type SupportMessageCreatedPayload,
+  type SupportStatusUpdatedPayload,
+  type SupportTypingPayload,
 } from "./api";
 
+/** Without the socket, an open chat is read again this often. */
+const FALLBACK_POLL_MS = 30_000;
+/** An agent's « écrit… » fades when no new signal comes. */
+const TYPING_TIMEOUT_MS = 3_000;
+
+function errorMessage(err: unknown): string {
+  if (isSignedOut(err)) return "Connectez-vous pour écrire au support.";
+  return err instanceof Error && err.message
+    ? err.message
+    : "Une erreur est survenue. Réessayez.";
+}
+
+function isSignedOut(err: unknown): boolean {
+  return isApiError(err) && err.status === 401;
+}
+
+/** Sign in, then come back to this page. Only read in the browser. */
+function loginHref(): string {
+  if (typeof window === "undefined") return "/login";
+  return `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+}
+
 // ── Chat Widget Hook ────────────────────────────
-function useSupportChat() {
+function useSupportChat(isOpen: boolean) {
   const [conversation, setConversation] = useState<ChatConversation | null>(
     null
   );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  // The last failure was a missing session: the widget offers to sign in.
+  const [signedOut, setSignedOut] = useState(false);
+  // The signed-in buyer: their private channel is support.chat.customer.{id}.
+  const [userId, setUserId] = useState<string | null>(null);
+  const [typingName, setTypingName] = useState<string | null>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Fetch active chat on mount
+  // What the socket callbacks (bound once per channel) read.
+  const conversationRef = useRef(conversation);
+  const isOpenRef = useRef(isOpen);
+  useEffect(() => {
+    conversationRef.current = conversation;
+    isOpenRef.current = isOpen;
+  });
+
+  useEffect(() => () => clearTimeout(typingTimerRef.current), []);
+
+  // The buyer has read up to this message: told to the server (once per
+  // message), and the badge no longer counts it.
+  const lastSeenIdRef = useRef<string | null>(null);
+  const markSeen = useCallback((chatId: string, list: ChatMessage[]) => {
+    const last = list[list.length - 1];
+    if (!last || last.is_own || last.id === lastSeenIdRef.current) return;
+    lastSeenIdRef.current = last.id;
+    markRead(chatId, last.id).catch(() => {});
+    setConversation((prev) => (prev && prev.id === chatId ? { ...prev, unread_count: 0 } : prev));
+  }, []);
+
+  // Fetch the active chat when the widget opens
+  const userAskedRef = useRef(false);
   const loadActiveChat = useCallback(async () => {
+    if (!userAskedRef.current) {
+      userAskedRef.current = true;
+      getAuthUser()
+        .then((user) => setUserId(user?.id ?? null))
+        .catch(() => {
+          userAskedRef.current = false;
+        });
+    }
     try {
       const chat = await getActiveChat();
       if (chat) {
         setConversation(chat);
         const result = await getMessages(chat.id);
-        setMessages(result.messages.reverse());
+        const list = result.messages.reverse();
+        setMessages(list);
+        markSeen(chat.id, list);
       }
     } catch {
       // No active chat — that's fine
     }
-  }, []);
+  }, [markSeen]);
 
-  // Start a new chat
-  const start = useCallback(async (subject?: string) => {
-    setIsLoading(true);
-    setError(null);
+  // Read the latest messages again and add the new ones.
+  const refreshMessages = useCallback(async () => {
+    const current = conversationRef.current;
+    if (!current) return;
     try {
-      const chat = await startChat(subject);
-      setConversation(chat);
-      const result = await getMessages(chat.id);
-      setMessages(result.messages.reverse());
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+      const result = await getMessages(current.id, undefined, 50);
+      if (conversationRef.current?.id !== current.id) return;
+      const newMsgs = result.messages.reverse();
+      if (newMsgs.length > 0) {
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const unique = newMsgs.filter((m) => !existingIds.has(m.id));
+          return unique.length > 0 ? [...prev, ...unique] : prev;
+        });
+        if (isOpenRef.current) markSeen(current.id, newMsgs);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [markSeen]);
+
+  // Read the chat's state again (agent, status, unread count). No active
+  // chat any more means this one has ended.
+  const refreshConversation = useCallback(async () => {
+    const current = conversationRef.current;
+    if (!current || current.chat_status === "ended") return;
+    try {
+      const chat = await getActiveChat();
+      if (conversationRef.current?.id !== current.id) return;
+      if (!chat) {
+        setConversation((prev) => (prev && prev.id === current.id ? { ...prev, chat_status: "ended" } : prev));
+      } else if (chat.id === current.id) {
+        setConversation(isOpenRef.current ? { ...chat, unread_count: 0 } : chat);
+      }
+    } catch {
+      /* ignore */
     }
   }, []);
 
-  // Send message
+  const fail = useCallback((err: unknown) => {
+    setError(errorMessage(err));
+    setSignedOut(isSignedOut(err));
+  }, []);
+
+  const clearError = useCallback(() => {
+    setError(null);
+    setSignedOut(false);
+  }, []);
+
+  // Start a new chat, about the buyer's order when the page gave one
+  const start = useCallback(async (subject?: string, orderId?: string) => {
+    setIsLoading(true);
+    clearError();
+    try {
+      const chat = await startChat(subject, orderId);
+      setConversation(chat);
+      const result = await getMessages(chat.id);
+      setMessages(result.messages.reverse());
+    } catch (err: unknown) {
+      fail(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clearError, fail]);
+
+  // Send message, with the identifier chosen for it. True once it has gone.
   const send = useCallback(
-    async (body: string, attachments?: File[]) => {
-      if (!conversation) return;
-      setError(null);
+    async (body: string, clientMessageId: string): Promise<boolean> => {
+      if (!conversation) return false;
+      clearError();
       try {
-        const msg = await sendMessage(conversation.id, body, attachments);
-        setMessages((prev) => [...prev, msg]);
-      } catch (err: any) {
-        setError(err.message);
+        const msg = await sendMessage(conversation.id, body, clientMessageId);
+        // The socket may have brought it in already.
+        setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+        return true;
+      } catch (err: unknown) {
+        fail(err);
+        return false;
       }
     },
-    [conversation]
+    [conversation, clearError, fail]
   );
 
   // End chat
@@ -75,82 +195,124 @@ function useSupportChat() {
       setConversation((prev) =>
         prev ? { ...prev, chat_status: "ended" } : null
       );
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      fail(err);
     }
-  }, [conversation]);
+  }, [conversation, fail]);
 
-  // Polling for new messages
-  const poll = useCallback(async () => {
-    if (!conversation) return;
-    try {
-      const result = await getMessages(conversation.id, undefined, 50);
-      const newMsgs = result.messages.reverse();
-      if (newMsgs.length > 0) {
-        setMessages((prev) => {
-          const existingIds = new Set(prev.map((m) => m.id));
-          const unique = newMsgs.filter((m) => !existingIds.has(m.id));
-          return unique.length > 0 ? [...prev, ...unique] : prev;
-        });
-        // Mark read
-        const lastMsg = newMsgs[newMsgs.length - 1];
-        if (lastMsg && !lastMsg.is_own) {
-          markRead(conversation.id, lastMsg.id).catch(() => {});
+  // Leave an ended chat to start another one
+  const reset = useCallback(() => {
+    setConversation(null);
+    setMessages([]);
+    clearError();
+  }, [clearError]);
+
+  // ─── Realtime: the buyer's own support channel ───
+  const chatActive = !!conversation && conversation.chat_status !== "ended";
+  const isLive = useEchoChannel(
+    userId && chatActive ? `support.chat.customer.${userId}` : null,
+    {
+      "support.message.created": (payload) => {
+        const event = payload as SupportMessageCreatedPayload | null;
+        if (!event || event.conversation_id !== conversationRef.current?.id) return;
+        if (event.sender_type !== "customer") {
+          clearTimeout(typingTimerRef.current);
+          setTypingName(null);
         }
-      }
-    } catch {
-      /* ignore */
+        void refreshMessages();
+        // Closed, the badge tells the buyer an answer is waiting.
+        if (!isOpenRef.current) void refreshConversation();
+      },
+      "support.status.updated": (payload) => {
+        const event = payload as SupportStatusUpdatedPayload | null;
+        if (!event || event.conversation_id !== conversationRef.current?.id) return;
+        const chatStatus = event.chat_status;
+        if (chatStatus) {
+          setConversation((prev) =>
+            prev && prev.id === event.conversation_id
+              ? { ...prev, chat_status: chatStatus, status: event.status ?? prev.status }
+              : prev
+          );
+        }
+        // The agent's name comes with the chat itself.
+        if (chatStatus !== "ended") void refreshConversation();
+      },
+      "support.typing": (payload) => {
+        const event = payload as SupportTypingPayload | null;
+        if (!event || event.conversation_id !== conversationRef.current?.id) return;
+        if (event.participant_type !== "admin") return;
+        setTypingName(event.user_name || "L'agent");
+        clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => setTypingName(null), TYPING_TIMEOUT_MS);
+      },
     }
-  }, [conversation]);
+  );
 
-  // Start/stop polling
+  // Once the socket is back, catch up on what it may have missed.
   useEffect(() => {
-    if (conversation && conversation.chat_status !== "ended") {
-      pollingRef.current = setInterval(poll, 5000);
-      return () => clearInterval(pollingRef.current);
-    }
-  }, [conversation, poll]);
+    if (!isLive) return;
+    void refreshMessages();
+    void refreshConversation();
+  }, [isLive, refreshMessages, refreshConversation]);
+
+  // Without the socket only, and only while the chat is open and active:
+  // read it again now and then.
+  useEffect(() => {
+    if (!isOpen || !chatActive || isLive) return;
+    const timer = setInterval(() => {
+      void refreshMessages();
+      void refreshConversation();
+    }, FALLBACK_POLL_MS);
+    return () => clearInterval(timer);
+  }, [isOpen, chatActive, isLive, refreshMessages, refreshConversation]);
 
   return {
     conversation,
     messages,
     isLoading,
     error,
+    signedOut,
+    typingName: chatActive ? typingName : null,
     loadActiveChat,
     start,
     send,
     end,
+    reset,
   };
 }
 
 // ── Main Chat Widget Component ──────────────────
 export default function SupportChatWidget() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [subject, setSubject] = useState("");
+  // Open from its own button, or from the page (openSupportChat()).
+  const isOpen = useSupportChatLauncher((s) => s.isOpen);
+  const toggleOpen = useSupportChatLauncher((s) => s.toggle);
+  const register = useSupportChatLauncher((s) => s.register);
+  const suggestedSubject = useSupportChatLauncher((s) => s.suggestedSubject);
+  const suggestedOrderId = useSupportChatLauncher((s) => s.suggestedOrderId);
+  // null until the buyer types: the page's suggestion shows meanwhile.
+  const [subject, setSubject] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState("");
-  const [showStartForm, setShowStartForm] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  // The identifier of the message being sent, kept until it has gone: sent
+  // again after a failure, it is the same message for the server.
+  const draftRef = useRef<{ id: string; signature: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const chat = useSupportChat();
+  const chat = useSupportChat(isOpen);
+  const { loadActiveChat } = chat;
+  const subjectValue = subject ?? suggestedSubject ?? "";
+
+  // Say the page has a widget; leaving the page closes it, so another
+  // page's widget starts closed and without this page's order.
+  useEffect(() => register(), [register]);
 
   // Load active chat on open
   useEffect(() => {
     if (isOpen) {
-      chat.loadActiveChat().then(() => {
-        if (chat.conversation) {
-          setShowStartForm(false);
-        }
-      });
+      void loadActiveChat();
     }
-  }, [isOpen]);
-
-  // When conversation is set, switch to messages view
-  useEffect(() => {
-    if (chat.conversation) {
-      setShowStartForm(false);
-    }
-  }, [chat.conversation]);
+  }, [isOpen, loadActiveChat]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -159,16 +321,29 @@ export default function SupportChatWidget() {
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    await chat.start(subject || undefined);
-    setSubject("");
+    await chat.start(subjectValue.trim() || undefined, suggestedOrderId ?? undefined);
+    setSubject(null);
   };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim()) return;
+    const conversationId = chat.conversation?.id;
+    if (!messageInput.trim() || isSending || !conversationId) return;
     const text = messageInput;
-    setMessageInput("");
-    await chat.send(text);
+    const signature = draftSignature(conversationId, text, []);
+    if (!draftRef.current || draftRef.current.signature !== signature) {
+      draftRef.current = { id: newClientMessageId(), signature };
+    }
+
+    setIsSending(true);
+    const sent = await chat.send(text, draftRef.current.id);
+    setIsSending(false);
+    // Gone: the field empties (unless more was typed meanwhile). Failed:
+    // the text stays, and sending it again is safe.
+    if (sent) {
+      draftRef.current = null;
+      setMessageInput((current) => (current === text ? "" : current));
+    }
     inputRef.current?.focus();
   };
 
@@ -191,8 +366,10 @@ export default function SupportChatWidget() {
     <>
       {/* Floating Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="Ouvrir le chat support"
+        type="button"
+        onClick={toggleOpen}
+        aria-label={isOpen ? "Fermer le chat support" : "Ouvrir le chat support"}
+        aria-expanded={isOpen}
         className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110"
         style={{
           background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
@@ -306,8 +483,8 @@ export default function SupportChatWidget() {
 
           {/* Content Area */}
           <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden">
-            {/* Start Form */}
-            {showStartForm && !chat.conversation && (
+            {/* Start Form — whenever no chat is open */}
+            {!chat.conversation && (
               <div className="flex-1 flex flex-col items-center justify-center p-6">
                 <div
                   className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
@@ -340,7 +517,7 @@ export default function SupportChatWidget() {
                 <form onSubmit={handleStart} className="w-full space-y-3">
                   <input
                     type="text"
-                    value={subject}
+                    value={subjectValue}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="Sujet (optionnel)"
                     className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500"
@@ -359,6 +536,11 @@ export default function SupportChatWidget() {
                 </form>
                 {chat.error && (
                   <p className="text-red-500 text-xs mt-2">{chat.error}</p>
+                )}
+                {chat.signedOut && (
+                  <a href={loginHref()} className="text-xs font-medium text-orange-600 underline underline-offset-2 mt-1">
+                    Se connecter
+                  </a>
                 )}
               </div>
             )}
@@ -392,55 +574,7 @@ export default function SupportChatWidget() {
                             {msg.body}
                           </p>
                           {/* Attachments */}
-                          {msg.attachments.length > 0 && (
-                            <div className="mt-2 space-y-1.5">
-                              {msg.attachments.map((att) =>
-                                att.type === "image" ? (
-                                  <a
-                                    key={att.id}
-                                    href={att.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block rounded-lg overflow-hidden max-w-[200px]"
-                                  >
-                                    <img
-                                      src={att.thumb_url ?? att.url}
-                                      alt={att.name}
-                                      className="w-full h-auto"
-                                      loading="lazy"
-                                    />
-                                  </a>
-                                ) : (
-                                  <a
-                                    key={att.id}
-                                    href={att.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${
-                                      msg.is_own
-                                        ? "bg-orange-600/50 text-white"
-                                        : "bg-gray-100 text-gray-700"
-                                    }`}
-                                  >
-                                    <svg
-                                      width="14"
-                                      height="14"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                    >
-                                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                                      <polyline points="14,2 14,8 20,8" />
-                                    </svg>
-                                    <span className="truncate max-w-[120px]">
-                                      {att.name}
-                                    </span>
-                                  </a>
-                                )
-                              )}
-                            </div>
-                          )}
+                          <ChatAttachments message={msg} />
                         </div>
                       </div>
                     </div>
@@ -483,6 +617,13 @@ export default function SupportChatWidget() {
                     </div>
                   )}
 
+                  {/* An agent is typing (live only) */}
+                  {chat.typingName && (
+                    <p className="text-[11px] text-gray-400 italic" aria-live="polite">
+                      {chat.typingName} écrit…
+                    </p>
+                  )}
+
                   <div ref={messagesEndRef} />
                 </div>
 
@@ -504,7 +645,8 @@ export default function SupportChatWidget() {
                       />
                       <button
                         type="submit"
-                        disabled={!messageInput.trim()}
+                        disabled={!messageInput.trim() || isSending}
+                        aria-label="Envoyer"
                         className="p-2.5 rounded-xl text-white transition-all disabled:opacity-40"
                         style={{
                           background:
@@ -527,8 +669,16 @@ export default function SupportChatWidget() {
                       </button>
                     </form>
                     {chat.error && (
-                      <p className="text-red-500 text-[10px] mt-1">
+                      <p role="alert" className="text-red-500 text-[10px] mt-1">
                         {chat.error}
+                        {chat.signedOut && (
+                          <>
+                            {" "}
+                            <a href={loginHref()} className="font-medium underline underline-offset-2">
+                              Se connecter
+                            </a>
+                          </>
+                        )}
                       </p>
                     )}
                   </div>
@@ -538,9 +688,9 @@ export default function SupportChatWidget() {
                 {!isActive && (
                   <div className="flex-shrink-0 border-t border-gray-200 bg-white p-3 text-center">
                     <button
-                      onClick={() => {
-                        setShowStartForm(true);
-                      }}
+                      type="button"
+                      // The ended chat leaves the window: the start form shows.
+                      onClick={chat.reset}
                       className="px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-xl transition-colors"
                     >
                       Démarrer un nouveau chat
@@ -553,5 +703,66 @@ export default function SupportChatWidget() {
         </div>
       )}
     </>
+  );
+}
+
+// ── Attachments of a message ────────────────────
+// Not public: read through the relay, from a path of this very message.
+// An attachment whose path is anything else is not rendered.
+function ChatAttachments({ message }: { message: ChatMessage }) {
+  const attachments = (message.attachments ?? []).flatMap((att) => {
+    const relayUrl = attachmentUrl(att.path, "supportChat", message.id);
+    return relayUrl ? [{ ...att, relayUrl }] : [];
+  });
+  if (attachments.length === 0) return null;
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      {attachments.map((att) =>
+        att.type === "image" ? (
+          <a
+            key={att.id}
+            href={safeHref(att.relayUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-lg overflow-hidden max-w-[200px]"
+          >
+            <img
+              src={safeSrc(att.relayUrl)}
+              alt={att.name}
+              className="w-full h-auto"
+              loading="lazy"
+            />
+          </a>
+        ) : (
+          <a
+            key={att.id}
+            href={safeHref(att.relayUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${
+              message.is_own
+                ? "bg-orange-600/50 text-white"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+              <polyline points="14,2 14,8 20,8" />
+            </svg>
+            <span className="truncate max-w-[120px]">
+              {safeFilename(att.name)}
+            </span>
+          </a>
+        )
+      )}
+    </div>
   );
 }

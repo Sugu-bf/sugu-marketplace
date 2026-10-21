@@ -11,6 +11,7 @@ import { DeliveryDetails } from "./DeliveryDetails";
 import { TrackingTimeline } from "./TrackingTimeline";
 import { TrackingOrderSummary } from "./TrackingOrderSummary";
 import { EstimatedDeliveryCard } from "./EstimatedDeliveryCard";
+import SupportChatWidget from "@/features/support-chat/SupportChatWidget";
 
 interface TrackingLiveWrapperProps {
   orderId: string;
@@ -154,7 +155,9 @@ export function TrackingLiveWrapper({
           {/* Order Summary */}
           <TrackingOrderSummary
             orderId={orderId}
+            orderNumber={order.orderNumber}
             items={order.items}
+            stores={order.stores}
             subtotal={order.subtotal}
             shippingCost={order.shippingCost}
             shippingLabel={order.shippingLabel}
@@ -177,6 +180,9 @@ export function TrackingLiveWrapper({
           />
         </div>
       </div>
+
+      {/* Live support chat — opened by « Contacter le support » above */}
+      <SupportChatWidget />
     </>
   );
 }

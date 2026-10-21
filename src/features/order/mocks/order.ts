@@ -113,6 +113,7 @@ export function getMockTrackedOrder(): TrackedOrder {
         image: "/products/apple.png",
       },
     ],
+    stores: [],
 
     // Pricing
     subtotal: 12500,

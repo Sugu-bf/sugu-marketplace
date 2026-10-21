@@ -1,16 +1,23 @@
 import { createMetadata } from "@/lib/metadata";
-import { Container, Breadcrumb } from "@/components/ui";
+import Link from "next/link";
+import { Container, Breadcrumb, buttonVariants } from "@/components/ui";
 import { SupportChatWidget } from "@/features/support-chat";
-import { AssuranceBadge } from "@/components/ui/assurance-badge";
-import { Headphones, ShieldCheck, Clock, Phone, MessageCircle, Mail } from "lucide-react";
+import { OpenSupportChatButton } from "@/features/support-chat/OpenSupportChatButton";
+import { cn } from "@/lib/utils";
+import { Headphones, BookOpen } from "lucide-react";
 
 export const metadata = createMetadata({
   title: "Chat Support",
-  description: "Discutez en direct avec notre équipe de support Sugu. Disponible 24/7.",
+  description: "Écrivez à l'équipe support Sugu depuis le chat.",
   path: "/support-chat",
   noIndex: true,
 });
 
+/**
+ * The live support chat, and only what is true of it: how to open it, what
+ * helps the agent, and the help centre. No phone, no address, no promise of
+ * availability or response time the page cannot keep.
+ */
 export default function SupportChatPage() {
   return (
     <main className="pb-12">
@@ -23,7 +30,7 @@ export default function SupportChatPage() {
           Chat support
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Notre équipe est disponible pour vous aider
+          Écrivez à l&apos;équipe Sugu depuis cette page.
         </p>
       </Container>
 
@@ -40,46 +47,38 @@ export default function SupportChatPage() {
                 Démarrez une conversation
               </h2>
               <p className="text-sm text-muted-foreground text-center mt-2 max-w-md mx-auto">
-                Cliquez sur le bouton de chat en bas à droite de votre écran pour commencer une conversation
-                avec un agent Sugu. Notre équipe est disponible 24/7 pour vous aider.
+                Ouvrez le chat pour écrire à un agent Sugu. Votre conversation reste ici tant qu&apos;elle est ouverte.
               </p>
+              <div className="mt-5 flex flex-col items-center gap-2">
+                <OpenSupportChatButton />
+                <p className="text-xs text-muted-foreground">
+                  Le chat est ouvert aux comptes connectés.
+                </p>
+              </div>
 
               {/* Steps */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-                <StepCard number={1} title="Ouvrir le chat" description="Cliquez sur le bouton orange en bas à droite" />
+                <StepCard number={1} title="Ouvrir le chat" description="Ce bouton, ou le bouton orange en bas à droite" />
                 <StepCard number={2} title="Décrire votre problème" description="Entrez un sujet et lancez le chat" />
-                <StepCard number={3} title="Obtenir de l'aide" description="Un agent vous répondra en quelques minutes" />
-              </div>
-            </div>
-
-            {/* Alternative contact */}
-            <div className="rounded-2xl border border-border-light bg-background p-5 sm:p-6">
-              <h2 className="text-base font-bold text-foreground mb-4">
-                Autres moyens de nous contacter
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <ContactCard icon={<Phone size={18} />} label="Téléphone" value="+226 25 00 00 00" href="tel:+22625000000" />
-                <ContactCard icon={<MessageCircle size={18} />} label="WhatsApp" value="+226 70 00 00 00" href="https://wa.me/22664528958" />
-                <ContactCard icon={<Mail size={18} />} label="Email" value="support@sugu.pro" href="mailto:support@sugu.pro" />
+                <StepCard number={3} title="Échanger avec un agent" description="Sa réponse s'affiche dans le chat" />
               </div>
             </div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-4 lg:col-span-1">
-            {/* Agent status */}
-            <div className="rounded-2xl border border-border-light bg-background p-5 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white text-2xl font-bold mx-auto">
-                S
+            {/* Help centre */}
+            <div className="rounded-2xl border border-border-light bg-background p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen size={18} className="text-primary" />
+                <h3 className="text-sm font-bold text-foreground">Centre d&apos;aide</h3>
               </div>
-              <p className="text-sm font-bold text-foreground mt-3">Support Sugu</p>
-              <div className="flex items-center justify-center gap-1.5 mt-1">
-                <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-                <span className="text-xs text-success font-medium">En ligne</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Temps de réponse moyen : &lt;2 min
+              <p className="text-xs text-muted-foreground">
+                Les réponses aux questions les plus fréquentes.
               </p>
+              <Link href="/help" className={cn(buttonVariants({ variant: "outline", size: "sm", fullWidth: true }), "mt-3 text-xs")}>
+                Voir les questions fréquentes
+              </Link>
             </div>
 
             {/* Tips */}
@@ -92,20 +91,9 @@ export default function SupportChatPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-0.5">•</span>
-                  Fournissez votre numéro de commande si applicable
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  Joignez des captures d&apos;écran si nécessaire
+                  Pour une commande, ouvrez le chat depuis son suivi : elle est jointe à la conversation
                 </li>
               </ul>
-            </div>
-
-            {/* Badges */}
-            <div className="space-y-2">
-              <AssuranceBadge icon={<Headphones size={16} />} label="Support 24/7" />
-              <AssuranceBadge icon={<ShieldCheck size={16} />} label="Conversation sécurisée" />
-              <AssuranceBadge icon={<Clock size={16} />} label="Réponse rapide" />
             </div>
           </div>
         </div>
@@ -128,17 +116,5 @@ function StepCard({ number, title, description }: { number: number; title: strin
       <p className="text-sm font-semibold text-foreground">{title}</p>
       <p className="text-xs text-muted-foreground mt-1">{description}</p>
     </div>
-  );
-}
-
-function ContactCard({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href: string }) {
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-4 rounded-xl bg-muted/30 border border-border-light hover:bg-primary-50 hover:border-primary/20 transition-all group">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-        {icon}
-      </div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium text-foreground">{value}</p>
-    </a>
   );
 }

@@ -1,4 +1,20 @@
-import type { OrderTrackingApiData, TrackedOrder, BackendOrderStatus, OrderStatus, CanonicalTimelineStep, TrackingStep } from "../models/order";
+import type { OrderTrackingApiData, TrackedOrder, BackendOrderStatus, OrderStatus, CanonicalTimelineStep, TrackingStep, OrderStore } from "../models/order";
+import { OrderStoreSchema } from "../models/order";
+
+/**
+ * The stores of the order the buyer can write to: only entries with a store
+ * ULID and a name, each store once. Anything else is left out.
+ */
+function mapOrderStores(raw: unknown[] | undefined): OrderStore[] {
+  const stores: OrderStore[] = [];
+  for (const entry of raw ?? []) {
+    const parsed = OrderStoreSchema.safeParse(entry);
+    if (parsed.success && !stores.some((s) => s.id === parsed.data.id)) {
+      stores.push(parsed.data);
+    }
+  }
+  return stores;
+}
 
 /**
  * Map backend order status to simplified UI status.
@@ -168,6 +184,9 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
       total: item.total,
       image: item.image,
     })),
+
+    // Stores the buyer can write to about this order
+    stores: mapOrderStores(api.stores),
 
     // Pricing
     subtotal: api.pricing.subtotal,

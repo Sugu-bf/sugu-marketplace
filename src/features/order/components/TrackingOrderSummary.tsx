@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { api, publicUrl, isApiError } from "@/lib/api";
-import { Button, Badge } from "@/components/ui";
+import { Button, Badge, buttonVariants } from "@/components/ui";
 import {
   CheckCircle2,
   Headphones,
@@ -22,9 +22,12 @@ import {
   Undo2,
 } from "lucide-react";
 import { useStartCourierConversation } from "@/features/messaging/hooks";
+import { ContactSellerButton } from "@/features/messaging/components/ContactSellerButton";
+import { openSupportChat } from "@/features/support-chat/launcher";
 import { formatPrice } from "@/lib/constants";
 import { canPrepayCodClassic } from "@/features/order";
 import type { OrderItem, TrackedOrder } from "@/features/order";
+import type { OrderStore } from "../models/order";
 
 // ─── COD Mixte step labels ────────────────────────────────────
 
@@ -75,7 +78,11 @@ const COD_MIXTE_STEP_LABELS: Record<string, { label: string; description: string
 
 interface TrackingOrderSummaryProps {
   orderId: string;
+  /** The order's reference, offered as the subject of a support chat. */
+  orderNumber?: string;
   items: OrderItem[];
+  /** Stores of the order the buyer can write to about it. */
+  stores?: OrderStore[];
   subtotal: number;
   shippingCost: number;
   shippingLabel: string | null;
@@ -97,7 +104,9 @@ interface TrackingOrderSummaryProps {
  */
 function TrackingOrderSummary({
   orderId,
+  orderNumber,
   items,
+  stores = [],
   subtotal,
   shippingCost,
   shippingLabel,
@@ -118,6 +127,15 @@ function TrackingOrderSummary({
   const showCodClassicPay = canPrepayCodClassic({ codFlowType: codFlowType ?? null, codPrepaid: codPrepaid ?? false, total, paymentStatus, codMixte });
   const startCourierConv = useStartCourierConversation();
   const router = useRouter();
+  // The live support chat of the page (SupportChatWidget, rendered by the
+  // tracking page), about this order. A page without it: the chat page.
+  const contactSupport = () => {
+    const opened = openSupportChat({
+      subject: orderNumber ? `Commande #${orderNumber}` : undefined,
+      orderId,
+    });
+    if (!opened) router.push("/support-chat");
+  };
   const canContactCourier = !!(shipmentId && hasCourier);
 
   return (
@@ -255,7 +273,7 @@ function TrackingOrderSummary({
 
         {/* ═══ COD Mixte Payment Action Buttons ═══ */}
         {isCodMixte && codMixte && (
-          <CodMixtePaymentActions codMixte={codMixte} orderId={orderId} />
+          <CodMixtePaymentActions codMixte={codMixte} orderId={orderId} onContactSupport={contactSupport} />
         )}
 
         {/* ═══ C2 — COD classic cumulative prepayment (OPTION) ═══ */}
@@ -263,12 +281,19 @@ function TrackingOrderSummary({
           <CodClassicPayAction orderId={orderId} total={total} />
         )}
 
-        {/* Support buttons */}
+        {/* Support buttons — the help centre, and the live support chat of
+            this page (SupportChatWidget, rendered by the tracking page) */}
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" size="md" className="text-xs">
+          <Link href="/help" className={cn(buttonVariants({ variant: "outline", size: "md" }), "text-xs")}>
             Besoin d&apos;aide ?
-          </Button>
-          <Button variant="primary" size="md" className="text-xs">
+          </Link>
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            className="text-xs"
+            onClick={contactSupport}
+          >
             <Headphones size={14} />
             Contacter le support
           </Button>
@@ -294,6 +319,18 @@ function TrackingOrderSummary({
             {startCourierConv.isPending ? "Connexion..." : "Contacter le livreur"}
           </button>
         )}
+
+        {/* Write to the seller about this order — one per store of the order */}
+        {stores.map((store) => (
+          <ContactSellerButton
+            key={store.id}
+            storeId={store.id}
+            orderId={orderId}
+            loginRedirect={`/track-order?id=${orderId}`}
+            label={stores.length > 1 ? `Contacter ${store.name}` : "Contacter le vendeur"}
+            className="w-full justify-center rounded-xl px-4 py-2.5 text-xs font-semibold"
+          />
+        ))}
       </div>
     </div>
   );
@@ -462,9 +499,12 @@ function CodClassicPayAction({
 function CodMixtePaymentActions({
   codMixte,
   orderId,
+  onContactSupport,
 }: {
   codMixte: NonNullable<TrackedOrder["codMixte"]>;
   orderId: string;
+  /** Opens the live support chat about this order. */
+  onContactSupport: () => void;
 }) {
   const [loading, setLoading] = React.useState<"delivery" | "product" | "inspection" | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -569,12 +609,13 @@ function CodMixtePaymentActions({
                 )}
                 {loading === "inspection" ? "Confirmation…" : "J'ai bien reçu mes produits"}
               </button>
-              <Link
-                href="/support-chat"
-                className="block text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+              <button
+                type="button"
+                onClick={onContactSupport}
+                className="block w-full text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
               >
                 Un problème avec ma commande ? Contactez le support
-              </Link>
+              </button>
             </>
           )}
         </div>
