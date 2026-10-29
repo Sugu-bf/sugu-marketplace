@@ -5,6 +5,7 @@ import { Tabs } from "@/components/ui";
 import { CheckCircle, Star } from "lucide-react";
 import type { Product } from "@/features/product";
 import { fetchProductReviews, type ApiReview } from "@/features/product";
+import { formatDescriptionHtml } from "../utils/description-html";
 
 interface ProductTabsProps {
   product: Product;
@@ -12,57 +13,6 @@ interface ProductTabsProps {
   slug?: string;
   /** Pre-rendered HTML description from backend */
   descriptionHtml?: string;
-}
-
-function isWhitelistedImageUrl(url: string): boolean {
-  try {
-    if (url.startsWith("/")) return true;
-    const parsed = new URL(url);
-    return parsed.hostname.endsWith("sugu.pro") || parsed.hostname.endsWith("mysugu.com");
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Converts raw description text/HTML to formatted HTML:
- * 1. Replaces standalone image URLs with <img> tags (whitelisted sugu CDN/domains only)
- * 2. Replaces markdown images ![alt](url) with <img> tags (whitelisted sugu CDN/domains only)
- * 3. Wraps plain text paragraphs with <p> tags if no HTML structure is present
- */
-function formatDescriptionHtml(rawContent: string): string {
-  if (!rawContent) return "";
-
-  let html = rawContent;
-
-  // 1. Replace standalone image URLs (not inside src="..." or href="...") with <img> tags
-  const standaloneImageUrlRegex = /(?<!src=["']|href=["'])(https?:\/\/[^\s<"']+\.(?:png|jpe?g|webp|gif|svg)(\?[^\s<"']*)?)/gi;
-  html = html.replace(standaloneImageUrlRegex, (url) => {
-    if (!isWhitelistedImageUrl(url)) return "";
-    return `<img src="${url}" alt="Illustration produit" class="max-w-full h-auto rounded-2xl my-4 border border-border/80 shadow-sm bg-white p-2" />`;
-  });
-
-  // 2. Replace markdown images ![alt](url)
-  const markdownImageRegex = /!\[([^\]]*)\]\((https?:\/\/[^\s\)]+)\)/gi;
-  html = html.replace(markdownImageRegex, (_, alt, url) => {
-    if (!isWhitelistedImageUrl(url)) return "";
-    return `<img src="${url}" alt="${alt || "Illustration"}" class="max-w-full h-auto rounded-2xl my-4 border border-border/80 shadow-sm bg-white p-2" />`;
-  });
-
-  // 3. Filter existing <img> tags to ensure src is whitelisted
-  html = html.replace(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
-    return isWhitelistedImageUrl(src) ? match : "";
-  });
-
-  // 4. If plain text without HTML tags, wrap paragraphs for spacing
-  if (!/<[a-z][\s\S]*>/i.test(html)) {
-    html = html
-      .split(/\n\s*\n/)
-      .map((para) => `<p>${para.replace(/\n/g, "<br/>")}</p>`)
-      .join("");
-  }
-
-  return html;
 }
 
 /**
@@ -122,9 +72,8 @@ function ProductDetailTabs({ product, slug, descriptionHtml }: ProductTabsProps)
 
   const reviewCountLabel = reviewsLoaded ? reviewMeta.total : product.reviewCount;
 
-  // Format description content: parse standalone image URLs, markdown images, and line breaks into proper HTML
-  const rawDescription = descriptionHtml || product.description || "";
-  const formattedDescriptionHtml = formatDescriptionHtml(rawDescription);
+  // Sanitized HTML of the API, or else the plain-text description, escaped
+  const formattedDescriptionHtml = formatDescriptionHtml(descriptionHtml, product.description);
 
   const tabs = [
     {
@@ -132,7 +81,7 @@ function ProductDetailTabs({ product, slug, descriptionHtml }: ProductTabsProps)
       label: "Description",
       content: (
         <div
-          className="prose prose-sm max-w-none text-muted-foreground leading-relaxed [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-2xl [&_img]:my-4 [&_img]:shadow-sm [&_img]:border [&_img]:border-border/80 [&_img]:bg-white [&_img]:p-2 [&_img]:object-contain [&_a]:text-primary [&_a]:underline"
+          className="prose prose-sm max-w-none text-muted-foreground leading-relaxed [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-2xl [&_img]:my-4 [&_img]:shadow-sm [&_img]:border [&_img]:border-border/80 [&_img]:bg-white [&_img]:p-2 [&_img]:object-contain [&_a]:text-primary [&_a]:underline [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_th]:align-top [&_td]:border [&_td]:border-border [&_td]:px-2.5 [&_td]:py-1.5 [&_td]:align-top"
           dangerouslySetInnerHTML={{ __html: formattedDescriptionHtml }}
         />
       ),
