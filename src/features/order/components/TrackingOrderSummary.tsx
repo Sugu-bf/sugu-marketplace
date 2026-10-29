@@ -26,6 +26,7 @@ import { ContactSellerButton } from "@/features/messaging/components/ContactSell
 import { openSupportChat } from "@/features/support-chat/launcher";
 import { formatPrice } from "@/lib/constants";
 import { canPrepayCodClassic } from "@/features/order";
+import { safePaymentRedirectUrl } from "@/features/payment/utils/payment-redirect";
 import type { OrderItem, TrackedOrder } from "@/features/order";
 import type { OrderStore } from "../models/order";
 
@@ -456,10 +457,11 @@ function CodClassicPayAction({
         headers: { "Content-Type": "application/json", Accept: "application/json" },
       });
       const data = await res.json();
-      if (data.success && data.data?.payment_url) {
-        window.location.href = data.data.payment_url;
+      const paymentUrl = data.success ? safePaymentRedirectUrl(data.data?.payment_url) : null;
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
       } else {
-        setError(data.message || "Erreur lors de l'initiation du paiement.");
+        setError((!data.success && data.message) || "Erreur lors de l'initiation du paiement.");
         setLoading(false);
       }
     } catch {
@@ -558,10 +560,11 @@ function CodMixtePaymentActions({
         headers: { "Content-Type": "application/json", Accept: "application/json" },
       });
       const data = await res.json();
-      if (data.success && data.data?.payment_url) {
-        window.location.href = data.data.payment_url;
+      const paymentUrl = data.success ? safePaymentRedirectUrl(data.data?.payment_url) : null;
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
       } else {
-        setError(data.message || "Erreur lors de l'initiation du paiement.");
+        setError((!data.success && data.message) || "Erreur lors de l'initiation du paiement.");
         setLoading(null);
       }
     } catch {

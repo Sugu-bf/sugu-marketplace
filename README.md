@@ -289,6 +289,7 @@ production échoue si une variable requise manque ou est mal formée
 |---|---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | URL de l'API backend Laravel | `https://api.mysugu.com` |
 | `NEXT_PUBLIC_APP_URL` | URL publique du site (canonique, sitemap, contrôle d'Origin) | `https://sugu.pro` |
+| `NEXT_PUBLIC_PAYMENT_REDIRECT_HOSTS` | Hôtes des prestataires de paiement vers lesquels le navigateur peut être redirigé (séparés par des virgules, correspondance exacte, `https` uniquement) | `app.ligdicash.com,api.sugupay.net` |
 
 > ⚠️ **Sécurité** : un build de production refuse tout `NEXT_PUBLIC_API_BASE_URL` local ou non https (`lib/api/config.ts`). En développement, pointez-le vers une API locale ou de staging, jamais vers la production. Les tests ne peuvent joindre aucun hôte Sugu réel (garde réseau globale, MSW en `onUnhandledRequest: "error"`).
 

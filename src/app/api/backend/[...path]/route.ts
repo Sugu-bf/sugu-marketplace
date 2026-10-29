@@ -53,6 +53,8 @@ const FORWARDED_REQUEST_HEADERS = [
   "x-cart-token",
   "x-wishlist-token",
   "x-idempotency-key",
+  // Proves a guest owns the order whose payment it starts or reads.
+  "x-guest-order-token",
 ] as const;
 
 function isMutatingMethod(method: string): boolean {

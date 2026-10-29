@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { TokenRefreshProvider } from "../TokenRefreshProvider";
 
-const resetClientSession = vi.fn(async () => undefined);
+const resetClientSession = vi.fn<(to: string) => Promise<void>>(async () => undefined);
 vi.mock("@/lib/session/reset-client-session", () => ({
   resetClientSession: (to: string) => resetClientSession(to),
 }));
