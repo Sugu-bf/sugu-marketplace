@@ -1,16 +1,13 @@
 import { supplierListingService } from "../services/supplier-service";
+import type { SupplierListingState } from "../utils/queryState";
 
 /**
  * Server-side query helpers for the /fournisseurs listing page.
  */
-export async function queryAllSuppliers(
-  sector?: string,
-  search?: string,
-  page?: number,
-) {
-  return supplierListingService.getAllSuppliers(sector, search, page);
+export async function queryAllSuppliers(state: SupplierListingState) {
+  return supplierListingService.getSuppliers(state);
 }
 
 export async function queryFeaturedSuppliers() {
-  return supplierListingService.getFeaturedSuppliers();
+  return supplierListingService.getTopRatedSuppliers();
 }

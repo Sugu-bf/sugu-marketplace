@@ -40,9 +40,11 @@ export default function StoreCard({ store, className }: StoreCardProps) {
             <span className="truncate">{store.location}</span>
           </div>
 
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Membre depuis {store.memberSince}
-          </p>
+          {store.memberSince && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Membre depuis {store.memberSince}
+            </p>
+          )}
 
           {/* Category pills with Lucide icons */}
           <div className="mt-2 flex flex-wrap gap-1.5">

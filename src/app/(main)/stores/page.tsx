@@ -1,5 +1,6 @@
 import { Container, Breadcrumb } from "@/components/ui";
-import { queryAllStores, queryFeaturedStores } from "@/features/store";
+import { queryAllStores, queryTopRatedStores } from "@/features/store";
+import { parseSupplierSearchParams } from "@/features/supplier/utils/queryState";
 import { createMetadata } from "@/lib/metadata";
 import StoresHeroBanner from "@/features/store/components/StoresHeroBanner";
 import BecomeSellerCTA from "@/features/store/components/BecomeSellerCTA";
@@ -10,7 +11,7 @@ import StoresPageClient from "./StoresPageClient";
 export const metadata = createMetadata({
   title: "Nos Boutiques",
   description:
-    "Découvrez les meilleurs vendeurs sur SUGU. Des centaines de boutiques vérifiées dans la zone UEMOA (Afrique de l'Ouest).",
+    "Découvrez les boutiques vérifiées présentes sur SUGU, en Afrique de l'Ouest.",
   path: "/stores",
 });
 
@@ -21,14 +22,11 @@ export default async function StoresPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const sp = await searchParams;
-  const category = (sp.category as string) || "all";
-  const search = (sp.q as string) || "";
-  const page = parseInt((sp.page as string) || "1", 10);
+  const state = parseSupplierSearchParams(await searchParams);
 
-  const [featured, { stores, total, totalPages }] = await Promise.all([
-    queryFeaturedStores(),
-    queryAllStores(category, search, page),
+  const [topRated, { stores, nextCursor }] = await Promise.all([
+    queryTopRatedStores(),
+    queryAllStores(state),
   ]);
 
   return (
@@ -39,18 +37,15 @@ export default async function StoresPage({
       </Container>
 
       {/* Hero banner */}
-      <StoresHeroBanner totalStores={total} />
+      <StoresHeroBanner />
 
       {/* Main content */}
       <Container as="section" className="py-6 sm:py-8">
         <StoresPageClient
-          featuredStores={featured}
+          topRatedStores={state.cursor || state.q ? [] : topRated}
           stores={stores}
-          totalStores={total}
-          totalPages={totalPages}
-          currentPage={page}
-          initialCategory={category}
-          initialSearch={search}
+          nextCursor={nextCursor}
+          state={state}
         />
       </Container>
 

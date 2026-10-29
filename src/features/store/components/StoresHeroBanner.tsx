@@ -1,16 +1,11 @@
 import { Store } from "lucide-react";
 import { Container } from "@/components/ui";
 
-interface StoresHeroBannerProps {
-  totalStores: number;
-}
-
 /**
  * Hero for /stores — same clean card language as fournisseurs / newsletter.
+ * No count: the vendors API gives none.
  */
-export default function StoresHeroBanner({
-  totalStores,
-}: StoresHeroBannerProps) {
+export default function StoresHeroBanner() {
   return (
     <Container as="section" className="pb-2">
       <div className="rounded-2xl border border-border-light bg-white p-5 sm:p-8 shadow-sm">
@@ -25,11 +20,6 @@ export default function StoresHeroBanner({
             <p className="mt-1 text-sm text-muted-foreground leading-relaxed max-w-2xl">
               Découvrez les vendeurs présents sur la marketplace Sugu.
             </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full border border-border bg-background px-3.5 py-1.5 text-sm font-medium text-foreground">
-              {totalStores} boutique{totalStores !== 1 ? "s" : ""}
-            </span>
           </div>
         </div>
       </div>
