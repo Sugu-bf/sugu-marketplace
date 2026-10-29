@@ -2,15 +2,10 @@
  * Product Query Functions — entry points for pages.
  *
  * These are the ONLY functions components/pages should use to access product data.
- *
- * Migration status:
- * - queryProductBySlug: ✅ uses real API
- * - queryRelatedProducts: ✅ uses real API
- * - queryFeaturedProducts: ✅ uses real API (home recommended)
- * - Other queries: still using mock (to be migrated later)
+ * Real API only: an empty or failed list is an empty list, never stand-in
+ * products (they were indexed and cached as real ones).
  */
 
-import { MockProductService } from "../services/product-service";
 import type { ProductListItem, Product } from "../models/product";
 import { fetchRecommended } from "@/features/home/api/home.api";
 import {
@@ -20,8 +15,6 @@ import {
   mapApiRelatedToListItem,
 } from "../api";
 import type { ApiProductDetail } from "../api";
-
-const mockService = new MockProductService();
 
 // ─── Product Detail (REAL API) ───────────────────────────────
 
@@ -46,26 +39,11 @@ export async function queryProductBySlug(
 // ─── Related Products (REAL API) ─────────────────────────────
 
 /**
- * Fetch related products from the real API.
+ * Fetch related products from the real API (empty when there are none).
  */
-export async function queryRelatedProducts(
-  productIdOrSlug: number | string,
-  limit = 5
-): Promise<ProductListItem[]> {
-  // If we receive a slug string, use it directly; if number, we need a slug
-  const slug = typeof productIdOrSlug === "string" ? productIdOrSlug : String(productIdOrSlug);
-
-  try {
-    const related = await fetchRelatedProducts(slug, limit);
-    if (related.length > 0) {
-      return related.map(mapApiRelatedToListItem);
-    }
-  } catch (error) {
-    console.error("[Product] Failed to fetch related products:", (error as Error).message);
-  }
-
-  // Fallback to mock
-  return mockService.getRelated(typeof productIdOrSlug === "number" ? productIdOrSlug : 0, limit);
+export async function queryRelatedProducts(slug: string, limit = 5): Promise<ProductListItem[]> {
+  const related = await fetchRelatedProducts(slug, limit);
+  return related.map(mapApiRelatedToListItem);
 }
 
 // ─── Featured Products (REAL API — Home) ─────────────────────
@@ -97,26 +75,5 @@ export async function queryFeaturedProducts(limit = 6): Promise<ProductListItem[
   } catch (error) {
     console.error("[Product] Failed to fetch featured products:", (error as Error).message);
   }
-  return mockService.getFeatured(limit);
-}
-
-// ─── Still Mock (to be migrated) ─────────────────────────────
-
-export async function queryProducts(): Promise<ProductListItem[]> {
-  return mockService.getAll();
-}
-
-export async function queryProductById(id: number): Promise<Product | null> {
-  return mockService.getById(id);
-}
-
-export async function queryProductsByCategory(
-  categoryId: number,
-  limit?: number
-): Promise<ProductListItem[]> {
-  return mockService.getByCategory(categoryId, limit);
-}
-
-export async function querySearchProducts(query: string): Promise<ProductListItem[]> {
-  return mockService.search(query);
+  return [];
 }

@@ -139,17 +139,8 @@ function ProductCard({ product, index }: { product: DailyBestSaleProduct; index:
   );
 }
 
-const DEFAULT_PROMO: DailyBestSalesPromo = {
-  title: "5 000 F de réduction sur votre première commande",
-  subtitle: "Livraison avant 6h15",
-  ctaLabel: "Acheter maintenant",
-  href: "/search",
-  image: "/promos/grocery-bag.png",
-};
-
+/** The promo card is shown only when the API has one: no default offer. */
 export default function DailyBestSales({ products, promo }: DailyBestSalesProps) {
-  const card = promo ?? DEFAULT_PROMO;
-
   return (
     <Container
       as="section"
@@ -166,42 +157,44 @@ export default function DailyBestSales({ products, promo }: DailyBestSalesProps)
         ))}
 
         {/* Promo card */}
-        <Link
-          href={card.href}
-          className="rounded-2xl overflow-hidden relative flex flex-col md:col-span-2 lg:col-span-1 lg:row-span-2 lg:col-start-4 lg:row-start-1 order-first lg:order-none group"
-          style={{
-            background: "linear-gradient(180deg, #FFF8F0 0%, #FEF3E8 100%)",
-            animation: "fadeSlideUp 0.5s ease-out 300ms both",
-          }}
-        >
-          <div className="p-5 flex-1 flex flex-col">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-              <ShoppingBag size={20} className="text-primary" />
+        {promo && (
+          <Link
+            href={promo.href}
+            className="rounded-2xl overflow-hidden relative flex flex-col md:col-span-2 lg:col-span-1 lg:row-span-2 lg:col-start-4 lg:row-start-1 order-first lg:order-none group"
+            style={{
+              background: "linear-gradient(180deg, #FFF8F0 0%, #FEF3E8 100%)",
+              animation: "fadeSlideUp 0.5s ease-out 300ms both",
+            }}
+          >
+            <div className="p-5 flex-1 flex flex-col">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                <ShoppingBag size={20} className="text-primary" />
+              </div>
+
+              <p className="text-base font-bold text-foreground leading-snug mb-2">
+                {promo.title}
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                {promo.subtitle}
+              </p>
+
+              <span className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 group-hover:bg-primary-dark group-hover:shadow-lg group-hover:shadow-primary/25 w-fit">
+                {promo.ctaLabel}
+                <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </span>
             </div>
 
-            <p className="text-base font-bold text-foreground leading-snug mb-2">
-              {card.title}
-            </p>
-            <p className="text-xs text-muted-foreground mb-4">
-              {card.subtitle}
-            </p>
-
-            <span className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 group-hover:bg-primary-dark group-hover:shadow-lg group-hover:shadow-primary/25 w-fit">
-              {card.ctaLabel}
-              <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </span>
-          </div>
-
-          <div className="relative w-full h-[180px] mt-auto">
-            <Image
-              src={card.image || "/promos/grocery-bag.png"}
-              alt={card.title}
-              fill
-              className="object-cover object-top"
-              sizes="280px"
-            />
-          </div>
-        </Link>
+            <div className="relative w-full h-[180px] mt-auto">
+              <Image
+                src={promo.image || "/promos/grocery-bag.png"}
+                alt={promo.title}
+                fill
+                className="object-cover object-top"
+                sizes="280px"
+              />
+            </div>
+          </Link>
+        )}
       </div>
     </Container>
   );

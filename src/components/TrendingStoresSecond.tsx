@@ -15,7 +15,7 @@ interface TrendingStoresSecondProps {
   produitsVedettes: ProductColumnItem[];
   meilleuresVentes: ProductColumnItem[];
   enPromotion: ProductColumnItem[];
-  weeklyDeal: WeeklyDeal;
+  weeklyDeal: WeeklyDeal | null;
 }
 
 /* ── Small product row used in the first 3 columns ──── */
@@ -75,6 +75,8 @@ function ProductColumn({
   products: ProductColumnItem[];
   delay?: number;
 }) {
+  if (products.length === 0) return null;
+
   return (
     <div
       className="rounded-2xl border border-border-light bg-white p-5 shadow-sm transition-all duration-500 hover:shadow-md"
@@ -108,10 +110,10 @@ export default function TrendingStoresSecond({
   const [cartFeedback, setCartFeedback] = useState<string | null>(null);
   const router = useRouter();
 
-  const hasWeeklyImage = weeklyDeal.image && !weeklyDeal.image.includes("fallback-product");
+  const hasWeeklyImage = weeklyDeal?.image && !weeklyDeal.image.includes("fallback-product");
 
   async function handleAddToCart() {
-    if (isAddingToCart) return; // Anti double-click
+    if (!weeklyDeal || isAddingToCart) return; // Anti double-click
     if (weeklyDeal.hasVariants) {
       router.push(weeklyDeal.slug ? `/product/${weeklyDeal.slug}` : "#");
       return;
@@ -155,89 +157,82 @@ export default function TrendingStoresSecond({
         <ProductColumn title="Meilleures Ventes" products={meilleuresVentes} delay={250} />
         <ProductColumn title="En Promotion" products={enPromotion} delay={350} />
 
-        {/* Column 4 – Offres de la semaine */}
-        <div
-          className="rounded-2xl border border-border-light bg-white p-5 shadow-sm transition-all duration-500 hover:shadow-md flex flex-col"
-          style={{ animation: "fadeSlideUp 0.5s ease-out 450ms both" }}
-        >
-          <h3 className="text-lg font-bold text-foreground italic mb-1">
-            Offres de la semaine
-          </h3>
-          <p className="text-xs text-muted-foreground mb-5">
-            Ne manquez pas cette opportunité spéciale
-          </p>
-
-          {/* Featured product image */}
-          <Link href={weeklyDeal.slug ? `/product/${weeklyDeal.slug}` : "#"} className="block">
-            <div className="relative w-full aspect-square rounded-2xl bg-white border border-border-light/60 flex items-center justify-center mb-4 overflow-hidden shadow-xs">
-              {hasWeeklyImage ? (
-                <Image
-                  src={weeklyDeal.image!}
-                  alt={weeklyDeal.name}
-                  fill
-                  className="object-contain p-2 mix-blend-multiply transition-transform duration-500 hover:scale-105"
-                  sizes="300px"
-                />
-              ) : (
-                <Camera size={36} className="text-border" />
-              )}
-            </div>
-
-            {/* Product name */}
-            <p className="text-sm font-bold text-foreground mb-1.5 leading-snug hover:text-primary transition-colors">
-              {weeklyDeal.name}
-            </p>
-
-            {/* Price */}
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg font-bold text-primary">{formatPrice(weeklyDeal.price)}</span>
-              {weeklyDeal.originalPrice && (
-                <span className="text-sm text-muted-foreground line-through">{formatPrice(weeklyDeal.originalPrice)}</span>
-              )}
-            </div>
-          </Link>
-
-          {/* Stock notice */}
-          <p className="text-xs text-error font-medium mb-1">
-            Ce produit est bientôt en rupture
-          </p>
-          <p className="text-xs text-muted-foreground mb-4">
-            disponible seulement :{" "}
-            <span className="font-bold text-foreground">{formatPrice(weeklyDeal.price)}</span>
-          </p>
-
-          {/* Cart feedback */}
-          {cartFeedback && (
-            <p
-              className={`text-xs font-medium mb-2 ${
-                cartFeedback.startsWith("✓")
-                  ? "text-green-600"
-                  : "text-error"
-              }`}
-            >
-              {cartFeedback}
-            </p>
-          )}
-
-          {/* Add to cart */}
-          <button
-            onClick={handleAddToCart}
-            disabled={isAddingToCart || weeklyDeal.isInStock === false}
-            className="mt-auto group flex items-center justify-center gap-2 w-full rounded-full bg-primary py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-primary-dark hover:shadow-lg hover:shadow-primary/25 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+        {/* Column 4 – Offres de la semaine (only when the API has one) */}
+        {weeklyDeal && (
+          <div
+            className="rounded-2xl border border-border-light bg-white p-5 shadow-sm transition-all duration-500 hover:shadow-md flex flex-col"
+            style={{ animation: "fadeSlideUp 0.5s ease-out 450ms both" }}
           >
-            {isAddingToCart ? (
-              <>
-                <Loader2 size={15} className="animate-spin" />
-                Ajout en cours...
-              </>
-            ) : (
-              <>
-                Ajouter au panier
-                <ShoppingCart size={15} className="transition-transform duration-300 group-hover:translate-x-0.5" />
-              </>
+            <h3 className="text-lg font-bold text-foreground italic mb-1">
+              Offres de la semaine
+            </h3>
+            <p className="text-xs text-muted-foreground mb-5">
+              Ne manquez pas cette opportunité spéciale
+            </p>
+
+            {/* Featured product image */}
+            <Link href={weeklyDeal.slug ? `/product/${weeklyDeal.slug}` : "#"} className="block">
+              <div className="relative w-full aspect-square rounded-2xl bg-white border border-border-light/60 flex items-center justify-center mb-4 overflow-hidden shadow-xs">
+                {hasWeeklyImage ? (
+                  <Image
+                    src={weeklyDeal.image!}
+                    alt={weeklyDeal.name}
+                    fill
+                    className="object-contain p-2 mix-blend-multiply transition-transform duration-500 hover:scale-105"
+                    sizes="300px"
+                  />
+                ) : (
+                  <Camera size={36} className="text-border" />
+                )}
+              </div>
+
+              {/* Product name */}
+              <p className="text-sm font-bold text-foreground mb-1.5 leading-snug hover:text-primary transition-colors">
+                {weeklyDeal.name}
+              </p>
+
+              {/* Price */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg font-bold text-primary">{formatPrice(weeklyDeal.price)}</span>
+                {weeklyDeal.originalPrice && (
+                  <span className="text-sm text-muted-foreground line-through">{formatPrice(weeklyDeal.originalPrice)}</span>
+                )}
+              </div>
+            </Link>
+
+            {/* Cart feedback */}
+            {cartFeedback && (
+              <p
+                className={`text-xs font-medium mb-2 ${
+                  cartFeedback.startsWith("✓")
+                    ? "text-green-600"
+                    : "text-error"
+                }`}
+              >
+                {cartFeedback}
+              </p>
             )}
-          </button>
-        </div>
+
+            {/* Add to cart */}
+            <button
+              onClick={handleAddToCart}
+              disabled={isAddingToCart || weeklyDeal.isInStock === false}
+              className="mt-auto group flex items-center justify-center gap-2 w-full rounded-full bg-primary py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-primary-dark hover:shadow-lg hover:shadow-primary/25 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isAddingToCart ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Ajout en cours...
+                </>
+              ) : (
+                <>
+                  Ajouter au panier
+                  <ShoppingCart size={15} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </Container>
   );
