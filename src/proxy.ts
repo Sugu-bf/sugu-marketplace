@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { COMING_SOON_ROUTE, isAllowedDuringComingSoon, isComingSoon } from "@/lib/coming-soon";
 import { isKnownAppRoute } from "@/lib/routing/known-app-routes";
 import { redirectTarget, resolveSeoRedirect } from "@/lib/routing/seo-redirects";
+import { clientIpHeaders } from "@/lib/server/client-ip";
 
 /**
  * Next.js proxy — the coming-soon wall and SEO redirect resolution.
@@ -59,7 +60,10 @@ export default async function proxy(request: NextRequest) {
   }
 
   // 5. Unknown path: ask the backend once, then serve from the cache.
-  const redirect = await resolveSeoRedirect(pathname, { apiBaseUrl: API_BASE });
+  const redirect = await resolveSeoRedirect(pathname, {
+    apiBaseUrl: API_BASE,
+    headers: await clientIpHeaders(request.headers),
+  });
   if (redirect) {
     return NextResponse.redirect(redirectTarget(redirect, request.url), redirect.statusCode);
   }

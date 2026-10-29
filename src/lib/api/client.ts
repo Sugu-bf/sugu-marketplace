@@ -171,6 +171,12 @@ async function getAuthToken(): Promise<string | null> {
   }
 }
 
+/** The signed visitor address for a server call (see ./server-client-ip). */
+async function getVisitorAddressHeaders(): Promise<Record<string, string>> {
+  const { getServerClientIpHeaders } = await import("./server-client-ip");
+  return getServerClientIpHeaders();
+}
+
 function shouldProxyThroughBff(url: string, skipCredentials: boolean): boolean {
   if (skipCredentials) return false;
   if (typeof window === "undefined") return false;
@@ -234,7 +240,8 @@ async function executeRequest<T>(
     headers.set("Accept", "application/json");
   }
 
-  if (!isCachedServerRead(method, revalidate, tags, restInit.cache)) {
+  const cachedServerRead = isCachedServerRead(method, revalidate, tags, restInit.cache);
+  if (!cachedServerRead) {
     headers.set("X-Request-Id", requestId);
   }
 
@@ -244,6 +251,14 @@ async function executeRequest<T>(
     const token = await getAuthToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
+    }
+  }
+
+  // A credentialed server call made for one visitor carries that visitor's
+  // signed address. A cached read is shared by every visitor: it carries none.
+  if (isServer() && !skipCredentials && !cachedServerRead) {
+    for (const [name, value] of Object.entries(await getVisitorAddressHeaders())) {
+      headers.set(name, value);
     }
   }
 

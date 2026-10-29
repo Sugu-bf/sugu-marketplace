@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { API_BASE_URL } from "@/lib/api/config";
+import { clientIpHeaders } from "@/lib/server/client-ip";
 import {
   AUTH_TOKEN_COOKIE,
   AUTH_TOKEN_EXPIRES_COOKIE,
@@ -38,11 +39,6 @@ const FORWARDED_REQUEST_HEADERS = [
   "x-cart-token",
   "x-wishlist-token",
   "x-idempotency-key",
-  // The address of the visitor, as the proxy in front of this app wrote it.
-  // Laravel reads it only where it trusts the hop it comes from
-  // (TRUSTED_PROXIES): its limits by address then count each visitor, not
-  // this server.
-  "x-forwarded-for",
 ] as const;
 
 function isMutatingMethod(method: string): boolean {
@@ -113,12 +109,18 @@ function safeBackendUrl(pathSegments: string[] | undefined, search: string): URL
   return url;
 }
 
-function buildForwardHeaders(request: NextRequest): Headers {
+async function buildForwardHeaders(request: NextRequest): Promise<Headers> {
   const headers = new Headers();
 
   for (const name of FORWARDED_REQUEST_HEADERS) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
+  }
+
+  // The visitor's address, signed for Laravel's per-address limits (never the
+  // x-forwarded-for chain itself, which the visitor can write).
+  for (const [name, value] of Object.entries(await clientIpHeaders(request.headers))) {
+    headers.set(name, value);
   }
 
   const token = request.cookies.get(AUTH_TOKEN_COOKIE)?.value;
@@ -240,7 +242,7 @@ async function proxyToBackend(request: NextRequest, context: RouteContext): Prom
   const hasBody = method !== "GET" && method !== "HEAD";
   const upstream = await fetch(target, {
     method,
-    headers: buildForwardHeaders(request),
+    headers: await buildForwardHeaders(request),
     body: hasBody ? await request.arrayBuffer() : undefined,
     cache: "no-store",
     redirect: "manual",

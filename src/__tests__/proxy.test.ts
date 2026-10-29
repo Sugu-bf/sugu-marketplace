@@ -27,6 +27,22 @@ describe("proxy", () => {
     expect(response.headers.get("location")).toBe("https://sugu.pro/category/fruits?p=2");
   });
 
+  it("asks the backend with the visitor's signed address, never the written chain", async () => {
+    vi.stubEnv("SUGU_EDGE_SECRET", "0123456789abcdef0123456789abcdef");
+    const fetchMock = vi.fn(async () => Response.json({ match: false }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await proxy(
+      new NextRequest("https://sugu.pro/vieille-page", {
+        headers: { "x-forwarded-for": "198.18.0.9, 41.203.64.10" },
+      }),
+    );
+
+    const sent = new Headers((fetchMock.mock.calls[0] as unknown as [URL, RequestInit])[1].headers);
+    expect(sent.get("x-sugu-client-ip")).toBe("41.203.64.10");
+    expect(sent.has("x-forwarded-for")).toBe(false);
+  });
+
   it("serves an App Router path without asking the backend", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
