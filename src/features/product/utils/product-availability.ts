@@ -72,3 +72,12 @@ export function isStockQuantityUnknown(
     && !apiData.stock.is_unlimited
   );
 }
+
+/**
+ * « Acheter maintenant » adds the article to the cart, and the checkout buys
+ * the whole cart. With other lines in it, the buyer reviews the cart first
+ * instead of paying for more than the article in silence.
+ */
+export function buyNowNeedsCartReview(cartLineCount: number): boolean {
+  return cartLineCount > 1;
+}

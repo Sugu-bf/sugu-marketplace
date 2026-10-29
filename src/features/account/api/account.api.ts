@@ -35,6 +35,7 @@ import type {
   ApiNotificationItem,
   ApiNotificationGroup,
 } from "./account.types";
+import { resolveNotificationLink } from "../models/notification-link";
 
 // ─── Mappers ─────────────────────────────────────────────────
 
@@ -164,17 +165,12 @@ function mapApiOrderToUI(order: ApiOrderListItem): Order {
 
 /** Map API notification to UI shape */
 function mapApiNotificationToUI(n: ApiNotificationItem): Notification {
-  let actionUrl = n.action_url ?? null;
-  if (actionUrl && actionUrl.startsWith("/orders/")) {
-    actionUrl = "/account/orders";
-  }
-
   return {
     id: n.id,
     type: n.type,
     title: n.title,
     message: n.body ?? n.message ?? "",
-    actionUrl: actionUrl,
+    actionUrl: resolveNotificationLink(n.action_url),
     isRead: n.is_read,
     createdAt: n.time ?? n.created_at ?? "",
   };
@@ -221,7 +217,10 @@ export async function fetchAddresses(): Promise<Address[]> {
 // ─── GET Orders ─────────────────────────────────────────────
 
 /**
- * Fetch orders for the authenticated user (paginated).
+ * Fetch the purchases of the authenticated user (paginated).
+ *
+ * `scope=purchases`: only the orders the user bought — without it, the list
+ * of a user who also sells mixed in the orders received by their stores.
  */
 export async function fetchOrders(params?: {
   page?: number;
@@ -229,6 +228,7 @@ export async function fetchOrders(params?: {
   perPage?: number;
 }): Promise<PaginatedOrders> {
   const url = v1Url("orders", {
+    scope: "purchases",
     page: params?.page ?? 1,
     per_page: params?.perPage ?? 10,
     status: params?.status,

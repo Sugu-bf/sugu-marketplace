@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createMetadata } from "@/lib/metadata";
 import { Container, Breadcrumb, Stepper } from "@/components/ui";
@@ -48,7 +49,20 @@ function getStepProgress(session: { totals: { shipping_amount: number } } | null
 // ─── Page Component (Server) ─────────────────────────────────
 
 interface CheckoutPageProps {
-  searchParams: Promise<{ session?: string; payment_method?: string }>;
+  searchParams: Promise<{ session?: string; payment_method?: string; renewed?: string }>;
+}
+
+/** The cart token this browser mirrors in a first-party cookie (guest carts). */
+const CART_TOKEN_COOKIE = "sugu_cart_token";
+
+/** Opens a session on the current cart; null when there is nothing to buy. */
+async function openSession(cartToken: string | null): Promise<string | null> {
+  try {
+    const created = await createCheckoutSession({}, cartToken);
+    return created?.sessionId ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export default async function CheckoutPage({ searchParams }: CheckoutPageProps) {
@@ -65,22 +79,17 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
   }
 
   const params = await searchParams;
-  let sessionId = params.session;
+  const cartToken = (await cookies()).get(CART_TOKEN_COOKIE)?.value ?? null;
+  const paymentQuery = params.payment_method === "ligdicash" ? "&payment_method=ligdicash" : "";
 
-  // Auto-create session if missing from URL (e.g. redirected from login or direct nav)
-  if (!sessionId) {
-    try {
-      const created = await createCheckoutSession({});
-      if (created?.sessionId) {
-        sessionId = created.sessionId;
-      }
-    } catch {
-      // Failed to auto-create (cart is empty or backend error)
+  // No session in the URL (redirected from login or direct nav): open one on
+  // the cart and come back with its id, so a reload stays on that session.
+  if (!params.session) {
+    const opened = await openSession(cartToken);
+    if (opened) {
+      redirect(`/checkout?session=${opened}${paymentQuery}`);
     }
-  }
 
-  // No session ID → redirect suggestion
-  if (!sessionId) {
     return (
       <main className="pb-12">
         <Container className="pt-8">
@@ -95,29 +104,31 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
     );
   }
 
-  // Fetch checkout data from backend (no-store, SSR)
-  let result = await queryCheckoutSession(sessionId);
+  const sessionId = params.session;
+  const result = await queryCheckoutSession(sessionId, cartToken);
 
-  // If session is invalid (e.g. created as guest before login), auto-create a fresh user session
-  if (result.error || !result.session) {
-    try {
-      const created = await createCheckoutSession({});
-      if (created?.sessionId) {
-        result = await queryCheckoutSession(created.sessionId);
-      }
-    } catch {
-      // Fallback failed (e.g. empty cart), proceed to render error
+  // A session already placed leads to its order, never to a second checkout.
+  if (result.session?.order) {
+    redirect(`/track-order?order=${result.session.order.id}`);
+  }
+
+  // Expired, or opened before signing in: a new session is opened on the cart
+  // and the page moves to it — once, never in a loop.
+  if ((result.error || !result.session || result.session.is_active === false) && !params.renewed) {
+    const opened = await openSession(cartToken);
+    if (opened && opened !== sessionId) {
+      redirect(`/checkout?session=${opened}${paymentQuery}&renewed=1`);
     }
   }
 
   // Error fetching session
-  if (result.error || !result.session) {
+  if (result.error || !result.session || result.session.is_active === false) {
     return (
       <main className="pb-12">
         <Container className="pt-8">
           <CheckoutError
             title="Session invalide"
-            message={result.error || "La session de paiement est invalide ou a expiré."}
+            message="La session de paiement est invalide ou a expiré."
             linkHref="/cart"
             linkLabel="Retour au panier"
           />

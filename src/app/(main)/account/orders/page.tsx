@@ -1,22 +1,18 @@
 import { createMetadata } from "@/lib/metadata";
 import { Breadcrumb, Badge, Button } from "@/components/ui";
-import { queryOrders } from "@/features/account";
+import {
+  queryOrders,
+  orderStatusBadge,
+  ORDER_STATUS_FILTERS,
+  parseOrdersPage,
+  ordersPageHref,
+} from "@/features/account";
 import { formatPrice } from "@/lib/constants";
-import { Eye, Package, CreditCard, Truck, CheckCircle2, Banknote } from "lucide-react";
+import { Eye, Package, CreditCard, Truck, CheckCircle2, Banknote, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 export const metadata = createMetadata({ title: "Mes Commandes", description: "Consultez l'historique de vos commandes sur Sugu.", path: "/account/orders", noIndex: true });
-
-const STATUS_CONFIG: Record<string, { label: string; variant: "primary" | "success" | "danger" | "secondary" }> = {
-  pending: { label: "En attente", variant: "secondary" },
-  confirmed: { label: "Confirmée", variant: "primary" },
-  processing: { label: "En préparation", variant: "primary" },
-  shipped: { label: "En livraison", variant: "primary" },
-  delivered: { label: "Livrée", variant: "success" },
-  cancelled: { label: "Annulée", variant: "danger" },
-  canceled: { label: "Annulée", variant: "danger" },
-};
 
 // COD Mixte step labels for the orders list
 const COD_STEP_LABELS: Record<string, string> = {
@@ -36,17 +32,9 @@ export default async function OrdersPage({
   searchParams?: Promise<{ status?: string; page?: string }>;
 }) {
   const params = await searchParams;
-  const statusFilter = params?.status;
-  const { orders, pagination } = await queryOrders({ status: statusFilter });
-
-  const FILTERS = [
-    { label: "Toutes", value: undefined },
-    { label: "En attente", value: "pending" },
-    { label: "Confirmées", value: "confirmed" },
-    { label: "En livraison", value: "shipped" },
-    { label: "Livrées", value: "delivered" },
-    { label: "Annulées", value: "canceled" },
-  ];
+  const statusFilter = params?.status || undefined;
+  const page = parseOrdersPage(params?.page);
+  const { orders, pagination } = await queryOrders({ status: statusFilter, page });
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -58,9 +46,9 @@ export default async function OrdersPage({
 
       {/* ── Status filter tabs ── */}
       <div className="flex gap-2 flex-wrap">
-        {FILTERS.map((f) => {
-          const isActive = (statusFilter ?? undefined) === f.value;
-          const href = f.value ? `/account/orders?status=${f.value}` : "/account/orders";
+        {ORDER_STATUS_FILTERS.map((f) => {
+          const isActive = statusFilter === f.value;
+          const href = ordersPageHref(f.value);
           return (
             <Link key={f.label} href={href}>
               <Button
@@ -78,15 +66,25 @@ export default async function OrdersPage({
         <div className="rounded-2xl border border-border/80 bg-white shadow-sm p-8 lg:p-12 text-center">
           <Package size={48} className="text-muted-foreground mx-auto mb-4" />
           <p className="text-base font-semibold text-foreground lg:text-lg">Aucune commande</p>
-          <p className="text-sm text-muted-foreground mt-1">Vous n&apos;avez pas encore passé de commande.</p>
-          <Link href="/">
-            <Button variant="primary" size="md" className="mt-4">Commencer à acheter</Button>
-          </Link>
+          {pagination.total > 0 ? (
+            <Link href={ordersPageHref(statusFilter)}>
+              <Button variant="primary" size="md" className="mt-4">Revenir à la première page</Button>
+            </Link>
+          ) : statusFilter ? (
+            <p className="text-sm text-muted-foreground mt-1">Aucune commande ne correspond à ce filtre.</p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground mt-1">Vous n&apos;avez pas encore passé de commande.</p>
+              <Link href="/">
+                <Button variant="primary" size="md" className="mt-4">Commencer à acheter</Button>
+              </Link>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-3 lg:space-y-4">
           {orders.map((order) => {
-            const config = STATUS_CONFIG[order.statusCode ?? ""] ?? STATUS_CONFIG.pending;
+            const config = orderStatusBadge(order.statusCode, order.status);
             const isCodMixte = order.is_cod && order.cod_flow_type === "mixte";
             // Legacy COD awaiting cash: shown only when both signals agree, so the
             // indicator disappears the moment the cash payment lands (paymentStatusCode
@@ -187,7 +185,52 @@ export default async function OrdersPage({
           })}
         </div>
       )}
+
+      <OrdersPager
+        status={statusFilter}
+        currentPage={pagination.currentPage}
+        lastPage={pagination.lastPage}
+      />
     </div>
+  );
+}
+
+// ─── Pages of the list ──────────────────────────────────────────
+
+function OrdersPager({
+  status,
+  currentPage,
+  lastPage,
+}: {
+  status: string | undefined;
+  currentPage: number;
+  lastPage: number;
+}) {
+  if (lastPage <= 1 || currentPage > lastPage) return null;
+
+  const linkClass =
+    "inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary-50 hover:text-primary";
+
+  return (
+    <nav aria-label="Pages des commandes" className="flex items-center justify-between gap-3">
+      {currentPage > 1 ? (
+        <Link href={ordersPageHref(status, currentPage - 1)} className={linkClass} rel="prev">
+          <ChevronLeft size={16} /> Précédente
+        </Link>
+      ) : (
+        <span />
+      )}
+      <span className="text-sm text-muted-foreground" aria-current="page">
+        Page {currentPage} sur {lastPage}
+      </span>
+      {currentPage < lastPage ? (
+        <Link href={ordersPageHref(status, currentPage + 1)} className={linkClass} rel="next">
+          Suivante <ChevronRight size={16} />
+        </Link>
+      ) : (
+        <span />
+      )}
+    </nav>
   );
 }
 

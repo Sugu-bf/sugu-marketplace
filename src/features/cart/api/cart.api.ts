@@ -23,7 +23,6 @@ import {
   ApiCouponApplyResponseSchema,
   ApiCouponRemoveResponseSchema,
   ApiCheckoutSessionResponseSchema,
-  ApiPlaceOrderResponseSchema,
 } from "./cart.schemas";
 import type {
   ApiCartLine,
@@ -116,6 +115,22 @@ export async function fetchCart(signal?: AbortSignal): Promise<CartUI> {
   return mapApiResponseToCartUI(data);
 }
 
+/** The only cookie of this site the cart API reads: the guest cart's. */
+const FORWARDED_COOKIES = new Set(["guest_cart"]);
+
+/**
+ * The visitor's cookies, reduced to the ones the API needs: the rest
+ * (analytics, auth of this site — sent as a Bearer by the client) stays here.
+ */
+export function forwardedCookies(cookieHeader?: string): string | undefined {
+  if (!cookieHeader) return undefined;
+  const kept = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => FORWARDED_COOKIES.has(part.split("=")[0]));
+  return kept.length > 0 ? kept.join("; ") : undefined;
+}
+
 /**
  * Fetch cart for SSR (Server Component).
  * Forwards cookies from the incoming request.
@@ -131,8 +146,9 @@ export async function fetchCartSSR(cookieHeader?: string, cartToken?: string | n
   const url = v1Url("cart");
 
   const headers: Record<string, string> = {};
-  if (cookieHeader) {
-    headers["Cookie"] = cookieHeader;
+  const cookie = forwardedCookies(cookieHeader);
+  if (cookie) {
+    headers["Cookie"] = cookie;
   }
   if (cartToken) {
     headers["X-Cart-Token"] = cartToken;
@@ -312,42 +328,6 @@ export async function createCheckoutSession(
     sessionId: data.data.session.id,
     status: data.data.session.status,
     expiresAt: data.data.session.expires_at,
-  };
-}
-
-// ─── Place Order (Mobile Money / Direct) ─────────────────────
-
-export interface PlaceOrderResult {
-  orderId: string | number;
-  orderNumber: string;
-  paymentUrl: string | null;
-  nextStep: string;
-  isCod: boolean;
-}
-
-/**
- * Place an order. Returns order details + payment redirect URL if applicable.
- */
-export async function placeOrder(
-  params: Record<string, unknown>,
-  idempotencyKey: string,
-  signal?: AbortSignal
-): Promise<PlaceOrderResult> {
-  const url = v1Url("checkout/orders");
-  const { data } = await api.post(url, {
-    body: params,
-    schema: ApiPlaceOrderResponseSchema,
-    headers: withCartTokenHeader({ "X-Idempotency-Key": idempotencyKey }),
-    signal,
-    retries: 0,
-  });
-
-  return {
-    orderId: data.data.order.id,
-    orderNumber: data.data.order.number,
-    paymentUrl: data.data.payment_url ?? null,
-    nextStep: data.data.next_step ?? "redirect_to_payment",
-    isCod: data.data.order.is_cod ?? false,
   };
 }
 

@@ -2,6 +2,14 @@ import type { Metadata } from "next";
 import { API_BASE_URL } from "@/lib/api/config";
 import { notFound } from "next/navigation";
 
+// A public invoice is read with its secret token: never kept by a cache,
+// always asked again of the backend.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+/** The token of a public invoice: 64 lowercase hex characters, as the backend route. */
+const INVOICE_TOKEN = /^[a-f0-9]{64}$/;
+
 // ── Types ──
 interface InvoiceItem {
   name: string;
@@ -43,6 +51,8 @@ export async function generateMetadata({
   const { token } = await params;
   const invoice = await fetchInvoice(token);
   return {
+    // The token is in the address: never sent on to another site.
+    referrer: "no-referrer",
     title: invoice
       ? `Facture ${invoice.invoice_number} — Sugu`
       : "Facture introuvable — Sugu",
@@ -55,9 +65,10 @@ export async function generateMetadata({
 
 // ── Fetch ──
 async function fetchInvoice(token: string): Promise<InvoiceData | null> {
+  if (!INVOICE_TOKEN.test(token)) return null;
   try {
     const res = await fetch(`${API_BASE_URL}/api/v1/public/invoices/${token}`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!res.ok) return null;
     const json = await res.json();

@@ -29,6 +29,12 @@ import {
   DEFAULT_COUNTRY_CODE,
 } from "@/lib/constants";
 import { useRouter } from "next/navigation";
+import {
+  ADDRESS_LIMIT_MESSAGE,
+  MAX_ADDRESSES,
+  addressSaveErrorMessage,
+  normalizeAddressPhone,
+} from "../models/address-form";
 
 // ─── Constants ───────────────────────────────────────────────
 
@@ -116,17 +122,21 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
     setFormError(null);
 
     // Validation
+    if (!editingAddress && addresses.length >= MAX_ADDRESSES)
+      return setFormError(ADDRESS_LIMIT_MESSAGE);
     if (!fullName.trim())
       return setFormError("Le nom complet est requis.");
     if (!phone.trim())
       return setFormError("Le téléphone est requis.");
+    const checkedPhone = normalizeAddressPhone(phone, countryCode);
+    if (!checkedPhone.ok) return setFormError(checkedPhone.message);
     if (!city.trim()) return setFormError("La ville est requise.");
     if (!zone.trim()) return setFormError("Le quartier est requis.");
 
     const data: AddressInput = {
       label,
       full_name: fullName.trim(),
-      phone: phone.trim(),
+      phone: checkedPhone.e164,
       // Sans précision de rue, le quartier tient lieu de ligne d'adresse.
       address_line: addressLine.trim() || zone.trim(),
       address_complement: addressComplement.trim() || null,
@@ -161,9 +171,7 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
       setShowForm(false);
       router.refresh();
     } catch (err) {
-      setFormError(
-        (err as Error)?.message ?? "Erreur lors de l'enregistrement de l'adresse."
-      );
+      setFormError(addressSaveErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -370,7 +378,8 @@ function AddressListClient({ initialAddresses }: AddressListClientProps) {
               label="Téléphone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+22670000000"
+              placeholder="+226 70 12 34 56"
+              inputMode="tel"
               disabled={saving}
             />
           </div>

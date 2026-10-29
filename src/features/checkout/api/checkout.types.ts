@@ -88,7 +88,6 @@ export interface CreateCheckoutSessionPayload {
   shipping_address?: CheckoutAddress;
   billing_address?: CheckoutAddress | null;
   shipping_method_id?: string | null;
-  coupon_code?: string | null;
   country_code?: string;
   locale?: string;
   notes?: string | null;

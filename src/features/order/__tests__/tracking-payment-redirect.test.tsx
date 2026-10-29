@@ -53,6 +53,8 @@ function answer(body: unknown) {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 })));
 }
 
+const GENERIC_ERROR = "Le paiement n'a pas pu être lancé. Réessayez dans un instant ou contactez le support.";
+
 const payButton = () => screen.getByRole("button", { name: /Payer les frais de livraison/ });
 
 afterEach(() => {
@@ -70,7 +72,7 @@ describe("Tracking — payment redirect", () => {
 
     fireEvent.click(payButton());
 
-    expect(await screen.findByText("Erreur lors de l'initiation du paiement.")).toBeInTheDocument();
+    expect(await screen.findByText(GENERIC_ERROR)).toBeInTheDocument();
     expect(payButton()).not.toBeDisabled();
   });
 
@@ -80,16 +82,17 @@ describe("Tracking — payment redirect", () => {
 
     fireEvent.click(payButton());
 
-    expect(await screen.findByText("Erreur lors de l'initiation du paiement.")).toBeInTheDocument();
+    expect(await screen.findByText(GENERIC_ERROR)).toBeInTheDocument();
   });
 
-  it("shows the API's message when the initiation is refused", async () => {
+  it("shows a generic message when the initiation is refused, never the step it was refused at", async () => {
     answer({ success: false, message: "Frais de livraison déjà payés." });
     renderSummary();
 
     fireEvent.click(payButton());
 
-    expect(await screen.findByText("Frais de livraison déjà payés.")).toBeInTheDocument();
+    expect(await screen.findByText(GENERIC_ERROR)).toBeInTheDocument();
+    expect(screen.queryByText("Frais de livraison déjà payés.")).not.toBeInTheDocument();
   });
 
   it("follows a trusted provider URL", async () => {

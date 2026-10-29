@@ -37,8 +37,18 @@ export const PricingSnapshotSchema = z.object({
   tax_amount: z.number(),
   shipping_amount: z.number(),
   fees_amount: z.number(),
+  /** Added to grand_total when paying on delivery — shown before placing. */
   cod_fee: z.number().optional(),
   grand_total: z.number(),
+  /** The coupon asked for, as the server priced it: applied or not, and why not. */
+  coupon: z
+    .object({
+      code: z.string(),
+      applied: z.boolean(),
+      reason: z.string().nullable(),
+    })
+    .nullable()
+    .optional(),
   currency: z.string(),
   line_items: z.array(CheckoutLineItemSchema).optional(),
   lineItems: z.array(CheckoutLineItemSchema).optional(),
@@ -83,6 +93,8 @@ export const CheckoutAddressSchema = z.object({
   city: z.string().nullable().optional(),
   state: z.string().nullable().optional(),
   zone: z.string().nullable().optional(),
+  /** The delivery zone picked for this address (shipping-options zones). */
+  zone_id: z.string().nullable().optional(),
   country_code: z.string().optional(),
   postal_code: z.string().nullable().optional(),
   lat: z.number().nullable().optional(),
@@ -107,8 +119,12 @@ export const CheckoutSessionApiSchema = z.object({
   shipping_address: CheckoutAddressSchema.nullable().optional(),
   shipping_partner_id: z.string().nullable().optional(),
   shipping_rate_id: z.string().nullable().optional(),
+  /** Delivery zone of the address: only its rates can be chosen. */
+  shipping_zone_id: z.string().nullable().optional(),
   // Le coupon que portent les totaux de la session (celui du panier).
   coupon_code: z.string().nullable().optional(),
+  /** The order a placed session produced. */
+  order: z.object({ id: z.string(), number: z.string().nullable() }).nullable().optional(),
 });
 
 // ─── Create Session Response ─────────────────────────────────

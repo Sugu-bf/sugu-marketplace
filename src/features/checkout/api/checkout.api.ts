@@ -9,6 +9,8 @@
  * - cache: "no-store" on GET session (user-specific)
  * - AbortController timeout on all requests
  * - No secrets/payment tokens exposed in frontend
+ * - X-Cart-Token on every session call: a guest session is opened to the
+ *   cart token it was created with, and only to it
  */
 
 import { api } from "@/lib/api/client";
@@ -37,10 +39,24 @@ import {
   orderIdempotencyKey,
   withMutex,
 } from "../utils/idempotency";
+import { withCartTokenHeader } from "@/features/cart/api/cart-token";
 
 // ─── Constants ───────────────────────────────────────────────
 
 const CHECKOUT_TIMEOUT_MS = 15_000; // 15s for checkout operations
+
+/**
+ * The guest cart token of the request: given by the server page (read from
+ * the first-party cookie), or the one this browser keeps.
+ */
+function cartTokenHeaders(
+  cartToken?: string | null,
+  extra: Record<string, string> = {}
+): Record<string, string> {
+  return cartToken
+    ? { ...extra, "X-Cart-Token": cartToken }
+    : withCartTokenHeader(extra);
+}
 
 // ─── GET Session ─────────────────────────────────────────────
 
@@ -50,7 +66,8 @@ const CHECKOUT_TIMEOUT_MS = 15_000; // 15s for checkout operations
  * Uses retry (max 2) since GET is idempotent.
  */
 export async function getCheckoutSession(
-  sessionId: string
+  sessionId: string,
+  cartToken?: string | null
 ): Promise<CheckoutSessionApi> {
   const { data } = await api.get(
     v1Url(`checkout/sessions/${sessionId}`),
@@ -59,6 +76,7 @@ export async function getCheckoutSession(
       cache: "no-store",
       timeout: CHECKOUT_TIMEOUT_MS,
       retries: 2,
+      headers: cartTokenHeaders(cartToken),
     } as Parameters<typeof api.get>[1]
   );
 
@@ -84,6 +102,7 @@ export async function updateCheckoutSession(
       body: payload,
       schema: ShowSessionResponseSchema,
       timeout: CHECKOUT_TIMEOUT_MS,
+      headers: cartTokenHeaders(),
     }
   );
 
@@ -98,7 +117,8 @@ export async function updateCheckoutSession(
  * Idempotent via X-Idempotency-Key header.
  */
 export async function createCheckoutSession(
-  payload: CreateCheckoutSessionPayload = {}
+  payload: CreateCheckoutSessionPayload = {},
+  cartToken?: string | null
 ): Promise<{ sessionId: string; session: CheckoutSessionApi }> {
   await initCsrf();
 
@@ -110,9 +130,9 @@ export async function createCheckoutSession(
       body: payload,
       schema: CreateSessionResponseSchema,
       timeout: CHECKOUT_TIMEOUT_MS,
-      headers: {
+      headers: cartTokenHeaders(cartToken, {
         "X-Idempotency-Key": idempotencyKey,
-      },
+      }),
     }
   );
 
@@ -228,9 +248,9 @@ export async function placeOrder(
         schema: PlaceOrderResponseSchema,
         timeout: CHECKOUT_TIMEOUT_MS,
         retries: 0, // NEVER retry POST that creates an order
-        headers: {
+        headers: cartTokenHeaders(null, {
           "X-Idempotency-Key": idempotencyKey,
-        },
+        }),
       }
     );
 
@@ -252,9 +272,18 @@ export function isConflictError(error: unknown): boolean {
  */
 export function isSessionExpiredError(error: unknown): boolean {
   if (!(error instanceof ApiError)) return false;
+  return error.status === 422 && /expir|convert/i.test(error.message);
+}
+
+/**
+ * The total rose since the buyer saw it (409 PRICE_CHANGED): nothing was
+ * charged, the session now carries the new prices.
+ */
+export function isPriceChangedError(error: unknown): boolean {
   return (
-    error.status === 422 &&
-    (error.message.includes("expired") || error.message.includes("converted"))
+    error instanceof ApiError &&
+    error.status === 409 &&
+    error.details?.errorCode === "PRICE_CHANGED"
   );
 }
 

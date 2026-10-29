@@ -13,7 +13,6 @@ import { useFavoritesStore } from "@/features/wishlist/store/favorites-store";
 import { FAVORITES_MERGE_FLAG_KEY } from "@/features/wishlist/hooks/use-merge-favorites-on-login";
 import { clearCartToken } from "@/features/cart/api/cart-token";
 import { clearCartItems } from "@/features/cart/events/cart-storage";
-import { useCartStore } from "@/features/cart/store/cart-store";
 
 /** The session hint kept for the token refresh (see auth-service). */
 const AUTH_EXPIRY_KEY = "auth_token_expires_at";
@@ -42,7 +41,6 @@ export async function clearClientSessionState(): Promise<void> {
     void useFavoritesStore.persist.clearStorage();
   });
   attempt(() => sessionStorage.removeItem(FAVORITES_MERGE_FLAG_KEY));
-  attempt(() => useCartStore.getState().clearCart());
   attempt(clearCartToken);
   attempt(clearCartItems);
   attempt(() => localStorage.removeItem(AUTH_EXPIRY_KEY));

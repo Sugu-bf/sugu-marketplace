@@ -1,5 +1,5 @@
-import type { OrderTrackingApiData, TrackedOrder, BackendOrderStatus, OrderStatus, CanonicalTimelineStep, TrackingStep, OrderStore } from "../models/order";
-import { OrderStoreSchema } from "../models/order";
+import type { OrderTrackingApiData, TrackedOrder, BackendOrderStatus, OrderStatus, CanonicalTimelineStep, TrackingStep, OrderStore, TrackedShipment } from "../models/order";
+import { OrderStoreSchema, TrackingShipmentApiSchema } from "../models/order";
 
 /**
  * The stores of the order the buyer can write to: only entries with a store
@@ -16,9 +16,38 @@ function mapOrderStores(raw: unknown[] | undefined): OrderStore[] {
   return stores;
 }
 
+/** The label of a delivery method, « (Express) » when it is one. */
+function shippingMethodLabel(method: { label: string; isExpress: boolean }): string {
+  return method.label + (method.isExpress ? " (Express)" : "");
+}
+
+/**
+ * Every shipment of the order, each once. An entry the page cannot read is
+ * left out.
+ */
+function mapShipments(raw: unknown[] | undefined): TrackedShipment[] {
+  const shipments: TrackedShipment[] = [];
+  for (const entry of raw ?? []) {
+    const parsed = TrackingShipmentApiSchema.safeParse(entry);
+    if (!parsed.success || shipments.some((s) => s.id === parsed.data.id)) continue;
+    const shipment = parsed.data;
+    shipments.push({
+      id: shipment.id,
+      storeName: shipment.storeName ?? null,
+      agencyName: shipment.agency.name,
+      agencyRating: shipment.agency.rating,
+      shippingMethod: shippingMethodLabel(shipment.method),
+      driver: shipment.driver ? { name: shipment.driver.name, phone: shipment.driver.phone ?? null } : null,
+      estimatedDate: shipment.eta.date,
+      estimatedTimeRange: shipment.eta.timeRange,
+    });
+  }
+  return shipments;
+}
+
 /**
  * Map backend order status to simplified UI status.
- * The UI shows 4 states + cancelled; the backend has 10.
+ * The UI shows 4 states + cancelled, returned and failed; the backend has 10.
  */
 function mapBackendStatusToUI(status: BackendOrderStatus): OrderStatus {
   const mapping: Record<BackendOrderStatus, OrderStatus> = {
@@ -30,31 +59,40 @@ function mapBackendStatusToUI(status: BackendOrderStatus): OrderStatus {
     shipped: "shipping",
     delivered: "delivered",
     canceled: "cancelled",
-    returned: "cancelled",
-    failed: "cancelled",
+    returned: "returned",
+    failed: "failed",
   };
   return mapping[status] ?? "confirmed";
 }
+
+const SHORT_MONTHS = [
+  "Jan", "Fév", "Mar", "Avr", "Mai", "Jun",
+  "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc",
+];
+
+/**
+ * The parts of a date in Ouagadougou time, whatever the time zone of the
+ * machine: the server and the browser (which maps each poll again) write the
+ * same date, so the page never shifts by the reader's offset.
+ */
+const DATE_PARTS = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Africa/Ouagadougou",
+  day: "numeric",
+  month: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
 
 /**
  * Format an ISO timestamp into a short French display date.
  * e.g. "2026-02-21T09:00:00Z" → "21 Fév 09:00"
  */
 function formatTimelineDate(isoDate: string): string {
-  try {
-    const d = new Date(isoDate);
-    const months = [
-      "Jan", "Fév", "Mar", "Avr", "Mai", "Jun",
-      "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc",
-    ];
-    const day = d.getDate();
-    const month = months[d.getMonth()];
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${day} ${month} ${hours}:${minutes}`;
-  } catch {
-    return isoDate;
-  }
+  const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return isoDate;
+  const parts = Object.fromEntries(DATE_PARTS.formatToParts(d).map((p) => [p.type, p.value]));
+  return `${Number(parts.day)} ${SHORT_MONTHS[Number(parts.month) - 1]} ${parts.hour}:${parts.minute}`;
 }
 
 /**
@@ -160,8 +198,7 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
     // Delivery info
     agencyName: api.delivery.agency.name,
     agencyRating: api.delivery.agency.rating,
-    shippingMethod: api.delivery.method.label
-      + (api.delivery.method.isExpress ? " (Express)" : ""),
+    shippingMethod: shippingMethodLabel(api.delivery.method),
     deliveryAddress: api.delivery.address,
     driver: api.delivery.driver
       ? {
@@ -172,7 +209,7 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
 
     // ETA
     estimatedDate: api.eta.date ?? "À confirmer",
-    estimatedTimeRange: api.eta.timeRange ?? "—",
+    estimatedTimeRange: api.eta.timeRange,
     deliveryProgress: api.eta.progress,
 
     // Items
@@ -188,10 +225,14 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
     // Stores the buyer can write to about this order
     stores: mapOrderStores(api.stores),
 
+    // Every shipment of the order
+    shipments: mapShipments(api.shipments),
+
     // Pricing
     subtotal: api.pricing.subtotal,
     shippingCost: api.pricing.shipping,
-    shippingLabel: api.pricing.paymentMethod.includes("Express") ? "Express" : null,
+    // The delivery method says it — the payment method never did.
+    shippingLabel: api.delivery.method.isExpress ? "Express" : null,
     discount: api.pricing.discount,
     total: api.pricing.total,
     paymentMethod: api.pricing.paymentMethod,
@@ -211,6 +252,8 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
           payDeliveryFeeUrl: api.codMixte.payDeliveryFeeUrl,
           payProductFeeUrl: api.codMixte.payProductFeeUrl,
           shipmentId: api.codMixte.shipmentId ?? null,
+          // Gates « Payer les frais de livraison »: dropped, the button never showed.
+          agencyAccepted: api.codMixte.agencyAccepted ?? false,
           currentStep: api.codMixte.currentStep,
         }
       : null,

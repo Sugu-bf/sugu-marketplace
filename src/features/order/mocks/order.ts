@@ -114,6 +114,7 @@ export function getMockTrackedOrder(): TrackedOrder {
       },
     ],
     stores: [],
+    shipments: [],
 
     // Pricing
     subtotal: 12500,

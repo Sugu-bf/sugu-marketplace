@@ -31,7 +31,7 @@ const footerColumns = [
       { label: "Chat Support", href: "/support-chat" },
       { label: "Contactez-nous", href: "/help" },
       { label: "Signaler un abus", href: "/help" },
-      { label: "Soumettre un litige", href: "/help" },
+      { label: "Signaler un problème de commande", href: "/help" },
       { label: "Livraison & Retours", href: "/politique-livraison-retours" },
     ],
   },

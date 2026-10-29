@@ -15,7 +15,6 @@ import type {
   ApiCouponApplyResponseSchema,
   ApiCouponRemoveResponseSchema,
   ApiCheckoutSessionResponseSchema,
-  ApiPlaceOrderResponseSchema,
   CartItemFlagsSchema,
   DiscountLineSchema,
 } from "./cart.schemas";
@@ -33,7 +32,6 @@ export type DiscountLine = z.infer<typeof DiscountLineSchema>;
 export type ApiCouponApplyResponse = z.infer<typeof ApiCouponApplyResponseSchema>;
 export type ApiCouponRemoveResponse = z.infer<typeof ApiCouponRemoveResponseSchema>;
 export type ApiCheckoutSessionResponse = z.infer<typeof ApiCheckoutSessionResponseSchema>;
-export type ApiPlaceOrderResponse = z.infer<typeof ApiPlaceOrderResponseSchema>;
 
 // ─── UI-facing mapped types ──────────────────────────────────
 

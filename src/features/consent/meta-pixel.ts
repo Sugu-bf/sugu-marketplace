@@ -1,5 +1,6 @@
 "use client";
 
+import { canTrackPage } from "@/components/analytics/pixel-privacy";
 import { readConsent } from "./consent";
 
 /**
@@ -23,14 +24,16 @@ type Fbq = ((...args: unknown[]) => void) & {
 
 const PIXEL_SCRIPT = "https://connect.facebook.net/en_US/fbevents.js";
 
-/** Routes where no third-party measurement runs: checkout and payment returns. */
-const UNTRACKED_PREFIXES = ["/checkout", "/payments"];
-
 let initializedPixelId: string | null = null;
 let revoked = false;
 
-export function isTrackedRoute(pathname: string): boolean {
-  return !UNTRACKED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+/**
+ * Whether an event may leave from this address: never from a checkout,
+ * payment, account, order, invoice or messaging page, nor with a query that
+ * is not a campaign's (see pixel-privacy).
+ */
+export function isTrackedRoute(pathname: string, search = ""): boolean {
+  return canTrackPage(pathname, search);
 }
 
 function pixelId(): string | null {
@@ -77,6 +80,7 @@ function ensurePixel(): boolean {
 
 /** Sends a standard event; a no-op without consent or pixel id. */
 export function trackPixel(event: string, parameters?: Record<string, unknown>): void {
+  if (!isTrackedRoute(window.location.pathname, window.location.search)) return;
   if (!ensurePixel()) return;
   if (parameters) window.fbq("track", event, parameters);
   else window.fbq("track", event);

@@ -25,12 +25,13 @@ export interface CheckoutQueryResult {
  * (so the page can show a friendly error).
  */
 export async function queryCheckoutSession(
-  sessionId: string
+  sessionId: string,
+  cartToken?: string | null
 ): Promise<CheckoutQueryResult> {
   try {
     // Parallel fetch: session + shipping options
     const [session, shipping] = await Promise.all([
-      getCheckoutSession(sessionId),
+      getCheckoutSession(sessionId, cartToken),
       getShippingOptions("BF").catch(() => ({ partners: [], zones: [] })),
     ]);
 

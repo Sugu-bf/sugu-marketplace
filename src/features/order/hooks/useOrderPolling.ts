@@ -14,6 +14,38 @@ const SLOW_INTERVAL = 30_000;         // 30s after 6 polls without change
 const ERROR_BACKOFF_BASE = 20_000;    // 20s base on error
 const ERROR_BACKOFF_MAX = 60_000;     // 60s max on error
 
+/** What the page shows of each shipment of the order. */
+function shipmentsSignature(order: TrackedOrder): string {
+  return order.shipments
+    .map((s) => [s.id, s.agencyName, s.driver?.name ?? "", s.driver?.phone ?? "", s.estimatedDate ?? "", s.estimatedTimeRange ?? ""].join("~"))
+    .join("|");
+}
+
+/**
+ * Whether a poll brought something the page shows or acts on. Anything that
+ * gates a payment or an action (agency acceptance, the pay URLs, the prepaid
+ * flag) counts: left out, its button stayed hidden until a reload.
+ */
+export function hasTrackedOrderChanged(prev: TrackedOrder, next: TrackedOrder): boolean {
+  return !(
+    prev.status === next.status &&
+    prev.timeline.length === next.timeline.length &&
+    prev.deliveryProgress === next.deliveryProgress &&
+    prev.driver?.name === next.driver?.name &&
+    prev.estimatedDate === next.estimatedDate &&
+    prev.paymentStatus === next.paymentStatus &&
+    prev.codPrepaid === next.codPrepaid &&
+    shipmentsSignature(prev) === shipmentsSignature(next) &&
+    // COD Mixte: split payment state and what gates its pay buttons
+    prev.codMixte?.deliveryFeePaid === next.codMixte?.deliveryFeePaid &&
+    prev.codMixte?.productFeePaid === next.codMixte?.productFeePaid &&
+    prev.codMixte?.currentStep === next.codMixte?.currentStep &&
+    prev.codMixte?.agencyAccepted === next.codMixte?.agencyAccepted &&
+    prev.codMixte?.payDeliveryFeeUrl === next.codMixte?.payDeliveryFeeUrl &&
+    prev.codMixte?.payProductFeeUrl === next.codMixte?.payProductFeeUrl
+  );
+}
+
 /**
  * Smart polling hook for order tracking.
  *
@@ -84,23 +116,7 @@ export function useOrderPolling(
       setError(null);
 
       // Update state — only if data differs meaningfully
-      setOrder((prev) => {
-        if (
-          prev.status === mapped.status &&
-          prev.timeline.length === mapped.timeline.length &&
-          prev.deliveryProgress === mapped.deliveryProgress &&
-          prev.driver?.name === mapped.driver?.name &&
-          prev.estimatedDate === mapped.estimatedDate &&
-          prev.paymentStatus === mapped.paymentStatus &&
-          // COD Mixte: track split payment state changes
-          prev.codMixte?.deliveryFeePaid === mapped.codMixte?.deliveryFeePaid &&
-          prev.codMixte?.productFeePaid === mapped.codMixte?.productFeePaid &&
-          prev.codMixte?.currentStep === mapped.codMixte?.currentStep
-        ) {
-          return prev; // No rerender
-        }
-        return mapped;
-      });
+      setOrder((prev) => (hasTrackedOrderChanged(prev, mapped) ? mapped : prev));
 
       // Check terminal status
       if (TERMINAL_STATUSES.has(rawData.statusCode)) {

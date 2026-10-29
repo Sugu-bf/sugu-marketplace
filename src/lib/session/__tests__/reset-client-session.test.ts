@@ -8,7 +8,6 @@ import { QueryClient } from "@tanstack/react-query";
 import { clearClientSessionState, resetClientSession } from "@/lib/session/reset-client-session";
 import { useFavoritesStore } from "@/features/wishlist/store/favorites-store";
 import { FAVORITES_MERGE_FLAG_KEY } from "@/features/wishlist/hooks/use-merge-favorites-on-login";
-import { useCartStore } from "@/features/cart/store/cart-store";
 
 const queryClient = new QueryClient();
 const disconnectEcho = vi.fn();
@@ -47,7 +46,6 @@ describe("clearClientSessionState", () => {
     expect(localStorage.getItem("sugu:cart-items")).toBeNull();
     expect(localStorage.getItem("auth_token_expires_at")).toBeNull();
     expect(document.cookie).not.toContain("sugu_cart_token=0b6c");
-    expect(useCartStore.getState().items).toEqual([]);
     expect(disconnectEcho).toHaveBeenCalledTimes(1);
   });
 

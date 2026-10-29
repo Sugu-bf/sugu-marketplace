@@ -18,9 +18,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui";
 import {
+  fetchNotifications,
   markNotificationRead,
   markAllNotificationsRead,
 } from "@/features/account";
+import { appendNotificationGroups } from "../models/notification-link";
 import type { NotificationData, NotificationGroup } from "@/features/account";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -145,6 +147,24 @@ function NotificationsClient({ initialData }: NotificationsClientProps) {
   const [markingAll, setMarkingAll] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
+  const [nextCursor, setNextCursor] = useState(initialData.hasMore ? initialData.nextCursor : null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreFailed, setLoadMoreFailed] = useState(false);
+
+  const handleLoadMore = useCallback(async () => {
+    if (!nextCursor) return;
+    setLoadingMore(true);
+    setLoadMoreFailed(false);
+    try {
+      const page = await fetchNotifications(nextCursor);
+      setGroups((prev) => appendNotificationGroups(prev, page.groups));
+      setNextCursor(page.hasMore ? page.nextCursor : null);
+    } catch {
+      setLoadMoreFailed(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [nextCursor]);
 
   const handleMarkRead = useCallback(
     async (notifId: string) => {
@@ -393,6 +413,27 @@ function NotificationsClient({ initialData }: NotificationsClientProps) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Further pages */}
+      {nextCursor && (
+        <div className="flex flex-col items-center gap-2">
+          {loadMoreFailed && (
+            <p role="alert" className="text-xs text-red-600">
+              Les notifications suivantes n&apos;ont pas pu être chargées. Réessayez.
+            </p>
+          )}
+          <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
+            {loadingMore ? (
+              <>
+                <Loader2 size={14} className="animate-spin mr-1.5" />
+                Chargement…
+              </>
+            ) : (
+              "Charger plus"
+            )}
+          </Button>
         </div>
       )}
     </div>
