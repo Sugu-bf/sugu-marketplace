@@ -118,6 +118,8 @@ function isCachedServerRead(
   cache: RequestCache | undefined,
 ): boolean {
   if (!isServer() || method !== "GET") return false;
+  // An explicit no-store wins over any revalidate value, as in Next.
+  if (cache === "no-store" || cache === "no-cache") return false;
   return (
     revalidate === false ||
     (typeof revalidate === "number" && revalidate > 0) ||

@@ -54,8 +54,10 @@ describe("X-Request-Id on the server", () => {
     await api.get(url, { revalidate: 0 });
     await api.get(url);
     await api.post(url, { body: { a: 1 } });
+    // no-store wins over revalidate: false, as it does in Next.
+    await api.get(url, { cache: "no-store", revalidate: false });
 
-    for (let call = 0; call < 3; call++) {
+    for (let call = 0; call < 4; call++) {
       expect(sentHeaders(call).get("X-Request-Id")).toBeTruthy();
     }
   });
