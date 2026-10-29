@@ -7,6 +7,7 @@
  * When API is unreachable, returns an empty cart (graceful degradation).
  */
 
+import { unstable_rethrow } from "next/navigation";
 import { fetchCartSSR } from "../api/cart.api";
 import type { CartUI } from "../api/cart.types";
 import { parseCartTokenFromCookieHeader } from "../utils/cart-cookie";
@@ -60,6 +61,8 @@ export async function queryCart(): Promise<CartUI> {
 
     return await fetchCartSSR(cookieHeader, cartToken);
   } catch (error) {
+    // Next's own control flow (dynamic rendering, redirects) must pass through.
+    unstable_rethrow(error);
     // Graceful degradation — render empty cart on SSR failure.
     // The client will refetch on mount.
     console.error("[Cart SSR] Failed to fetch cart:", (error as Error)?.message ?? error);
