@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/lib/api/config";
+import { API_BASE_URL, API_CONTENT_TIMEOUT_MS } from "@/lib/api/config";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -8,6 +8,7 @@ export async function GET() {
         Accept: "application/json",
       },
       next: { revalidate: 60 }, // Cache for 1 min
+      signal: AbortSignal.timeout(API_CONTENT_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -19,7 +20,7 @@ export async function GET() {
 
     const data = await res.json();
     return NextResponse.json(data);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, message: "Internal Server Error" },
       { status: 500 }
