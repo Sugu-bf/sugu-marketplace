@@ -6,6 +6,7 @@ import { Bell, ArrowLeft, User, Store, Shirt, Hash, MapPin, Locate, MessageCircl
 import s from "./ComingSoon.module.css";
 import { API_BASE_URL } from "@/lib/api/config";
 import { trackPixel } from "@/features/consent/meta-pixel";
+import { useModalDialog } from "@/lib/a11y/use-modal-dialog";
 
 
 const PROGRESS_GOAL = 50000;
@@ -38,6 +39,9 @@ export default function ComingSoon() {
 
   // Seller Modal State
   const [isSellerModalOpen, setIsSellerModalOpen] = useState(false);
+  const sellerModalRef = useModalDialog<HTMLDivElement>(isSellerModalOpen, () =>
+    setIsSellerModalOpen(false),
+  );
   const [isSellerSubmitted, setIsSellerSubmitted] = useState(false);
   const [isSellerLoading, setIsSellerLoading] = useState(false);
   const [sellerError, setSellerError] = useState<string | null>(null);
@@ -666,13 +670,24 @@ export default function ComingSoon() {
       {/* SELLER REGISTRATION MODAL */}
       {isSellerModalOpen && (
         <div className={s.modalOverlay}>
-          <div className={s.modalContent}>
+          <div
+            ref={sellerModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="seller-modal-title"
+            className={s.modalContent}
+          >
             {/* Modal Header */}
             <div className={s.modalHeader}>
-              <button className={s.modalBackBtn} onClick={() => setIsSellerModalOpen(false)}>
-                <ArrowLeft size={24} />
+              <button
+                type="button"
+                className={s.modalBackBtn}
+                onClick={() => setIsSellerModalOpen(false)}
+                aria-label="Fermer"
+              >
+                <ArrowLeft size={24} aria-hidden="true" />
               </button>
-              <h2 className={s.modalTitle}>Portail B2B : Grossistes</h2>
+              <h2 id="seller-modal-title" className={s.modalTitle}>Portail B2B : Grossistes</h2>
               <div style={{width: 24}}></div> {/* spacer for centering */}
             </div>
 

@@ -34,6 +34,7 @@ import {
 } from "../state/recentSearches.cookie";
 import { getAuthUser, logout, type AuthUser } from "@/lib/api/auth";
 import { resetClientSession } from "@/lib/session/reset-client-session";
+import { useModalDialog } from "@/lib/a11y/use-modal-dialog";
 import { hasAuthSession } from "@/features/auth/services/auth-service";
 import { useSearchSuggestions } from "../hooks/useSearchSuggestions";
 import { formatPrice } from "@/lib/constants";
@@ -143,10 +144,16 @@ export default function MarketplaceHeaderClient({
     setMobileRecentSearches(getRecentSearches());
     setMobileSearchOpen(true);
   }, []);
+  const closeMobileSearch = useCallback(() => setMobileSearchOpen(false), []);
+  // Focus goes to the search field, stays in the overlay, Escape closes it.
+  const mobileSearchRef = useModalDialog<HTMLDivElement>(
+    mobileSearchOpen,
+    closeMobileSearch,
+    mobileSearchInputRef,
+  );
 
   useEffect(() => {
     if (mobileSearchOpen) {
-      setTimeout(() => mobileSearchInputRef.current?.focus(), 100);
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -395,6 +402,7 @@ export default function MarketplaceHeaderClient({
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
               aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
@@ -404,6 +412,9 @@ export default function MarketplaceHeaderClient({
 
       {/* ── Mobile Menu (nav links) ── */}
       <div
+        id="mobile-menu"
+        // Collapsed, its links are out of the tab order and the accessibility tree.
+        inert={!mobileMenuOpen}
         className={cn(
           "overflow-hidden transition-all duration-300 bg-white md:hidden",
           mobileMenuOpen ? "max-h-60 px-4 pb-3" : "max-h-0"
@@ -425,11 +436,17 @@ export default function MarketplaceHeaderClient({
 
       {/* ── Mobile Search Fullscreen Overlay ── */}
       {mobileSearchOpen && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-white md:hidden">
+        <div
+          ref={mobileSearchRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Rechercher sur Sugu"
+          className="fixed inset-0 z-[100] flex flex-col bg-white md:hidden"
+        >
           {/* Dark top bar */}
           <div className="flex items-center gap-3 bg-gray-900 px-4 py-3">
             <button
-              onClick={() => setMobileSearchOpen(false)}
+              onClick={closeMobileSearch}
               className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:text-white transition-colors"
               aria-label="Fermer la recherche"
             >

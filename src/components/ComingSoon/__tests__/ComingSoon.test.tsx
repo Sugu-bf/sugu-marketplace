@@ -2,11 +2,12 @@
  * @vitest-environment jsdom
  *
  * The pre-launch page only shows what is configured: no WhatsApp link to "#"
- * when the channel is not set (audit P1-13), and loads no third party by
- * itself (M8).
+ * when the channel is not set (audit P1-13), loads no third party by itself
+ * (M8), and its seller form is a real modal dialog (P3 a11y).
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ComingSoon } from "@/components/ComingSoon";
 
 afterEach(() => vi.unstubAllEnvs());
@@ -40,5 +41,19 @@ describe("ComingSoon", () => {
     expect(document.querySelector('link[href*="fonts.googleapis.com"]')).toBeNull();
     expect(container.querySelector("script")).toBeNull();
     expect(window.fbq).toBeUndefined();
+  });
+
+  it("opens the seller form as a modal dialog that Escape closes", async () => {
+    render(<ComingSoon />);
+    const opener = screen.getByRole("button", { name: "Être contacté" });
+
+    await userEvent.click(opener);
+    const dialog = screen.getByRole("dialog", { name: "Portail B2B : Grossistes" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
   });
 });
