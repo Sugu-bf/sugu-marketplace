@@ -86,6 +86,36 @@ describe("mapApiToTrackedOrder — COD Mixte shipmentId", () => {
   });
 });
 
+describe("mapApiToTrackedOrder — COD Mixte agency acceptance (P0-8)", () => {
+  // The only way to « Payer les frais de livraison » is gated on it: dropped
+  // by the mapper, the button never showed and the order stayed blocked.
+  const awaitingDeliveryPayment = (overrides: Partial<CodMixteApi> = {}) =>
+    mapApiToTrackedOrder({
+      ...baseApiOrder(),
+      codMixte: codMixteBlock({
+        currentStep: "awaiting_delivery_payment",
+        deliveryFeePaid: false,
+        payDeliveryFeeUrl: "https://api.sugu.test/api/v1/public/orders/01JABCDEF0123456789ABCDEFG/pay-delivery-fee",
+        ...overrides,
+      }),
+    });
+
+  test("carries the agency acceptance through to the page", () => {
+    expect(awaitingDeliveryPayment({ agencyAccepted: true }).codMixte?.agencyAccepted).toBe(true);
+    expect(awaitingDeliveryPayment({ agencyAccepted: false }).codMixte?.agencyAccepted).toBe(false);
+  });
+
+  test("never opens the payment when the backend does not say", () => {
+    expect(awaitingDeliveryPayment().codMixte?.agencyAccepted).toBe(false);
+  });
+
+  test("keeps the pay URL the backend gives", () => {
+    expect(awaitingDeliveryPayment({ agencyAccepted: true }).codMixte?.payDeliveryFeeUrl).toMatch(
+      /\/orders\/01JABCDEF0123456789ABCDEFG\/pay-delivery-fee$/,
+    );
+  });
+});
+
 describe("OrderTrackingApiSchema — payment status contract", () => {
   // Every word Order::paymentSituation() can answer on the backend. "refunded"
   // and "hold" were refused: the tracking page of a refunded order, or of one

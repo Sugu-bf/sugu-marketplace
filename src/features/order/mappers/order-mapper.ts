@@ -211,6 +211,8 @@ export function mapApiToTrackedOrder(api: OrderTrackingApiData): TrackedOrder {
           payDeliveryFeeUrl: api.codMixte.payDeliveryFeeUrl,
           payProductFeeUrl: api.codMixte.payProductFeeUrl,
           shipmentId: api.codMixte.shipmentId ?? null,
+          // Gates « Payer les frais de livraison »: dropped, the button never showed.
+          agencyAccepted: api.codMixte.agencyAccepted ?? false,
           currentStep: api.codMixte.currentStep,
         }
       : null,
