@@ -20,7 +20,7 @@
 
 import type { z } from "zod";
 import { API_BASE_URL, API_TIMEOUT_MS, API_MAX_RETRIES, API_RETRY_BASE_DELAY_MS } from "./config";
-import { ApiError, httpStatusToErrorCode } from "./errors";
+import { ApiError, httpStatusToErrorCode, type ApiErrorDetails } from "./errors";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -239,6 +239,17 @@ async function executeRequest<T>(
     if (!response.ok) {
       const errorBody = await safeParseJson(response).catch(() => null);
       const errorData = errorBody as Record<string, unknown> | null;
+      const details: ApiErrorDetails = {};
+      if (errorData?.errors) {
+        details.errors = errorData.errors as Record<string, string[]>;
+      }
+      if (typeof errorData?.error_code === "string") {
+        details.errorCode = errorData.error_code;
+      }
+      const retryAfter = Number(response.headers.get("Retry-After") ?? errorData?.retry_after);
+      if (Number.isFinite(retryAfter) && retryAfter > 0) {
+        details.retryAfter = retryAfter;
+      }
 
       throw new ApiError({
         status: response.status,
@@ -246,9 +257,7 @@ async function executeRequest<T>(
         message:
           (errorData?.message as string) ??
           `Erreur API ${response.status}: ${response.statusText}`,
-        details: errorData?.errors
-          ? { errors: errorData.errors as Record<string, string[]> }
-          : undefined,
+        details: Object.keys(details).length > 0 ? details : undefined,
         requestId,
       });
     }
