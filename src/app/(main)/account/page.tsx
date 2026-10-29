@@ -5,7 +5,7 @@ import { queryAccountPageData } from "@/features/account";
 import { PersonalInfoCard } from "@/features/account/components/PersonalInfoCard";
 import { SecurityCard } from "@/features/account/components/SecurityCard";
 import { PreferencesCard } from "@/features/account/components/PreferencesCard";
-import { Lock, ShieldCheck, Phone } from "lucide-react";
+import { Lock, ShieldCheck, Mail } from "lucide-react";
 
 export const metadata = createMetadata({
   title: "Mon Compte",
@@ -39,7 +39,7 @@ export default async function AccountPage() {
         <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
           <AssuranceBadge icon={<Lock size={16} />} label="Données sécurisées" className="border-none bg-transparent" />
           <AssuranceBadge icon={<ShieldCheck size={16} />} label="Compte protégé" className="border-none bg-transparent" />
-          <AssuranceBadge icon={<Phone size={16} />} label="Support 24/7" className="border-none bg-transparent" />
+          <AssuranceBadge icon={<Mail size={16} />} label="Aide : support@sugu.pro" className="border-none bg-transparent" />
         </div>
       </div>
     </div>

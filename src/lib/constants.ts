@@ -10,8 +10,9 @@ export const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
 
 // ─── Contact ─────────────────────────────────────────────────
 // No phone: Sugu has no published number yet (the placeholder was removed).
+// One public address, the support one.
 export const CONTACT = {
-  email: "contact@sugu.pro",
+  email: "support@sugu.pro",
   address: "3252 Bobo Dioula Avenue, Guimbi Ouattara koko, Burkina Faso",
 } as const;
 

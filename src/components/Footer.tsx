@@ -3,12 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import {
-  Phone,
   Mail,
-  MapPin,
   ArrowUp,
   ChevronDown,
 } from "lucide-react";
+import { CONTACT } from "@/lib/constants";
 
 const footerColumns = [
   {
@@ -164,20 +163,12 @@ export default function Footer() {
 
             {/* Contact info */}
             <div className="space-y-2.5">
-              {/* <div className="flex items-center gap-2.5">
-                <Phone size={14} className="text-[#F15412] flex-shrink-0" />
-                <span className="text-sm text-gray-600">+226 64 52 89 58</span>
-              </div> */}
               <div className="flex items-center gap-2.5">
                 <Mail size={14} className="text-[#F15412] flex-shrink-0" />
-                <span className="text-sm text-gray-600">contact@sugu.pro</span>
+                <a href={`mailto:${CONTACT.email}`} className="text-sm text-gray-600 hover:text-[#F15412]">
+                  {CONTACT.email}
+                </a>
               </div>
-              {/* <div className="flex items-start gap-2.5">
-                <MapPin size={14} className="text-[#F15412] flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-gray-600 leading-relaxed">
-                  3252 Bobo Dioula Avenue, Guimbi Ouattara koko, Burkina Faso
-                </span>
-              </div> */}
             </div>
 
             {/* Social Icons — below contact on mobile, separate row on md+ */}

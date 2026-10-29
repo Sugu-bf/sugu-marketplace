@@ -27,10 +27,10 @@ import { redirect } from "next/navigation";
 
 const FAQ_ITEMS: FaqItem[] = [
   { id: 1, question: "Comment passer une commande ?", answer: "Ajoutez des produits à votre panier, accédez au panier, choisissez votre adresse et méthode de livraison, puis procédez au paiement.", category: "Commandes" },
-  { id: 2, question: "Quels sont les délais de livraison ?", answer: "Les délais varient selon l'agence de livraison choisie : Standard (3-5 jours), Express (24h), ou retrait en agence.", category: "Livraison" },
+  { id: 2, question: "Quels sont les délais de livraison ?", answer: "Les délais dépendent de l'agence de livraison et de la destination ; ils sont indiqués au moment de la commande.", category: "Livraison" },
   { id: 3, question: "Comment modifier ou annuler une commande ?", answer: "Vous pouvez modifier ou annuler votre commande tant qu'elle n'est pas en cours de préparation. Rendez-vous dans Mes commandes.", category: "Commandes" },
-  { id: 4, question: "Quels modes de paiement acceptez-vous ?", answer: "Nous acceptons Orange Money, Moov Money, les cartes Visa/Mastercard et le paiement à la livraison.", category: "Paiement" },
-  { id: 5, question: "Comment contacter le service client ?", answer: "Vous pouvez nous joindre par téléphone au +226 64528958, par WhatsApp, ou via le chat en ligne.", category: "Support" },
+  { id: 4, question: "Quels modes de paiement acceptez-vous ?", answer: "Le paiement en ligne se fait par Mobile Money ; selon la commande, le paiement à la livraison est aussi proposé.", category: "Paiement" },
+  { id: 5, question: "Comment contacter le service client ?", answer: "Écrivez-nous à support@sugu.pro, ou utilisez le chat en ligne de votre compte.", category: "Support" },
   { id: 6, question: "Puis-je retourner un produit ?", answer: "Oui, vous disposez de 48h après la livraison pour signaler un problème. Les produits frais doivent être signalés dans les 24h.", category: "Retours" },
 ];
 
