@@ -3,20 +3,20 @@ import { z } from "zod";
 // ─── Category Schemas ─────────────────────────────────────────
 
 export const CategorySchema = z.object({
-  id: z.number(),
+  id: z.union([z.string(), z.number()]),
   slug: z.string(),
   name: z.string(),
   description: z.string().optional(),
   image: z.string(),
   bannerImage: z.string().optional(),
   icon: z.string().optional(),
-  parentId: z.number().nullable().default(null),
+  parentId: z.union([z.string(), z.number()]).nullable().default(null),
   productCount: z.number().nonnegative(),
   children: z.array(z.lazy((): z.ZodTypeAny => CategorySchema)).optional(),
 });
 
 export const SubcategorySchema = z.object({
-  id: z.number(),
+  id: z.union([z.string(), z.number()]),
   slug: z.string(),
   name: z.string(),
   image: z.string(),
