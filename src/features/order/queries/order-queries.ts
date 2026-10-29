@@ -1,4 +1,4 @@
-import { api, v1Url } from "@/lib/api";
+import { api, publicUrl, v1Url } from "@/lib/api";
 import { OrderTrackingResponseSchema } from "../models/order";
 import { mapApiToTrackedOrder } from "../mappers/order-mapper";
 import type { TrackedOrder, OrderTrackingApiData } from "../models/order";
@@ -74,4 +74,51 @@ export async function queryDeliveryCode(
   });
 
   return data.data.deliveries.map(mapDeliveryCodeEntry);
+}
+
+/** The payments a buyer can start from the tracking page of an order. */
+export type OrderPaymentAction = "pay-delivery-fee" | "pay-product-fee" | "pay-order";
+
+/** The answer of a payment start: the page goes to `data.payment_url`. */
+export interface OrderPaymentStartResponse {
+  success?: boolean;
+  message?: string;
+  data?: { payment_url?: string };
+}
+
+/**
+ * Start a payment of the order (COD Mixte delivery fee or products, or the
+ * prepayment of a COD classic order).
+ *
+ * Endpoint: POST /api/v1/public/orders/{orderId}/{action}
+ * Auth: the owner of the order only — Bearer injected by the Web BFF from the
+ * session cookie. Anyone else is told the order does not exist (404).
+ *
+ * The URL is built here from the order, never taken from the tracking
+ * payload: whatever that payload says, the page never posts elsewhere.
+ *
+ * @throws ApiError
+ */
+export async function startOrderPayment(
+  orderId: string,
+  action: OrderPaymentAction
+): Promise<OrderPaymentStartResponse> {
+  const url = publicUrl(`orders/${encodeURIComponent(orderId)}/${action}`);
+  const { data } = await api.post<OrderPaymentStartResponse>(url);
+  return data;
+}
+
+/**
+ * The buyer confirms the products of a COD Mixte order were received in good
+ * order, which opens the payment of the products.
+ *
+ * Endpoint: POST /api/v1/public/orders/{orderId}/verify-products
+ * Auth: the owner of the order only — Bearer injected by the Web BFF. A
+ * seller, an agency or a courier of the order is refused.
+ *
+ * @throws ApiError
+ */
+export async function confirmOrderProducts(orderId: string): Promise<void> {
+  const url = publicUrl(`orders/${encodeURIComponent(orderId)}/verify-products`);
+  await api.post(url, { body: { accepted: true } });
 }

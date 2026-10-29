@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { api, publicUrl, isApiError } from "@/lib/api";
+import { isApiError } from "@/lib/api";
 import { Button, Badge, buttonVariants } from "@/components/ui";
 import {
   CheckCircle2,
@@ -26,6 +26,8 @@ import { ContactSellerButton } from "@/features/messaging/components/ContactSell
 import { openSupportChat } from "@/features/support-chat/launcher";
 import { formatPrice } from "@/lib/constants";
 import { canPrepayCodClassic } from "@/features/order";
+import { confirmOrderProducts, startOrderPayment } from "../queries/order-queries";
+import type { OrderPaymentAction } from "../queries/order-queries";
 import type { OrderItem, TrackedOrder } from "@/features/order";
 import type { OrderStore } from "../models/order";
 
@@ -73,6 +75,26 @@ const COD_MIXTE_STEP_LABELS: Record<string, { label: string; description: string
     icon: CheckCircle2,
   },
 };
+
+// ─── Errors of the order actions ──────────────────────────────
+
+const PAYMENT_START_ERROR =
+  "Le paiement n'a pas pu être lancé. Réessayez dans un instant ou contactez le support.";
+const INSPECTION_ERROR =
+  "Votre confirmation n'a pas pu être enregistrée. Réessayez dans un instant ou contactez le support.";
+const NETWORK_ERROR = "Erreur réseau. Veuillez réessayer.";
+
+/**
+ * What the buyer is told when an action on the order fails: the connection,
+ * or a message of the page. Never the backend's, which can name an internal
+ * step of the order.
+ */
+function orderActionError(err: unknown, message: string): string {
+  if (isApiError(err) && (err.code === "NETWORK_ERROR" || err.code === "TIMEOUT")) {
+    return NETWORK_ERROR;
+  }
+  return message;
+}
 
 // ─── Props ────────────────────────────────────────────────────
 
@@ -451,19 +473,15 @@ function CodClassicPayAction({
     try {
       // Cumulative product + delivery in a single online payment. The backend
       // returns a provider checkout URL (flag-driven); we redirect to it.
-      const res = await fetch(publicUrl(`orders/${orderId}/pay-order`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-      });
-      const data = await res.json();
+      const data = await startOrderPayment(orderId, "pay-order");
       if (data.success && data.data?.payment_url) {
         window.location.href = data.data.payment_url;
       } else {
-        setError(data.message || "Erreur lors de l'initiation du paiement.");
+        setError(PAYMENT_START_ERROR);
         setLoading(false);
       }
-    } catch {
-      setError("Erreur réseau. Veuillez réessayer.");
+    } catch (err) {
+      setError(orderActionError(err, PAYMENT_START_ERROR));
       setLoading(false);
     }
   };
@@ -535,37 +553,30 @@ function CodMixtePaymentActions({
     setLoading("inspection");
     setError(null);
     try {
-      await api.post(publicUrl(`orders/${orderId}/verify-products`), {
-        body: { accepted: true },
-        skipCredentials: true,
-      });
+      await confirmOrderProducts(orderId);
       // Success: the tracking poll will flip currentStep to
       // awaiting_product_payment within the next cycle, revealing the pay button.
       setInspectionDone(true);
     } catch (err) {
-      setError(isApiError(err) ? err.message : "Erreur réseau. Veuillez réessayer.");
+      setError(orderActionError(err, INSPECTION_ERROR));
     } finally {
       setLoading(null);
     }
   };
 
-  const handlePayment = async (url: string, type: "delivery" | "product") => {
+  const handlePayment = async (action: OrderPaymentAction, type: "delivery" | "product") => {
     setLoading(type);
     setError(null);
     try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-      });
-      const data = await res.json();
+      const data = await startOrderPayment(orderId, action);
       if (data.success && data.data?.payment_url) {
         window.location.href = data.data.payment_url;
       } else {
-        setError(data.message || "Erreur lors de l'initiation du paiement.");
+        setError(PAYMENT_START_ERROR);
         setLoading(null);
       }
-    } catch {
-      setError("Erreur réseau. Veuillez réessayer.");
+    } catch (err) {
+      setError(orderActionError(err, PAYMENT_START_ERROR));
       setLoading(null);
     }
   };
@@ -623,7 +634,7 @@ function CodMixtePaymentActions({
 
       {showDeliveryButton && (
         <button
-          onClick={() => handlePayment(codMixte.payDeliveryFeeUrl!, "delivery")}
+          onClick={() => handlePayment("pay-delivery-fee", "delivery")}
           disabled={loading !== null}
           className="flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
@@ -639,7 +650,7 @@ function CodMixtePaymentActions({
 
       {showProductButton && (
         <button
-          onClick={() => handlePayment(codMixte.payProductFeeUrl!, "product")}
+          onClick={() => handlePayment("pay-product-fee", "product")}
           disabled={loading !== null}
           className="flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
