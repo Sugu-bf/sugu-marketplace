@@ -18,12 +18,20 @@ interface CheckoutOrderSummaryProps {
   shippingCost: number;
   discount: number;
   total: number;
-  initialCouponCode: string | null;
+  /** Added to the total when paying on delivery (server amount). */
+  codFee?: number;
+  /** The coupon the session carries (server truth). */
+  couponCode: string | null;
+  /** Whether the server applied it, and why not. */
+  couponStatus?: { code: string; applied: boolean; reason: string | null } | null;
+  /** The payment method chosen (owned by the page: preselected from the URL). */
+  paymentMethod: "cod" | "ligdicash";
+  onPaymentMethodChange: (method: "cod" | "ligdicash") => void;
   shippingLabel?: string;
   /** Apply coupon via API — returns success/error */
   onApplyCoupon?: (code: string) => Promise<{ success: boolean; error?: string }>;
-  /** Remove coupon via API */
-  onRemoveCoupon?: () => Promise<void>;
+  /** Remove coupon via API — returns success/error */
+  onRemoveCoupon?: () => Promise<{ success: boolean; error?: string }>;
   /** Place order action */
   onPlaceOrder?: (paymentMethod: "cod" | "ligdicash") => Promise<void>;
   /** Whether an order placement is in progress */
@@ -43,7 +51,11 @@ function CheckoutOrderSummary({
   shippingCost,
   discount,
   total,
-  initialCouponCode,
+  codFee = 0,
+  couponCode: appliedCoupon,
+  couponStatus = null,
+  paymentMethod,
+  onPaymentMethodChange,
   shippingLabel,
   onApplyCoupon,
   onRemoveCoupon,
@@ -51,9 +63,14 @@ function CheckoutOrderSummary({
   isPlacingOrder = false,
 }: CheckoutOrderSummaryProps) {
   const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(initialCouponCode);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
+
+  // A coupon the session carries but the server did not apply says why.
+  const couponNotApplied = appliedCoupon && couponStatus && !couponStatus.applied
+    ? couponStatus.reason ?? "Ce coupon ne s'applique pas à cette commande."
+    : null;
+  const payable = total + (paymentMethod === "cod" ? codFee : 0);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -65,7 +82,6 @@ function CheckoutOrderSummary({
       try {
         const result = await onApplyCoupon(couponCode.trim());
         if (result.success) {
-          setAppliedCoupon(couponCode.toUpperCase());
           setCouponCode("");
         } else {
           setCouponError(result.error || "Code promo invalide");
@@ -82,25 +98,22 @@ function CheckoutOrderSummary({
   };
 
   const handleRemoveCoupon = async () => {
-    if (onRemoveCoupon) {
-      setCouponLoading(true);
-      try {
-        await onRemoveCoupon();
-        setAppliedCoupon(null);
-        setCouponError(null);
-      } catch {
-        setCouponError("Erreur lors de la suppression du coupon");
-      } finally {
-        setCouponLoading(false);
+    if (!onRemoveCoupon) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const result = await onRemoveCoupon();
+      if (!result.success) {
+        setCouponError(result.error || "Erreur lors de la suppression du coupon");
       }
-    } else {
-      setAppliedCoupon(null);
-      setCouponError(null);
+    } catch {
+      setCouponError("Erreur lors de la suppression du coupon");
+    } finally {
+      setCouponLoading(false);
     }
   };
 
-  // Payment method state
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "ligdicash">("cod");
+  const setPaymentMethod = onPaymentMethodChange;
 
   const handlePlaceOrder = async () => {
     if (onPlaceOrder && !isPlacingOrder) {
@@ -184,6 +197,9 @@ function CheckoutOrderSummary({
               valueClassName="text-success"
             />
           )}
+          {paymentMethod === "cod" && codFee > 0 && (
+            <SummaryRow label="Frais de paiement à la livraison" value={formatPrice(codFee)} />
+          )}
         </div>
 
         {/* Divider */}
@@ -193,7 +209,7 @@ function CheckoutOrderSummary({
         <div className="flex items-center justify-between">
           <span className="text-base font-bold text-foreground">Total</span>
           <span className="text-xl font-bold text-primary sm:text-2xl">
-            {formatPrice(total)}
+            {formatPrice(payable)}
           </span>
         </div>
 
@@ -247,6 +263,11 @@ function CheckoutOrderSummary({
                 {couponLoading ? <Loader2 size={14} className="animate-spin" /> : "Appliquer"}
               </Button>
             </div>
+          )}
+          {couponNotApplied && (
+            <p className="text-xs text-amber-700" role="status">
+              Coupon non appliqué : {couponNotApplied}
+            </p>
           )}
           {couponError && (
             <p className="text-xs text-error" role="alert">
