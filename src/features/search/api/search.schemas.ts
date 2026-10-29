@@ -65,19 +65,22 @@ const ApiFacetValueSchema = z.object({
   label: z.string().optional(),
 });
 
+/**
+ * Facets keyed by field, value lists only. The backend also sends `price`
+ * as a stats object ({min, max, avg}); a record of lists only made the whole
+ * response fail validation whenever Typesense returned price stats.
+ */
 const ApiFacetsSchema = z
-  .union([
-    z.record(z.string(), z.array(ApiFacetValueSchema)),
-    z.array(z.unknown()).transform(
-      (): Record<string, z.infer<typeof ApiFacetValueSchema>[]> => ({})
-    ),
-  ])
-  .optional()
-  .nullable()
-  .transform(
-    (val): Record<string, z.infer<typeof ApiFacetValueSchema>[]> =>
-      val && !Array.isArray(val) ? (val as Record<string, z.infer<typeof ApiFacetValueSchema>[]>) : {}
-  );
+  .unknown()
+  .transform((val): Record<string, z.infer<typeof ApiFacetValueSchema>[]> => {
+    if (!val || typeof val !== "object" || Array.isArray(val)) return {};
+    const facets: Record<string, z.infer<typeof ApiFacetValueSchema>[]> = {};
+    for (const [field, values] of Object.entries(val)) {
+      const parsed = z.array(ApiFacetValueSchema).safeParse(values);
+      if (parsed.success) facets[field] = parsed.data;
+    }
+    return facets;
+  });
 
 // ─── Full Search Response ────────────────────────────────────
 
