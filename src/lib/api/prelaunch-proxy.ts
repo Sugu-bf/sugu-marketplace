@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { API_BASE_URL, API_TIMEOUT_MS } from "./config";
-import { isSameOriginRequest } from "./same-origin";
+import { isSameOriginRequest } from "@/lib/server/same-origin";
 
 /** Largest form accepted from the pre-launch pages, in bytes. */
 const MAX_BODY_BYTES = 8 * 1024;
@@ -14,7 +14,7 @@ const MAX_BODY_BYTES = 8 * 1024;
  * Next server's IP.
  */
 export async function forwardPrelaunchForm(request: NextRequest, path: string): Promise<NextResponse> {
-  if (!isSameOriginRequest(request)) {
+  if (!isSameOriginRequest(request, { requireOrigin: true })) {
     return NextResponse.json({ success: false, message: "Origine non autorisée." }, { status: 403 });
   }
 
