@@ -99,7 +99,7 @@ export default async function StorePage({
       <Container className="py-3">
         <Breadcrumb
           items={[
-            { label: "Boutiques", href: "/boutiques" },
+            { label: "Boutiques", href: "/stores" },
             { label: store.name },
           ]}
         />
