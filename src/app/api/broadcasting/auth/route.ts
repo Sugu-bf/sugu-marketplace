@@ -2,55 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { API_BASE_URL } from "@/lib/api/config";
 import { AUTH_TOKEN_COOKIE, isValidSanctumTokenFormat } from "@/lib/api/session";
 import { clientIpHeaders } from "@/lib/server/client-ip";
+import { readCappedBody } from "@/lib/server/read-capped-body";
+import { isSameOriginRequest } from "@/lib/server/same-origin";
 
-function isSameOriginRequest(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  const expectedOrigin = request.nextUrl.origin;
+/** Laravel has this long to authorize a channel. */
+const UPSTREAM_TIMEOUT_MS = 10_000;
 
-  // Helper to verify if the origin matches any of our allowed origins
-  const isAllowedOrigin = (originValue: string | null): boolean => {
-    if (!originValue) return false;
-    if (originValue === expectedOrigin) return true;
-
-    // Check NEXT_PUBLIC_APP_URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (appUrl) {
-      try {
-        if (originValue === new URL(appUrl).origin) return true;
-      } catch {}
-    }
-
-    // Check X-Forwarded headers (from reverse proxies)
-    const forwardedHost = request.headers.get("x-forwarded-host");
-    const forwardedProto = request.headers.get("x-forwarded-proto") || "http";
-    if (forwardedHost) {
-      const reconstructedOrigin = `${forwardedProto}://${forwardedHost}`;
-      if (originValue === reconstructedOrigin) return true;
-    }
-
-    // In development, allow localhost/127.0.0.1/[::1] mismatches
-    if (process.env.NODE_ENV !== "production") {
-      try {
-        const originUrl = new URL(originValue);
-        const expectedUrl = new URL(expectedOrigin);
-        const isLocalhost = (host: string) =>
-          host === "localhost" || host === "127.0.0.1" || host === "[::1]";
-        if (isLocalhost(originUrl.hostname) && isLocalhost(expectedUrl.hostname)) {
-          return true;
-        }
-      } catch {}
-    }
-
-    return false;
-  };
-
-  if (!isAllowedOrigin(origin)) return false;
-
-  const fetchSite = request.headers.get("sec-fetch-site");
-  if (fetchSite === "cross-site") return false;
-
-  return true;
-}
+/** A socket id and a channel name: a few hundred bytes. */
+const MAX_BODY_BYTES = 4 * 1024;
 
 function isValidBroadcastPayload(payload: unknown): payload is {
   socket_id: string;
@@ -90,7 +49,7 @@ async function forwardHeaders(request: NextRequest, token: string): Promise<Head
 }
 
 export async function POST(request: NextRequest) {
-  if (!isSameOriginRequest(request)) {
+  if (!isSameOriginRequest(request, { requireOrigin: true })) {
     return NextResponse.json({ message: "Forbidden origin." }, { status: 403 });
   }
 
@@ -99,9 +58,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unauthenticated." }, { status: 401 });
   }
 
+  const body = await readCappedBody(request, MAX_BODY_BYTES);
+  if (!body) {
+    return NextResponse.json({ message: "Payload too large." }, { status: 413 });
+  }
+
   let payload: unknown;
   try {
-    payload = await request.json();
+    payload = JSON.parse(new TextDecoder().decode(body));
   } catch {
     return NextResponse.json({ message: "Invalid JSON." }, { status: 400 });
   }
@@ -110,14 +74,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Invalid channel authorization payload." }, { status: 422 });
   }
 
-  const upstream = await fetch(new URL("/api/broadcasting/auth", API_BASE_URL), {
-    method: "POST",
-    headers: await forwardHeaders(request, token),
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  });
+  let upstream: Response;
+  let text: string;
+  try {
+    upstream = await fetch(new URL("/api/broadcasting/auth", API_BASE_URL), {
+      method: "POST",
+      headers: await forwardHeaders(request, token),
+      body: JSON.stringify(payload),
+      cache: "no-store",
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)]),
+    });
+    text = await upstream.text();
+  } catch (error) {
+    console.error(`[broadcasting-auth] failed: ${error instanceof Error ? error.name : "UnknownError"}`);
+    return NextResponse.json(
+      { message: "Channel authorization unavailable." },
+      { status: 502, headers: { "cache-control": "no-store" } },
+    );
+  }
 
-  const text = await upstream.text();
   const headers = new Headers({
     "cache-control": "no-store",
     "content-type": upstream.headers.get("content-type") ?? "application/json",
