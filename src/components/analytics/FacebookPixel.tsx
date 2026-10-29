@@ -3,8 +3,12 @@
  *
  * Responsibilities:
  * 1. Injects the fbevents.js snippet once (via next/script afterInteractive).
- * 2. Fires a `ViewContent` event after React hydration using the product data
- *    passed as props.
+ * 2. Fires `PageView` and `ViewContent` after React hydration using the product
+ *    data passed as props — only where `canTrackPage` allows it.
+ *
+ * The pixel stays loaded for the rest of the visit: its automatic events
+ * (`PageView` on each client-side navigation, button clicks) are turned off,
+ * or a later `/checkout?session=…` would be sent to Meta.
  *
  * Usage (Server Component page):
  * ```tsx
@@ -24,7 +28,9 @@
 "use client";
 
 import Script from "next/script";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { canTrackPage, isPrivatePath } from "./pixel-privacy";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -49,9 +55,13 @@ export function FacebookPixel({
   value,
   currency = "XOF",
 }: FacebookPixelProps) {
-  // Fire ViewContent after hydration so fbq is guaranteed to exist
+  const pathname = usePathname();
+
+  // Fire after hydration so fbq is guaranteed to exist
   useEffect(() => {
-    if (typeof window !== "undefined" && window.fbq) {
+    if (!canTrackPage(window.location.pathname, window.location.search)) return;
+    if (window.fbq) {
+      window.fbq("track", "PageView");
       window.fbq("track", "ViewContent", {
         content_ids: [contentId],
         content_type: "product",
@@ -73,9 +83,12 @@ export function FacebookPixel({
     t.src=v;s=b.getElementsByTagName(e)[0];
     s.parentNode.insertBefore(t,s)}(window,document,'script',
     'https://connect.facebook.net/en_US/fbevents.js');
+    fbq.disablePushState = true;
+    fbq('set', 'autoConfig', false, '${pixelId}');
     fbq('init', '${pixelId}');
-    fbq('track', 'PageView');
   `;
+
+  if (isPrivatePath(pathname)) return null;
 
   return (
     <>
