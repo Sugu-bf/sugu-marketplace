@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Container } from "@/components/ui";
-import { getAuthUser } from "@/lib/api/auth";
+import { getAuthState } from "@/lib/api/auth";
+import { ServiceUnavailable } from "@/components/ServiceUnavailable";
 import { queryAccountPageData } from "@/features/account";
 import { AccountSidebar } from "@/features/account/components/AccountSidebar";
 
@@ -10,7 +11,8 @@ export const dynamic = "force-dynamic";
 /**
  * Shared layout for all /account/* pages.
  * Renders the sidebar once, each sub-page fills the content area.
- * Auth guard: redirects to login if not authenticated.
+ * Auth guard: redirects to login if not authenticated; while the backend
+ * cannot tell, shows a "service unavailable" page instead of a raw 500.
  */
 export default async function AccountLayout({
   children,
@@ -18,9 +20,12 @@ export default async function AccountLayout({
   children: React.ReactNode;
 }) {
   // ── Auth guard ──
-  const user = await getAuthUser();
-  if (!user) {
+  const auth = await getAuthState();
+  if (auth.status === "unauthenticated") {
     redirect("/login?redirect=/account");
+  }
+  if (auth.status === "unavailable") {
+    return <ServiceUnavailable retryHref="/account" />;
   }
 
   const data = await queryAccountPageData();
