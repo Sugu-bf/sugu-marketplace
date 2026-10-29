@@ -2,13 +2,14 @@
  * next.config — the image optimizer, the response fingerprint (audit P0-4)
  * and the security headers sent with every route (audit P1-12).
  *
- * Until Next is upgraded past the advisories, the optimizer must never encode
- * AVIF, must only fetch from the hosts the site really serves images from, and
- * no response may advertise the framework.
+ * AVIF is encoded only on a Next past the optimizer advisories (>= 16.4.3);
+ * the optimizer only fetches from the hosts the site really serves images
+ * from, and no response advertises the framework.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from "next/constants";
 import config from "../../next.config";
+import nextPackage from "next/package.json";
 
 const nextConfig = config(PHASE_DEVELOPMENT_SERVER);
 
@@ -22,11 +23,14 @@ const COMPLETE_BUILD_ENV = {
   NEXT_PUBLIC_REVERB_SCHEME: "https",
 };
 
+
 afterEach(() => vi.unstubAllEnvs());
 
 describe("next.config", () => {
-  it("never encodes AVIF in the image optimizer", () => {
-    expect(nextConfig.images?.formats).toEqual(["image/webp"]);
+  it("serves AVIF and WebP, AVIF only on a patched Next (>= 16.4.3)", () => {
+    expect(nextConfig.images?.formats).toEqual(["image/avif", "image/webp"]);
+    const [major, minor, patch] = nextPackage.version.split(".").map(Number);
+    expect(major * 1_000_000 + minor * 1_000 + patch).toBeGreaterThanOrEqual(16_004_003);
   });
 
   it("only optimizes images from the CDN and the API host", () => {

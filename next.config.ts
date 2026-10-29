@@ -104,9 +104,9 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
     ],
-    // No "image/avif" while Next is below 16.4.3: its AVIF encoder path in the
-    // image optimizer carries a remote code execution advisory (audit P0-4).
-    formats: ["image/webp"],
+    // AVIF needs next >= 16.4.3: earlier optimizers carry a remote code
+    // execution advisory on that encoder path (audit P0-4).
+    formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
