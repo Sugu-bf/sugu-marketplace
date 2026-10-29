@@ -42,14 +42,26 @@ function resolveApiBaseUrl(): string {
 /** The resolved, validated API base URL. Always https://api.mysugu.com in production. */
 export const API_BASE_URL = resolveApiBaseUrl();
 
-/** Default request timeout in milliseconds */
+/** Request timeout in the browser, in milliseconds */
 export const API_TIMEOUT_MS = 10_000;
 
-/** Max retries for idempotent requests (GET/HEAD) */
+/**
+ * Request timeout while rendering on the server: a slow backend must not hold
+ * a page (and a timed out request is not retried there).
+ */
+export const API_SERVER_TIMEOUT_MS = 5_000;
+
+/** Max retries for idempotent requests (GET/HEAD) in the browser */
 export const API_MAX_RETRIES = 2;
+
+/** Max retries for idempotent requests (GET/HEAD) while rendering on the server */
+export const API_SERVER_MAX_RETRIES = 1;
 
 /** Base delay for exponential backoff in ms */
 export const API_RETRY_BASE_DELAY_MS = 500;
+
+/** The longest Retry-After the client waits out before retrying, in ms */
+export const API_MAX_RETRY_AFTER_MS = 3_000;
 
 /** Default ISR revalidation in seconds for public data */
 export const API_DEFAULT_REVALIDATE_S = 300;
