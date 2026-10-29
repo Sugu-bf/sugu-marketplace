@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useMemo } from "react";
+import { useRef, useEffect, useCallback, useMemo, useSyncExternalStore } from "react";
 import { ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 import {
   useMessages,
@@ -34,6 +34,20 @@ function isSameDay(d1: string, d2: string): boolean {
   );
 }
 
+function subscribeVisibility(onChange: () => void): () => void {
+  document.addEventListener("visibilitychange", onChange);
+  return () => document.removeEventListener("visibilitychange", onChange);
+}
+
+/** Whether the buyer can see the page: not in a background tab. */
+function useTabVisible(): boolean {
+  return useSyncExternalStore(
+    subscribeVisibility,
+    () => document.visibilityState !== "hidden",
+    () => false,
+  );
+}
+
 /**
  * ChatRoom — Panel 2: message area with header, messages, typing indicator, and composer.
  */
@@ -59,6 +73,7 @@ export function ChatRoom({
   } = useMessages(conversationId);
 
   const markAsReadMut = useMarkAsRead();
+  const tabVisible = useTabVisible();
   const typingUsers = useMessagingStore((s) => s.typingUsers);
 
   // Flatten messages from all pages
@@ -75,11 +90,19 @@ export function ChatRoom({
       .map((t) => t.userName);
   }, [typingUsers, conversationId]);
 
-  // Store info
+  // The other side: the store, else the courier (never the buyer's own name).
   const store = conversation?.store;
-  const displayName = store?.name ?? conversation?.participants?.[0]?.name ?? "Chat";
+  const displayName = store?.name
+    ?? conversation?.participants?.find((p) => p.type !== "customer")?.name
+    ?? "Chat";
   const avatarUrl = store?.logo_url ?? null;
   const isOnline = store?.is_online ?? false;
+  // The server refuses a message in a closed or blocked conversation: say so.
+  const closedReason = conversation?.status === "blocked"
+    ? "Cette conversation est bloquée : vous ne pouvez plus y écrire."
+    : conversation?.status === "closed"
+      ? "Cette conversation est fermée : vous ne pouvez plus y écrire."
+      : null;
   // What this conversation does not pass on (numbers, e-mails, links).
   const contactNotice = contactPolicyNotice(conversationMaskedKinds(conversation));
 
@@ -110,8 +133,10 @@ export function ChatRoom({
   }, []);
 
   // ─── Mark as read ────────────────────────────────────────────
-  // Mark as read — guarded to prevent infinite loop
+  // Only what the buyer can see: a message that arrives in a background tab
+  // is marked read once the tab is shown again. Guarded to prevent a loop.
   useEffect(() => {
+    if (!tabVisible) return;
     if (!allMessages.length) return;
     const lastMsg = allMessages[allMessages.length - 1];
     if (!lastMsg || lastMsg.is_own) return;
@@ -125,7 +150,7 @@ export function ChatRoom({
       conversationId,
       lastReadMessageId: lastMsg.id,
     });
-  }, [conversationId, allMessages.length]);
+  }, [conversationId, allMessages.length, tabVisible]);
 
   // ─── Load more (scroll to top) ──────────────────────────────
   useEffect(() => {
@@ -251,7 +276,7 @@ export function ChatRoom({
           {contactNotice}
         </p>
       )}
-      <Composer conversationId={conversationId} />
+      <Composer conversationId={conversationId} disabledReason={closedReason} />
     </div>
   );
 }

@@ -8,7 +8,6 @@ import { safeSrc } from "../security";
 interface ConversationCardProps {
   conversation: Conversation;
   isActive: boolean;
-  extraUnread?: number;
   onClick: (id: string) => void;
 }
 
@@ -64,21 +63,20 @@ function getRoleBadge(conversation: Conversation): string | null {
 export function ConversationCard({
   conversation,
   isActive,
-  extraUnread = 0,
   onClick,
 }: ConversationCardProps) {
   const store = conversation.store;
   const otherParticipant = conversation.participants?.find(
     (p) => p.type !== "customer"
   );
+  // The other side, never the buyer's own name.
   const displayName =
     store?.name ??
     otherParticipant?.name ??
-    conversation.participants?.[0]?.name ??
     "Conversation";
   const avatarUrl = store?.logo_url ?? null;
   const isOnline = store?.is_online ?? false;
-  const totalUnread = (conversation.unread_count ?? 0) + extraUnread;
+  const totalUnread = conversation.unread_count ?? 0;
   const roleBadge = getRoleBadge(conversation);
 
   const initials = (displayName ?? "")
@@ -141,7 +139,9 @@ export function ConversationCard({
             <ReadReceipt status={conversation.unread_count === 0 ? "read" : "sent"} />
           )}
           <p className="text-xs text-muted-foreground truncate flex-1">
-            {lastMessage?.body ?? "Démarrer la conversation..."}
+            {lastMessage?.is_hidden
+              ? "Message retiré par la modération"
+              : lastMessage?.body ?? "Démarrer la conversation..."}
           </p>
           {totalUnread > 0 && (
             <span className="flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">

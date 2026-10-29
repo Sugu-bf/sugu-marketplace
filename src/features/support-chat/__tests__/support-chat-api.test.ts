@@ -1,14 +1,15 @@
 /**
  * The support chat API as the widget calls it: a chat started from an order
  * carries `order_id`, and a message its `client_message_id` — sent again
- * with it after a network failure, the same message, written once.
+ * with it after a network failure, the same message, written once. The
+ * history is read as the API sends it: the page under `data.data`.
  */
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { setupMswServer } from "@/test/msw/setup";
 import { API_BASE_URL } from "@/lib/api/config";
-import { sendMessage, startChat } from "../api";
+import { getChatHistory, sendMessage, startChat } from "../api";
 
 setupMswServer();
 
@@ -17,6 +18,7 @@ const ORDER = "01jkqz3m5baxnp9c7hd2fewyo1";
 const ID = "6f1c8e5a-3b2d-4c7e-9a10-2f4b6d8e0a1c";
 const START_URL = `${API_BASE_URL}/api/v1/me/support-chat/start`;
 const SEND_URL = `${API_BASE_URL}/api/v1/me/support-chat/${CHAT}/messages`;
+const HISTORY_URL = `${API_BASE_URL}/api/v1/me/support-chat/history`;
 
 const sent = (status = 201) =>
   HttpResponse.json(
@@ -83,5 +85,33 @@ describe("sendMessage (support chat)", () => {
 
     expect(seen).toEqual([ID, ID]);
     expect(message.client_message_id).toBe(ID);
+  });
+});
+
+describe("getChatHistory", () => {
+  it("reads the chats of a Laravel page, under data.data", async () => {
+    server.use(
+      http.get(HISTORY_URL, () =>
+        HttpResponse.json({
+          success: true,
+          data: { current_page: 1, data: [{ id: CHAT, chat_status: "ended" }], per_page: 20, total: 3 },
+          meta: { current_page: 1, last_page: 1, per_page: 20, total: 3 },
+        }),
+      ),
+    );
+
+    const history = await getChatHistory();
+
+    expect(history.data.map((chat) => chat.id)).toEqual([CHAT]);
+    expect(history.meta.total).toBe(3);
+  });
+
+  it("reads a plain list too", async () => {
+    server.use(http.get(HISTORY_URL, () => HttpResponse.json({ success: true, data: [{ id: CHAT, chat_status: "ended" }] })));
+
+    const history = await getChatHistory();
+
+    expect(history.data.map((chat) => chat.id)).toEqual([CHAT]);
+    expect(history.meta.total).toBe(1);
   });
 });

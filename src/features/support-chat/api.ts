@@ -35,6 +35,9 @@ export interface ChatMessage {
   sender_type: "customer" | "admin" | "seller";
   sender_name: string;
   body: string;
+  /** Absent from an older answer: read as "text". */
+  message_type?: "text" | "system_event" | string;
+  metadata?: Record<string, unknown> | null;
   is_own: boolean;
   /**
    * Not public: read through the API at `path`
@@ -129,7 +132,9 @@ export async function getActiveChat(): Promise<ChatConversation | null> {
 }
 
 /**
- * Get chat history.
+ * Get chat history. The API answers the page as Laravel writes it — the
+ * chats under `data.data`, kept so for the mobile apps — with `meta`
+ * beside it; a plain list is read too.
  */
 export async function getChatHistory(
   page = 1,
@@ -137,10 +142,15 @@ export async function getChatHistory(
 ): Promise<{ data: ChatConversation[]; meta: { total: number } }> {
   const res = await apiFetch<{
     success: boolean;
-    data: ChatConversation[];
-    meta: { total: number };
+    data: ChatConversation[] | { data?: ChatConversation[] } | null;
+    meta?: { total?: number };
   }>(`/me/support-chat/history?page=${page}&per_page=${perPage}`);
-  return { data: res.data, meta: res.meta };
+  const chats = Array.isArray(res.data)
+    ? res.data
+    : Array.isArray(res.data?.data)
+      ? res.data.data
+      : [];
+  return { data: chats, meta: { total: res.meta?.total ?? chats.length } };
 }
 
 /**

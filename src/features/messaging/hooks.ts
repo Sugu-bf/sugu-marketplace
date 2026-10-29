@@ -10,6 +10,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef } from "react";
 import { create } from "zustand";
 import {
   fetchConversations,
@@ -64,11 +65,6 @@ interface MessagingStore {
   ) => void;
   removeTypingUser: (userId: string) => void;
 
-  // Unread counts (real-time updates)
-  unreadUpdates: Record<string, number>;
-  incrementUnread: (conversationId: string) => void;
-  clearUnread: (conversationId: string) => void;
-
   // Mobile view state
   mobileView: "list" | "chat";
   setMobileView: (view: "list" | "chat") => void;
@@ -97,21 +93,6 @@ export const useMessagingStore = create<MessagingStore>((set) => ({
       return { typingUsers: rest };
     }),
 
-  unreadUpdates: {},
-  incrementUnread: (conversationId) =>
-    set((state) => ({
-      unreadUpdates: {
-        ...state.unreadUpdates,
-        [conversationId]:
-          (state.unreadUpdates[conversationId] ?? 0) + 1,
-      },
-    })),
-  clearUnread: (conversationId) =>
-    set((state) => {
-      const { [conversationId]: _, ...rest } = state.unreadUpdates;
-      return { unreadUpdates: rest };
-    }),
-
   mobileView: "list",
   setMobileView: (view) => set({ mobileView: view }),
 }));
@@ -120,6 +101,7 @@ export const useMessagingStore = create<MessagingStore>((set) => ({
 
 export function useConversations(filters?: {
   status?: string;
+  unread?: boolean;
   q?: string;
 }) {
   return useInfiniteQuery({
@@ -178,6 +160,47 @@ export function useRecommendedProducts(conversationId: string | null) {
     enabled: !!conversationId,
     staleTime: 5 * 60_000, // 5 minutes
   });
+}
+
+// ─── Without the socket ─────────────────────────────────────────
+
+/** Without the socket, the list and the open conversation are read again this often. */
+export const FALLBACK_POLL_MS = 30_000;
+
+/**
+ * What realtime would have brought, read by other means: while events cannot
+ * arrive (no Reverb key, socket down, channel refused), the list and the open
+ * conversation are read again every FALLBACK_POLL_MS, as long as the tab is
+ * visible. Once the socket is back, they are read at once, for what it may
+ * have missed.
+ */
+export function useRealtimeFallback(isLive: boolean, activeConversationId: string | null) {
+  const queryClient = useQueryClient();
+
+  const refresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: messagingKeys.conversations() });
+    if (activeConversationId) {
+      queryClient.invalidateQueries({ queryKey: messagingKeys.messages(activeConversationId) });
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversation(activeConversationId) });
+    }
+  }, [queryClient, activeConversationId]);
+
+  // Once the socket is back, catch up on what it may have missed.
+  const wasLiveRef = useRef(isLive);
+  useEffect(() => {
+    if (isLive && !wasLiveRef.current) refresh();
+    wasLiveRef.current = isLive;
+  }, [isLive, refresh]);
+
+  // Without the socket only: read again now and then, not in a hidden tab.
+  useEffect(() => {
+    if (isLive) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      refresh();
+    }, FALLBACK_POLL_MS);
+    return () => clearInterval(timer);
+  }, [isLive, refresh]);
 }
 
 // ─── Mutations ──────────────────────────────────────────────────
@@ -244,11 +267,10 @@ export function useMarkAsRead() {
       conversationId: string;
       lastReadMessageId: string;
     }) => markAsRead(conversationId, lastReadMessageId),
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: messagingKeys.conversations(),
       });
-      useMessagingStore.getState().clearUnread(variables.conversationId);
     },
   });
 }

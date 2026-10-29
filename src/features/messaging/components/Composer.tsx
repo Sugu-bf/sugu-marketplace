@@ -12,11 +12,23 @@ import { newClientMessageId, draftSignature } from "../client-message-id";
 interface ComposerProps {
   conversationId: string;
   disabled?: boolean;
+  /** Why nothing can be sent here; shown in place of the field's help. */
+  disabledReason?: string | null;
 }
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_TYPES = ".jpeg,.jpg,.png,.gif,.webp,.pdf,.doc,.docx";
+
+/** What the buyer is told about files that were not added, and why. */
+function rejectedFilesText(reasons: Set<"size" | "type" | "count">): string | null {
+  if (reasons.size === 0) return null;
+  const parts: string[] = [];
+  if (reasons.has("type")) parts.push("seuls les images, PDF et documents Word sont acceptés");
+  if (reasons.has("size")) parts.push("10 Mo au plus par fichier");
+  if (reasons.has("count")) parts.push(`${MAX_FILES} fichiers au plus par message`);
+  return `Certains fichiers n'ont pas été ajoutés : ${parts.join(", ")}.`;
+}
 
 /** What the buyer is told when a send fails: the server's words for a refusal. */
 function sendErrorText(error: unknown): string {
@@ -35,9 +47,11 @@ export function Composer(props: ComposerProps) {
   return <ConversationComposer key={props.conversationId} {...props} />;
 }
 
-function ConversationComposer({ conversationId, disabled }: ComposerProps) {
+function ConversationComposer({ conversationId, disabled: disabledProp, disabledReason }: ComposerProps) {
+  const disabled = !!disabledProp || !!disabledReason;
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [rejectedFiles, setRejectedFiles] = useState<string | null>(null);
   const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +80,7 @@ function ConversationComposer({ conversationId, disabled }: ComposerProps) {
 
   // Submit
   const handleSend = useCallback(async () => {
+    if (disabled) return;
     const trimmed = text.trim();
     if (!trimmed && files.length === 0) return;
     if (sendMutation.isPending) return;
@@ -92,13 +107,14 @@ function ConversationComposer({ conversationId, disabled }: ComposerProps) {
           setText("");
           setFiles([]);
           setFilePreviews([]);
+          setRejectedFiles(null);
           if (textareaRef.current) {
             textareaRef.current.style.height = "auto";
           }
         },
       }
     );
-  }, [text, files, filePreviews, conversationId, sendMutation]);
+  }, [disabled, text, files, filePreviews, conversationId, sendMutation]);
 
   // Enter to send, Shift+Enter for newline
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -114,12 +130,16 @@ function ConversationComposer({ conversationId, disabled }: ComposerProps) {
       const selected = e.target.files;
       if (!selected) return;
 
+      // A file left out is said, with why: never dropped without a word.
       const validFiles: File[] = [];
-      for (let i = 0; i < selected.length && files.length + validFiles.length < MAX_FILES; i++) {
-        if (selected[i].size <= MAX_FILE_SIZE && isAllowedMime(selected[i])) {
-          validFiles.push(selected[i]);
-        }
+      const reasons = new Set<"size" | "type" | "count">();
+      for (const file of Array.from(selected)) {
+        if (!isAllowedMime(file)) reasons.add("type");
+        else if (file.size > MAX_FILE_SIZE) reasons.add("size");
+        else if (files.length + validFiles.length >= MAX_FILES) reasons.add("count");
+        else validFiles.push(file);
       }
+      setRejectedFiles(rejectedFilesText(reasons));
 
       const newFiles = [...files, ...validFiles];
       setFiles(newFiles);
@@ -167,7 +187,7 @@ function ConversationComposer({ conversationId, disabled }: ComposerProps) {
     };
   }, []);
 
-  const canSend = (text.trim().length > 0 || files.length > 0) && !sendMutation.isPending;
+  const canSend = (text.trim().length > 0 || files.length > 0) && !sendMutation.isPending && !disabled;
 
   return (
     <div className="bg-white border-t border-border-light px-3 py-2.5">
@@ -262,6 +282,16 @@ function ConversationComposer({ conversationId, disabled }: ComposerProps) {
           )}
         </button>
       </div>
+
+      {/* Why nothing can be sent here */}
+      {disabledReason && (
+        <p className="mt-1.5 px-1 text-xs text-muted-foreground">{disabledReason}</p>
+      )}
+
+      {/* Files that were not added, and why */}
+      {rejectedFiles && (
+        <p role="status" className="mt-1.5 px-1 text-xs text-error">{rejectedFiles}</p>
+      )}
 
       {/* A send that failed: the text and files stay, sending again is safe */}
       {sendMutation.isError && (

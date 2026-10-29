@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useConversations, useMessagingStore } from "../hooks";
+import { useConversations } from "../hooks";
 import { ConversationCard } from "./ConversationCard";
 import { EmptyState } from "./EmptyState";
 import { ConversationListSkeleton } from "./ChatSkeleton";
@@ -23,7 +23,6 @@ export function ConversationList({
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const unreadUpdates = useMessagingStore((s) => s.unreadUpdates);
 
   // Debounce search input (300ms)
   useEffect(() => {
@@ -34,7 +33,7 @@ export function ConversationList({
 
   // Stable filter object for React Query key
   const queryFilters = useMemo(() => ({
-    ...(filter === "unread" ? { status: "unread" as const } : {}),
+    ...(filter === "unread" ? { unread: true } : {}),
     ...(debouncedQuery ? { q: debouncedQuery } : {}),
   }), [filter, debouncedQuery]);
 
@@ -52,13 +51,15 @@ export function ConversationList({
     [data]
   );
 
-  // Memoized counts
-  const { totalCount, unreadCount } = useMemo(() => ({
-    totalCount: conversations.length,
-    unreadCount: conversations.filter(
-      (c) => c.unread_count > 0 || (unreadUpdates[c.id] ?? 0) > 0
-    ).length,
-  }), [conversations, unreadUpdates]);
+  // The server's counts, whatever the tab; an older answer without them
+  // falls back to the rows loaded.
+  const serverCounts = data?.pages[0]?.meta.counts;
+  const { totalCount, unreadCount } = useMemo(() => serverCounts
+    ? { totalCount: serverCounts.all, unreadCount: serverCounts.unread }
+    : {
+        totalCount: conversations.length,
+        unreadCount: conversations.filter((c) => c.unread_count > 0).length,
+      }, [serverCounts, conversations]);
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -140,7 +141,6 @@ export function ConversationList({
                 key={conversation.id}
                 conversation={conversation}
                 isActive={conversation.id === activeConversationId}
-                extraUnread={unreadUpdates[conversation.id] ?? 0}
                 onClick={onSelectConversation}
               />
             ))}
