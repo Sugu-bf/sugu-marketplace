@@ -41,6 +41,11 @@ export function makeQueryClient(): QueryClient {
 
 let browserQueryClient: QueryClient | undefined;
 
+/** The browser's query client, once created (cleared by resetClientSession). */
+export function getBrowserQueryClient(): QueryClient | undefined {
+  return browserQueryClient;
+}
+
 function getQueryClient() {
   if (typeof window === "undefined") {
     // Server: always make a new query client

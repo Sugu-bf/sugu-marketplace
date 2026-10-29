@@ -33,6 +33,7 @@ import {
   clearRecentSearches,
 } from "../state/recentSearches.cookie";
 import { getAuthUser, logout, type AuthUser } from "@/lib/api/auth";
+import { resetClientSession } from "@/lib/session/reset-client-session";
 import { hasAuthSession } from "@/features/auth/services/auth-service";
 import { useSearchSuggestions } from "../hooks/useSearchSuggestions";
 import { formatPrice } from "@/lib/constants";
@@ -124,12 +125,11 @@ export default function MarketplaceHeaderClient({
     try {
       await logout();
     } catch {
-      // Best-effort logout; local state is still cleared below.
+      // Best-effort logout; the browser's session state is still cleared below.
     }
     setAuthUser(null);
-    router.push("/");
-    router.refresh();
-  }, [router]);
+    await resetClientSession("/");
+  }, []);
 
   // ── Scroll detection ──
   useEffect(() => {
