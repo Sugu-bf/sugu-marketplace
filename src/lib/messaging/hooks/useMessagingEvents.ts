@@ -26,8 +26,11 @@ interface UseMessagingEventsOptions {
  * Wraps `useEchoChannel` with the 3 standard messaging events.
  *
  * No useMemo needed — `useEchoChannel` stabilizes callbacks internally via ref.
+ *
+ * @returns Whether events can arrive right now (see `useEchoChannel`): while
+ *          they cannot, the caller reads again by itself.
  */
-export function useMessagingEvents(options: UseMessagingEventsOptions): void {
+export function useMessagingEvents(options: UseMessagingEventsOptions): boolean {
   const { channelName, onMessageCreated, onMessageRead, onUserTyping } = options;
 
   const events: Record<string, (payload: unknown) => void> = {};
@@ -35,5 +38,5 @@ export function useMessagingEvents(options: UseMessagingEventsOptions): void {
   if (onMessageRead) events["message.read"] = onMessageRead as (payload: unknown) => void;
   if (onUserTyping) events["user.typing"] = onUserTyping as (payload: unknown) => void;
 
-  useEchoChannel(channelName, events);
+  return useEchoChannel(channelName, events);
 }

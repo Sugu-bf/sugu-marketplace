@@ -10,6 +10,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef } from "react";
 import { create } from "zustand";
 import {
   fetchConversations,
@@ -178,6 +179,47 @@ export function useRecommendedProducts(conversationId: string | null) {
     enabled: !!conversationId,
     staleTime: 5 * 60_000, // 5 minutes
   });
+}
+
+// ─── Without the socket ─────────────────────────────────────────
+
+/** Without the socket, the list and the open conversation are read again this often. */
+export const FALLBACK_POLL_MS = 30_000;
+
+/**
+ * What realtime would have brought, read by other means: while events cannot
+ * arrive (no Reverb key, socket down, channel refused), the list and the open
+ * conversation are read again every FALLBACK_POLL_MS, as long as the tab is
+ * visible. Once the socket is back, they are read at once, for what it may
+ * have missed.
+ */
+export function useRealtimeFallback(isLive: boolean, activeConversationId: string | null) {
+  const queryClient = useQueryClient();
+
+  const refresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: messagingKeys.conversations() });
+    if (activeConversationId) {
+      queryClient.invalidateQueries({ queryKey: messagingKeys.messages(activeConversationId) });
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversation(activeConversationId) });
+    }
+  }, [queryClient, activeConversationId]);
+
+  // Once the socket is back, catch up on what it may have missed.
+  const wasLiveRef = useRef(isLive);
+  useEffect(() => {
+    if (isLive && !wasLiveRef.current) refresh();
+    wasLiveRef.current = isLive;
+  }, [isLive, refresh]);
+
+  // Without the socket only: read again now and then, not in a hidden tab.
+  useEffect(() => {
+    if (isLive) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      refresh();
+    }, FALLBACK_POLL_MS);
+    return () => clearInterval(timer);
+  }, [isLive, refresh]);
 }
 
 // ─── Mutations ──────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import type {
 } from "@/lib/messaging/types";
 import {
   useMessagingStore,
+  useRealtimeFallback,
   messagingKeys,
 } from "../hooks";
 import { ConversationList } from "./ConversationList";
@@ -28,7 +29,8 @@ interface MessagingPageProps {
  * Mobile:  Shows ConversationList OR ChatRoom (toggle)
  * Desktop: Shows ConversationList | ChatRoom | ContactPanel side-by-side
  *
- * Handles real-time events via Echo/Reverb on the user's private channel.
+ * Handles real-time events via Echo/Reverb on the user's private channel,
+ * and reads the list and the open conversation again while they cannot come.
  */
 export function MessagingPage({ user }: MessagingPageProps) {
   const queryClient = useQueryClient();
@@ -111,12 +113,15 @@ export function MessagingPage({ user }: MessagingPageProps) {
   );
 
   // Subscribe to user's messaging channel
-  useMessagingEvents({
+  const isLive = useMessagingEvents({
     channelName: `messaging.user.${user.id}`,
     onMessageCreated: handleMessageCreated,
     onMessageRead: handleMessageRead,
     onUserTyping: handleUserTyping,
   });
+
+  // Without realtime, the page reads again by itself.
+  useRealtimeFallback(isLive, activeConversationId);
 
   // ─── Conversation selection ─────────────────────────────────
 
