@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderWithProviders, screen } from "@/test/render";
 import userEvent from "@testing-library/user-event";
 
-const resetClientSession = vi.fn(async () => {});
+const resetClientSession = vi.fn<(destination: string) => Promise<void>>(async () => {});
 const logout = vi.fn(async () => {});
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
