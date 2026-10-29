@@ -7,9 +7,8 @@
  * - GET /api/v1/products/{slug}/reviews   → Paginated reviews
  * - POST /api/v1/cart/items               → Add to cart
  * - GET  /api/v1/cart/count               → Cart count
- * - POST /api/v1/wishlist/items           → Add to wishlist
- * - DELETE /api/v1/wishlist/items/{id}    → Remove from wishlist
- * - GET  /api/v1/wishlist                 → Wishlist list (to check state)
+ *
+ * Favorites go through features/wishlist (FavoriteHeart / useToggleFavorite).
  *
  * RULES:
  * - All requests go through lib/api/client.ts
@@ -27,12 +26,10 @@ import {
   ReviewsResponseSchema,
   CartResponseSchema,
   CartCountResponseSchema,
-  WishlistResponseSchema,
   type ApiProductDetail,
   type ApiRelatedProduct,
   type ApiReview,
   type CartResponse,
-  type WishlistResponse,
 } from "./product-detail.schemas";
 
 // ─── Product Detail (SSR, public, cached) ────────────────────
@@ -162,48 +159,4 @@ export async function fetchCartCount(): Promise<{ qty_total: number; item_count:
   } catch {
     return { qty_total: 0, item_count: 0 };
   }
-}
-
-// ─── Wishlist: List (Client, no-cache) ───────────────────────
-
-export async function fetchWishlist(): Promise<WishlistResponse | null> {
-  try {
-    const { data } = await api.get(v1Url("wishlist"), {
-      schema: WishlistResponseSchema,
-      revalidate: 0,
-    });
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-// ─── Wishlist: Add (Client, mutation) ────────────────────────
-
-export interface AddToWishlistPayload {
-  variant_id?: string | number;
-  product_id?: string | number;
-}
-
-export async function addToWishlist(payload: AddToWishlistPayload): Promise<WishlistResponse> {
-  await initCsrf();
-
-  const { data } = await api.post<WishlistResponse>(v1Url("wishlist/items"), {
-    body: payload,
-    schema: WishlistResponseSchema,
-    retries: 0,
-  });
-  return data;
-}
-
-// ─── Wishlist: Remove (Client, mutation) ─────────────────────
-
-export async function removeFromWishlist(itemId: string | number): Promise<WishlistResponse> {
-  await initCsrf();
-
-  const { data } = await api.delete<WishlistResponse>(v1Url(`wishlist/items/${itemId}`), {
-    schema: WishlistResponseSchema,
-    retries: 0,
-  });
-  return data;
 }
