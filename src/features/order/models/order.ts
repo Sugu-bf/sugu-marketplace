@@ -119,6 +119,31 @@ export const OrderStoreSchema = z.object({
   name: z.string().min(1),
 });
 
+// ─── A shipment of the order ─────────────────────────────────
+// An order bought from several stores can travel in several shipments, each
+// with its agency, courier and ETA. Read leniently, entry by entry: a bad one
+// is left out and never fails the tracking payload.
+
+export const TrackingShipmentApiSchema = z.object({
+  id: z.string(),
+  storeName: z.string().nullable().optional(),
+  agency: z.object({ name: z.string(), rating: z.number() }),
+  method: z.object({ label: z.string(), isExpress: z.boolean() }),
+  driver: DeliveryDriverSchema.nullable(),
+  eta: z.object({ date: z.string().nullable(), timeRange: z.string().nullable() }),
+});
+
+export const TrackedShipmentSchema = z.object({
+  id: z.string(),
+  storeName: z.string().nullable(),
+  agencyName: z.string(),
+  agencyRating: z.number(),
+  shippingMethod: z.string(),
+  driver: DeliveryDriverSchema.nullable(),
+  estimatedDate: z.string().nullable(),
+  estimatedTimeRange: z.string().nullable(),
+});
+
 // ─── API Response Schema (matches backend formatOrderTracking) ─
 
 export const OrderTrackingApiSchema = z.object({
@@ -168,6 +193,10 @@ export const OrderTrackingApiSchema = z.object({
   // the page offers no « Contacter le vendeur ». Entries are checked one by
   // one in the mapper, so a bad one never fails the whole page.
   stores: z.array(z.unknown()).optional().catch(undefined),
+
+  // Every shipment of the order. Optional: absent, the page shows the one
+  // delivery block above. Entries are checked one by one in the mapper.
+  shipments: z.array(z.unknown()).optional().catch(undefined),
 
   pricing: z.object({
     subtotal: z.number(),
@@ -238,15 +267,17 @@ export const TrackedOrderSchema = z.object({
   deliveryAddress: z.string(),
   driver: DeliveryDriverSchema.nullable(),
 
-  // Estimated delivery
+  // Estimated delivery — the time slot only when the backend gives one
   estimatedDate: z.string(),
-  estimatedTimeRange: z.string(),
+  estimatedTimeRange: z.string().nullable(),
   deliveryProgress: z.number().min(0).max(100),
 
   // Order items + pricing
   items: z.array(OrderItemSchema),
   // Stores of the order the buyer can write to (empty when not known)
   stores: z.array(OrderStoreSchema),
+  // Every shipment of the order (empty when the backend does not list them)
+  shipments: z.array(TrackedShipmentSchema),
   subtotal: z.number(),
   shippingCost: z.number(),
   shippingLabel: z.string().nullable(),
@@ -284,6 +315,7 @@ export type ApiTimelineEvent = z.infer<typeof ApiTimelineEventSchema>;
 export type DeliveryDriver = z.infer<typeof DeliveryDriverSchema>;
 export type OrderItem = z.infer<typeof OrderItemSchema>;
 export type OrderStore = z.infer<typeof OrderStoreSchema>;
+export type TrackedShipment = z.infer<typeof TrackedShipmentSchema>;
 export type OrderTrackingApiData = z.infer<typeof OrderTrackingApiSchema>;
 export type TrackedOrder = z.infer<typeof TrackedOrderSchema>;
 

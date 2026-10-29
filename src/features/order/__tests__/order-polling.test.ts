@@ -45,6 +45,7 @@ function order(codMixte: Partial<CodMixte> = {}, overrides: Partial<TrackedOrder
     deliveryProgress: 10,
     items: [],
     stores: [],
+    shipments: [],
     subtotal: 10000,
     shippingCost: 1000,
     shippingLabel: null,
@@ -73,6 +74,25 @@ describe("hasTrackedOrderChanged", () => {
 
   test("sees the order prepaid", () => {
     expect(hasTrackedOrderChanged(order({}, { codPrepaid: false }), order({}, { codPrepaid: true }))).toBe(true);
+  });
+
+  test("sees a courier assigned to one of several shipments", () => {
+    const shipment = {
+      id: "01jkqz3m5baxnp9c7hd2fews01",
+      storeName: "Boutique Awa",
+      agencyName: "Livo",
+      agencyRating: 4.5,
+      shippingMethod: "Standard",
+      driver: null,
+      estimatedDate: null,
+      estimatedTimeRange: null,
+    };
+    const before = order({}, { shipments: [shipment, { ...shipment, id: "01jkqz3m5baxnp9c7hd2fews02" }] });
+    const after = order({}, {
+      shipments: [shipment, { ...shipment, id: "01jkqz3m5baxnp9c7hd2fews02", driver: { name: "Issa", phone: null } }],
+    });
+    expect(hasTrackedOrderChanged(before, after)).toBe(true);
+    expect(hasTrackedOrderChanged(before, before)).toBe(false);
   });
 
   test("still sees a status or a split payment change", () => {

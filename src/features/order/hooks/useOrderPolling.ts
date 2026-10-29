@@ -14,6 +14,13 @@ const SLOW_INTERVAL = 30_000;         // 30s after 6 polls without change
 const ERROR_BACKOFF_BASE = 20_000;    // 20s base on error
 const ERROR_BACKOFF_MAX = 60_000;     // 60s max on error
 
+/** What the page shows of each shipment of the order. */
+function shipmentsSignature(order: TrackedOrder): string {
+  return order.shipments
+    .map((s) => [s.id, s.agencyName, s.driver?.name ?? "", s.driver?.phone ?? "", s.estimatedDate ?? "", s.estimatedTimeRange ?? ""].join("~"))
+    .join("|");
+}
+
 /**
  * Whether a poll brought something the page shows or acts on. Anything that
  * gates a payment or an action (agency acceptance, the pay URLs, the prepaid
@@ -28,6 +35,7 @@ export function hasTrackedOrderChanged(prev: TrackedOrder, next: TrackedOrder): 
     prev.estimatedDate === next.estimatedDate &&
     prev.paymentStatus === next.paymentStatus &&
     prev.codPrepaid === next.codPrepaid &&
+    shipmentsSignature(prev) === shipmentsSignature(next) &&
     // COD Mixte: split payment state and what gates its pay buttons
     prev.codMixte?.deliveryFeePaid === next.codMixte?.deliveryFeePaid &&
     prev.codMixte?.productFeePaid === next.codMixte?.productFeePaid &&

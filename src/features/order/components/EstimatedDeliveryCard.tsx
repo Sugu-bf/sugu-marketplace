@@ -3,7 +3,8 @@ import { Calendar, Clock } from "lucide-react";
 
 interface EstimatedDeliveryCardProps {
   estimatedDate: string;
-  timeRange: string;
+  /** The delivery slot, only when the backend gives one. */
+  timeRange: string | null;
   progress: number;
   className?: string;
 }
@@ -41,10 +42,12 @@ function EstimatedDeliveryCard({
       <p className="text-xl font-bold text-foreground">{estimatedDate}</p>
 
       {/* Time range */}
-      <div className="flex items-center gap-1.5 mt-1.5">
-        <Clock size={12} className="text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{timeRange}</p>
-      </div>
+      {timeRange && (
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <Clock size={12} className="text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">{timeRange}</p>
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="mt-4 space-y-1.5">

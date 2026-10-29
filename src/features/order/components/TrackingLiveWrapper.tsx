@@ -154,6 +154,7 @@ export function TrackingLiveWrapper({
             shippingMethod={order.shippingMethod}
             deliveryAddress={order.deliveryAddress}
             driver={order.driver}
+            shipments={order.shipments}
           />
 
           {/* Activity Timeline */}

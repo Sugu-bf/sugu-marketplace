@@ -223,7 +223,54 @@ describe("mapApiToTrackedOrder — orders that ended without delivery", () => {
     ["canceled", "cancelled"],
     ["returned", "returned"],
     ["failed", "failed"],
-  ] as const)("a %s order is %s, not cancelled", (statusCode, status) => {
+  ] as const)("a %s order is shown %s", (statusCode, status) => {
     expect(mapApiToTrackedOrder({ ...baseApiOrder(), statusCode }).status).toBe(status);
+  });
+});
+
+describe("mapApiToTrackedOrder — delivery details", () => {
+  test("labels an Express delivery from its method, not from the payment method", () => {
+    const express = { ...baseApiOrder(), delivery: { ...baseApiOrder().delivery, method: { label: "Moto", isExpress: true } } };
+    expect(mapApiToTrackedOrder(express).shippingLabel).toBe("Express");
+    expect(mapApiToTrackedOrder(express).shippingMethod).toBe("Moto (Express)");
+    expect(mapApiToTrackedOrder(baseApiOrder()).shippingLabel).toBeNull();
+  });
+
+  test("gives no time slot when the backend gives none", () => {
+    expect(mapApiToTrackedOrder(baseApiOrder()).estimatedTimeRange).toBeNull();
+    const slot = { ...baseApiOrder(), eta: { date: "22 octobre 2026", timeRange: "Entre 8h et 12h", progress: 60 } };
+    expect(mapApiToTrackedOrder(slot).estimatedTimeRange).toBe("Entre 8h et 12h");
+  });
+
+  test("writes the dates of the history in Ouagadougou time", () => {
+    const api = {
+      ...baseApiOrder(),
+      canonical_timeline: [
+        { key: "vendor_confirmed", label: "Confirmée", status: "done" as const, timestamp: "2026-12-31T23:30:00Z" },
+        { key: "preparing", label: "En préparation", status: "current" as const, timestamp: "2026-02-01T09:05:00+01:00" },
+      ],
+    };
+    const mapped = mapApiToTrackedOrder(api);
+    expect(mapped.trackingSteps.map((s) => s.dateLabel)).toEqual(["31 Déc 23:30", "1 Fév 08:05", null, null]);
+  });
+
+  test("lists every shipment of the order, leaving out what it cannot read", () => {
+    const shipment = (id: string, storeName: string | null = null) => ({
+      id,
+      storeName,
+      agency: { name: "Livo", rating: 4.2 },
+      method: { label: "Standard", isExpress: false },
+      driver: null,
+      eta: { date: null, timeRange: null },
+    });
+    const mapped = mapApiToTrackedOrder({
+      ...baseApiOrder(),
+      shipments: [shipment("S1", "Boutique Awa"), shipment("S2"), shipment("S1"), { id: "S3" }],
+    });
+    expect(mapped.shipments.map((s) => [s.id, s.storeName])).toEqual([
+      ["S1", "Boutique Awa"],
+      ["S2", null],
+    ]);
+    expect(mapApiToTrackedOrder(baseApiOrder()).shipments).toEqual([]);
   });
 });
