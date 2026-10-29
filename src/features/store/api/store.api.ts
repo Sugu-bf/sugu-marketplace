@@ -38,7 +38,7 @@ export async function fetchVendorPage(
   const { slug, ...query } = params;
 
   return api.get<VendorPageResponse>(
-    v1Url(`vendors/${slug}/page`, {
+    v1Url(`vendors/${encodeURIComponent(slug)}/page`, {
       limit: query.limit,
       cursor: query.cursor ?? undefined,
       sort: query.sort,

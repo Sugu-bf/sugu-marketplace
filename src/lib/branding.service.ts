@@ -1,8 +1,9 @@
 import type { BrandingData, MarketplaceConfig } from "./branding.types";
-import { API_BASE_URL } from "./api/config";
+import { API_CONTENT_TIMEOUT_MS } from "./api/config";
+import { publicUrl } from "./api/endpoints";
 
 // ─── Configuration ───────────────────────────────────────────
-const BRANDING_ENDPOINT = `${API_BASE_URL}/v1/public/marketplace-config`;
+const BRANDING_ENDPOINT = publicUrl("marketplace-config");
 
 /** In-memory cache for SSR deduplication within the same request lifecycle */
 let cachedBranding: BrandingData | null = null;
@@ -14,8 +15,8 @@ export const BRANDING_FALLBACK: BrandingData = {
   site: {
     name: "SUGU",
     tagline: "La plus grande plateforme de vente en ligne",
-    support_email: "contact@sugu.pro",
-    support_phone: "+226 64 52 89 58",
+    support_email: "support@sugu.pro",
+    support_phone: null,
   },
   logos: {
     light_url: "https://cdn.sugu.pro/p/logo-sugu.avif",
@@ -75,6 +76,7 @@ export async function fetchBranding(): Promise<BrandingData> {
   try {
     const res = await fetch(BRANDING_ENDPOINT, {
       next: { revalidate: 300 }, // 5 min ISR cache for SSR
+      signal: AbortSignal.timeout(API_CONTENT_TIMEOUT_MS),
       headers: {
         Accept: "application/json",
         "Accept-Language": "fr",

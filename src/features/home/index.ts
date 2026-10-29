@@ -13,7 +13,6 @@ export type {
   WeeklyDeal,
   ProductColumnItem,
   Tag,
-  Countdown,
 } from "./models/home";
 
 // ─── Queries ─────────────────────────────────────────────────

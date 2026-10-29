@@ -177,14 +177,27 @@ export function faqPageJsonLd(items: FaqJsonLdItem[]) {
   };
 }
 
-// ─── Helper Component ────────────────────────────────────────
+// ─── Serialization ───────────────────────────────────────────
+
+const JSON_LD_UNSAFE_CHARS: Record<string, string> = {
+  "<": "\\u003c",
+  ">": "\\u003e",
+  "&": "\\u0026",
+  "\u2028": "\\u2028",
+  "\u2029": "\\u2029",
+};
 
 /**
- * Render JSON-LD as a script tag (safe for RSC).
+ * Serialize JSON-LD for the body of a `<script type="application/ld+json">`.
+ *
+ * The only way to serialize structured data into a page: product, store and
+ * blog fields come from sellers and admins, and a `</script>` in them would
+ * close the tag and run what follows. `<`, `>` and `&` are written as JSON
+ * escapes (same value once parsed), and so are U+2028/U+2029.
  *
  * @example
- * <JsonLd data={productJsonLd({ ... })} />
+ * <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }} />
  */
-export function jsonLdScript(data: Record<string, unknown>): string {
-  return JSON.stringify(data);
+export function safeJsonLd(data: unknown): string {
+  return (JSON.stringify(data) ?? "null").replace(/[<>&\u2028\u2029]/g, (char) => JSON_LD_UNSAFE_CHARS[char]);
 }

@@ -7,11 +7,8 @@ export {
   fetchProductReviews,
   addToCart,
   fetchCartCount,
-  fetchWishlist,
-  addToWishlist,
-  removeFromWishlist,
 } from "./product-detail.api";
-export type { AddToCartPayload, AddToWishlistPayload } from "./product-detail.api";
+export type { AddToCartPayload } from "./product-detail.api";
 
 export {
   mapApiProductToProduct,
@@ -29,5 +26,4 @@ export type {
   ApiStock,
   ApiSeller,
   CartResponse,
-  WishlistResponse,
 } from "./product-detail.schemas";

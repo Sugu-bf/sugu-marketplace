@@ -43,9 +43,11 @@ export default function SupplierCard({ supplier, className }: SupplierCardProps)
             <span className="truncate">{supplier.location}</span>
           </div>
 
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Grossiste depuis {supplier.memberSince}
-          </p>
+          {supplier.memberSince && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Grossiste depuis {supplier.memberSince}
+            </p>
+          )}
 
           {supplier.sectors.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">

@@ -3,6 +3,7 @@ import { createMetadata } from "@/lib/metadata";
 import { stripHtml } from "@/lib/html-utils";
 import { buildOgImageUrl } from "@/lib/og-image";
 import { SITE_URL } from "@/lib/constants";
+import { safeJsonLd } from "@/lib/seo/structured-data";
 import { Container, Breadcrumb } from "@/components/ui";
 import { queryProductBySlug, queryRelatedProducts } from "@/features/product";
 
@@ -203,7 +204,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify([
+          __html: safeJsonLd([
             // ── Schema 1: Product ─────────────────────────────
             {
               "@context": "https://schema.org",

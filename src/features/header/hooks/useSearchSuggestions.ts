@@ -40,6 +40,24 @@ const MIN_QUERY_LENGTH = 2;
 const MAX_RESULTS = 5;
 const FALLBACK_THUMBNAIL = "https://cdn.sugu.pro/s/theme/fallback-product.png";
 
+// ─── Mapping ─────────────────────────────────────────────────
+
+/**
+ * One product of GET /web-products → one suggestion. That endpoint already
+ * answers prices in francs (ProductService::formatProductForSearch).
+ */
+export function toSearchSuggestion(p: Record<string, unknown>): SearchSuggestion {
+  return {
+    id: String(p.id ?? ""),
+    name: String(p.name ?? ""),
+    slug: String(p.slug ?? ""),
+    thumbnail: (p.thumbnail as string) || FALLBACK_THUMBNAIL,
+    price: Math.round(Number(p.price ?? 0)),
+    currency: String(p.currency ?? "XOF"),
+    highlightName: p.highlight_name ? String(p.highlight_name) : undefined,
+  };
+}
+
 // ─── Hook ────────────────────────────────────────────────────
 
 export function useSearchSuggestions(query: string): UseSearchSuggestionsReturn {
@@ -113,15 +131,7 @@ export function useSearchSuggestions(query: string): UseSearchSuggestionsReturn 
         if (!controller.signal.aborted && json.success && json.data?.products) {
           const items: SearchSuggestion[] = json.data.products
             .slice(0, MAX_RESULTS)
-            .map((p: Record<string, unknown>) => ({
-              id: String(p.id ?? ""),
-              name: String(p.name ?? ""),
-              slug: String(p.slug ?? ""),
-              thumbnail: (p.thumbnail as string) || FALLBACK_THUMBNAIL,
-              price: Math.round(Number(p.price ?? 0) / 100),
-              currency: String(p.currency ?? "XOF"),
-              highlightName: p.highlight_name ? String(p.highlight_name) : undefined,
-            }));
+            .map(toSearchSuggestion);
 
           setSuggestions(items);
           setError(null);

@@ -11,7 +11,6 @@ import {
   RelatedProductsResponseSchema,
   ReviewsResponseSchema,
   CartResponseSchema,
-  WishlistResponseSchema,
   CartCountResponseSchema,
   ApiProductDetailSchema,
 } from "../api/product-detail.schemas";
@@ -320,22 +319,6 @@ describe("CartCountResponseSchema", () => {
     const result = CartCountResponseSchema.safeParse({
       success: true,
       data: { qty_total: 5, item_count: 2 },
-    });
-    expect(result.success).toBe(true);
-  });
-});
-
-// ─── WishlistResponseSchema ──────────────────────────────────
-
-describe("WishlistResponseSchema", () => {
-  it("validates a correct wishlist response", () => {
-    const result = WishlistResponseSchema.safeParse({
-      success: true,
-      data: {
-        items: [
-          { id: 1, variant_id: 101, product_id: "01HXYZ123" },
-        ],
-      },
     });
     expect(result.success).toBe(true);
   });

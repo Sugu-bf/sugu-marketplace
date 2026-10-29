@@ -31,6 +31,9 @@ import {
 /**
  * Fetch category detail by slug.
  * Used by the RSC page for hero + metadata.
+ *
+ * Returns null only when the API says the category does not exist; any other
+ * failure throws, so that an outage is never served (and cached) as a 404.
  */
 export async function fetchCategoryDetail(
   slug: string
@@ -53,7 +56,7 @@ export async function fetchCategoryDetail(
       `[CategoryListing] Failed to fetch category "${slug}":`,
       (error as Error).message
     );
-    return null;
+    throw error;
   }
 }
 
@@ -67,6 +70,8 @@ export interface ProductListingResult {
 /**
  * Fetch paginated products for a category with filters.
  * Used by the RSC page for the initial listing.
+ *
+ * Throws on failure: an empty listing would be cached as "0 produits".
  */
 export async function fetchCategoryProducts(
   categorySlug: string,
@@ -105,16 +110,6 @@ export async function fetchCategoryProducts(
       `[CategoryListing] Failed to fetch products for "${categorySlug}":`,
       (error as Error).message
     );
-    return {
-      products: [],
-      meta: {
-        current_page: 1,
-        last_page: 1,
-        per_page: perPage,
-        total: 0,
-        from: null,
-        to: null,
-      },
-    };
+    throw error;
   }
 }

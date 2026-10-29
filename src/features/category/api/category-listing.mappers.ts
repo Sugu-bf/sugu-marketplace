@@ -2,7 +2,9 @@
  * Category Listing — mappers from API shapes to existing UI types.
  *
  * RULES:
- * - No price recalculation — all values from backend
+ * - No price recalculation — all values from backend. /web-products already
+ *   answers in francs (ProductService::formatProductForSearch): no division.
+ * - Ids are ULID strings, kept as such (cart, favorites, React keys).
  * - Maps to existing ProductListItem and Subcategory types
  * - Single source of truth for shape transformations
  */
@@ -19,12 +21,12 @@ import type {
 
 export function mapApiCategoryToCategory(api: ApiCategoryDetail): Category {
   return {
-    id: parseInt(api.id, 10) || 0,
+    id: api.id,
     slug: api.slug,
     name: api.name,
     description: api.description ?? undefined,
     image: api.image ?? api.icon_url ?? "",
-    parentId: api.parent ? parseInt(api.parent.id, 10) || null : null,
+    parentId: api.parent?.id ?? null,
     productCount: api.product_count,
   };
 }
@@ -36,7 +38,7 @@ export function mapApiChildToSubcategory(
   parentSlug: string
 ): Subcategory {
   return {
-    id: parseInt(child.id, 10) || 0,
+    id: child.id,
     slug: child.slug,
     name: child.name,
     image: child.image ?? child.icon_url ?? "",
@@ -63,11 +65,11 @@ export function mapApiProductToListItem(
     "";
 
   return {
-    id: parseInt(apiProduct.id, 10) || 0,
+    id: apiProduct.id,
     slug: apiProduct.slug,
     name: apiProduct.name,
-    price: Math.round((apiProduct.sale_price ?? apiProduct.price) / 100),
-    originalPrice: apiProduct.compare_price ? Math.round(apiProduct.compare_price / 100) : undefined,
+    price: apiProduct.sale_price ?? apiProduct.price,
+    originalPrice: apiProduct.compare_price ?? undefined,
     discount: apiProduct.discount_percent ?? undefined,
     thumbnail,
     rating: apiProduct.avg_rating,

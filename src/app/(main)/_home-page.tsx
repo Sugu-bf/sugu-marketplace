@@ -45,6 +45,8 @@ import { queryFeaturedProducts } from "@/features/product";
  * - Products: frequent (2 min) + tag "products"
  * - Hot deals: short (1 min) + tag "products"
  * - Trust badges: infinite (static data)
+ *
+ * A section the API has nothing for is left out: no stand-in content.
  */
 export default async function HomePage() {
   // ─── Data fetching (SSR) — all requests in parallel ─────────
@@ -94,42 +96,48 @@ export default async function HomePage() {
       </h1>
 
       {/* SECTION 1: Main Hero Banner */}
-      <HeroBanners heroBanner={heroBanner} />
+      {heroBanner && <HeroBanners heroBanner={heroBanner} />}
 
       {/* SECTION 3: Category Pills */}
-      <CategoryBar categories={categoryPills} />
+      {categoryPills.length > 0 && <CategoryBar categories={categoryPills} />}
 
       {/* SECTION 4: Promo Cards Carousel */}
-      <FreshCategories categories={freshCategories} />
+      {freshCategories.length > 0 && <FreshCategories categories={freshCategories} />}
 
       {/* SECTION 5: Best Seller */}
-      <BestSeller products={bestSellerProducts} />
+      {bestSellerProducts.length > 0 && <BestSeller products={bestSellerProducts} />}
 
       {/* SECTION 5b: Promotional Deal Banners (with timer) */}
-      <PromotionalDeals deals={promotionalDeals} />
+      {promotionalDeals.length > 0 && <PromotionalDeals deals={promotionalDeals} />}
 
       {/* SECTION 6: Trending Store Favorites (with tabs) */}
-      <TrendingStores tags={trendingTags} products={trendingProducts} />
+      {trendingProducts.length > 0 && <TrendingStores tags={trendingTags} products={trendingProducts} />}
 
       {/* SECTION 6b: Products + Deal Card (Deals of the day) */}
-      <OrderNowBanner products={orderNowProducts} dealCard={dailyDealCard} />
+      {(orderNowProducts.length > 0 || dailyDealCard) && (
+        <OrderNowBanner products={orderNowProducts} dealCard={dailyDealCard} />
+      )}
 
       {/* SECTION 6c: 3 Small Banners */}
-      <SmallBanners slides={bannerSlides} />
+      {bannerSlides.length > 0 && <SmallBanners slides={bannerSlides} />}
 
       {/* SECTION 7: 4 Columns (Vedettes, Ventes, Promo, Weekly Deal / Offres de la semaine) */}
-      <TrendingStoresSecond
-        produitsVedettes={produitsVedettes}
-        meilleuresVentes={meilleuresVentes}
-        enPromotion={enPromotion}
-        weeklyDeal={weeklyDeal}
-      />
+      {(produitsVedettes.length > 0 || meilleuresVentes.length > 0 || enPromotion.length > 0 || weeklyDeal) && (
+        <TrendingStoresSecond
+          produitsVedettes={produitsVedettes}
+          meilleuresVentes={meilleuresVentes}
+          enPromotion={enPromotion}
+          weeklyDeal={weeklyDeal}
+        />
+      )}
 
       {/* SECTION 8: Shop by Brands */}
-      <ShopByBrands brands={brands} />
+      {brands.length > 0 && <ShopByBrands brands={brands} />}
 
       {/* SECTION 9: Daily Best Sales */}
-      <DailyBestSales products={dailyBestSaleProducts} promo={dailyBestSalesPromo} />
+      {(dailyBestSaleProducts.length > 0 || dailyBestSalesPromo) && (
+        <DailyBestSales products={dailyBestSaleProducts} promo={dailyBestSalesPromo} />
+      )}
     </>
   );
 }

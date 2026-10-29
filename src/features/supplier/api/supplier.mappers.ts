@@ -80,7 +80,7 @@ export function mapVendorToSupplier(
     location: item.contact.address_line,
     country: country.name,
     countryFlag: country.flag,
-    memberSince: item.member_since || "2023",
+    memberSince: item.member_since ?? "",
     tagline: "",         // MVP — empty, could be enriched later
     rating: item.rating.avg,
     reviewCount: item.rating.count,

@@ -4,7 +4,9 @@
  * Transforms the *actual* API response shapes (nested pricing, rating, image
  * objects) into the flat front-end domain models expected by UI components.
  *
- * Fallback strategy: if API returns empty or fails → mock data is served.
+ * No stand-in content: when the API has nothing (or fails), a list is empty
+ * and a single card is null; the page leaves the section out. Mock products,
+ * deals and promises were served (and cached) as real ones.
  */
 
 import type { HomeRepository } from "../repositories/home-repository";
@@ -41,29 +43,25 @@ import type {
   ApiDailyBestSellItem,
   ApiDealOfWeekProduct,
 } from "../api/home.schemas";
-// ─── Fallback mock data (used only on API failure) ───────────
-import {
-  mockBannerSlides,
-  mockHeroBanner,
-  mockCategoryPills,
-  mockFreshCategories,
-  mockPromotionalDeals,
-  mockTrendingTags,
-  mockDailyDealCard,
-  mockBrands,
-  mockDailyBestSaleProducts,
-  mockProduitsVedettes,
-  mockMeilleuresVentes,
-  mockEnPromotion,
-  mockWeeklyDeal,
-  mockTrustBadges,
-} from "../mocks/home";
-import { getMockProducts } from "@/features/product/mocks/products";
+import { TRUST_BADGES } from "../content/trust-badges";
 
-/** Dead / legacy paths from banners → real marketplace routes */
-function resolveHomeHref(url?: string | null, fallback = "/search"): string {
-  if (!url || url === "#" || url === "/deals" || url === "/shop") return fallback;
-  return url;
+/**
+ * Link of a banner (`cta_url`, set in the admin) → an href the page can use.
+ *
+ * Only a site path ("/…", not "//…") or an http(s) URL; anything else
+ * (javascript:, data:, a protocol-relative URL) falls back. Dead / legacy
+ * paths map to real marketplace routes.
+ */
+export function resolveHomeHref(url?: string | null, fallback = "/search"): string {
+  const href = url?.trim();
+  if (!href || href === "#" || href === "/deals" || href === "/shop") return fallback;
+  if (href.startsWith("/")) return href.startsWith("//") || href.startsWith("/\\") ? fallback : href;
+  try {
+    const parsed = new URL(href);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.href : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 // ─── Transform Helpers ───────────────────────────────────────
@@ -175,37 +173,17 @@ function apiDailyBestSellToProduct(p: ApiDailyBestSellItem): DailyBestSaleProduc
   };
 }
 
-// ─── Compute countdown from ISO 8601 dates ───────────────────
-
-function computeCountdown(endsAt?: string | null, serverNow?: string | null) {
-  if (!endsAt) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-
-  const end = new Date(endsAt).getTime();
-  const now = serverNow ? new Date(serverNow).getTime() : Date.now();
-  const diff = Math.max(0, end - now);
-
-  const totalSeconds = Math.floor(diff / 1000);
-  return {
-    days: Math.floor(totalSeconds / 86400),
-    hours: Math.floor((totalSeconds % 86400) / 3600),
-    minutes: Math.floor((totalSeconds % 3600) / 60),
-    seconds: totalSeconds % 60,
-  };
-}
-
 // ─── ApiHomeService ──────────────────────────────────────────
 
 export class ApiHomeService implements HomeRepository {
   async getBannerSlides(): Promise<BannerSlide[]> {
     const items = await fetchBannerSlot("marketplace.home.top");
-    if (items.length > 0) return items.map(bannerItemToSlide);
-    return mockBannerSlides;
+    return items.map(bannerItemToSlide);
   }
 
-  async getHeroBanner(): Promise<HeroBanner> {
+  async getHeroBanner(): Promise<HeroBanner | null> {
     const items = await fetchBannerSlot("marketplace.home.hero");
-    if (items.length > 0) return bannerItemToHero(items[0]);
-    return mockHeroBanner;
+    return items.length > 0 ? bannerItemToHero(items[0]) : null;
   }
 
   async getCategoryPills(): Promise<CategoryPill[]> {
@@ -213,15 +191,13 @@ export class ApiHomeService implements HomeRepository {
     if (categories.length > 0) return categories.map(apiCategoryToPill);
     // Fallback: try all categories
     const all = await (await import("../api/home.api")).fetchAllCategories();
-    if (all.length > 0) return all.slice(0, 16).map(apiCategoryToPill);
-    return mockCategoryPills;
+    return all.slice(0, 16).map(apiCategoryToPill);
   }
 
   async getFreshCategories(): Promise<FreshCategory[]> {
     // Fresh Categories are stored as banners in slot "marketplace.home.promotional"
     // Prefer structured meta: title_highlight (eyebrow), subtitle (category), title fallback
     const banners = await fetchBannerSlot("marketplace.home.promotional");
-    if (banners.length === 0) return mockFreshCategories;
 
     const defaultBgColors = ["#E8EDF3", "#EAF0E4", "#E3EEF0", "#F0EDE3", "#F0E8E3", "#E3F0EA"];
 
@@ -266,10 +242,9 @@ export class ApiHomeService implements HomeRepository {
   async getPromotionalDeals(): Promise<PromotionalDeal[]> {
     const result = await fetchHotDeals(2);
     if (result.items.length > 0 || result.banner) {
-      const countdown = computeCountdown(
-        result.countdown?.ends_at,
-        result.countdown?.server_now
-      );
+      // The end date, not a remaining time: computed at render time, it was
+      // frozen in the ISR page and counted down from there in the browser.
+      const endsAt = result.countdown?.ends_at ?? null;
 
       const deals: PromotionalDeal[] = [];
 
@@ -283,7 +258,7 @@ export class ApiHomeService implements HomeRepository {
           subtitle: result.banner.subtitle ?? "Temps restant jusqu'à la fin de l'offre.",
           image: bannerImage,
           variant: "light",
-          countdown,
+          endsAt,
           href: resolveHomeHref(result.banner.cta_url, "/search"),
         });
       }
@@ -302,16 +277,16 @@ export class ApiHomeService implements HomeRepository {
           subtitle: "Temps restant jusqu'à la fin de l'offre.",
           image: productImage,
           variant: "dark",
-          countdown,
+          endsAt,
           href: firstItem.product.slug
             ? `/product/${firstItem.product.slug}`
             : "/search",
         });
       }
 
-      if (deals.length > 0) return deals;
+      return deals;
     }
-    return mockPromotionalDeals;
+    return [];
   }
 
   async getTrendingTags(): Promise<Tag[]> {
@@ -319,30 +294,26 @@ export class ApiHomeService implements HomeRepository {
     if (result.tabs.length > 1) {
       return result.tabs.map((t) => ({ label: t.label, slug: t.slug }));
     }
-    return mockTrendingTags;
+    return [];
   }
 
   async getTrendingProducts(): Promise<ProductListItem[]> {
     const result = await fetchRecommended("all", 6);
-    if (result.products.length > 0) return result.products.map(apiRecommendedToListItem);
-    return getMockProducts(6);
+    return result.products.map(apiRecommendedToListItem);
   }
 
   async getOrderNowProducts(): Promise<ProductListItem[]> {
     const result = await fetchRecommended("all", 4);
-    if (result.products.length > 0) return result.products.slice(0, 4).map(apiRecommendedToListItem);
-    return getMockProducts(4);
+    return result.products.slice(0, 4).map(apiRecommendedToListItem);
   }
 
-  async getDailyDealCard(): Promise<DailyDealCard> {
+  async getDailyDealCard(): Promise<DailyDealCard | null> {
     const result = await fetchHotDeals(1);
     if (result.banner) {
       return {
         category: result.banner.badge_label ?? "Offres du jour",
         title: result.banner.title ?? "Offres du jour",
-        subtitle:
-          result.banner.subtitle ??
-          "Économisez jusqu'à 50% sur votre première commande",
+        subtitle: result.banner.subtitle ?? "",
         expiry: result.countdown?.ends_at
           ? `Expire le ${new Date(result.countdown.ends_at).toLocaleDateString("fr-FR")}`
           : "Offre limitée",
@@ -354,30 +325,25 @@ export class ApiHomeService implements HomeRepository {
         ctaLabel: result.banner.cta_label ?? "Explorer la boutique",
       };
     }
-    return mockDailyDealCard;
+    return null;
   }
 
   async getBrands(): Promise<Brand[]> {
     const apiBrands = await fetchHomeBrands(12);
-    if (apiBrands.length > 0) {
-      return apiBrands.map((b, i) => ({
-        id: Number(b.id) || i + 1,
-        name: b.name,
-        image: b.logo?.url ?? "/brands/placeholder.png",
-        href: b.slug ? `/search?brand=${b.slug}` : undefined,
-      }));
-    }
-    console.warn("[Home] Brands API returned empty — using fallback mock brands");
-    return mockBrands;
+    return apiBrands.map((b, i) => ({
+      id: Number(b.id) || i + 1,
+      name: b.name,
+      image: b.logo?.url ?? "/brands/placeholder.png",
+      href: b.slug ? `/search?brand=${encodeURIComponent(b.slug)}` : undefined,
+    }));
   }
 
   async getDailyBestSaleProducts(): Promise<DailyBestSaleProduct[]> {
     const result = await fetchDailyBestSells(6);
-    if (result.items.length > 0) return result.items.map(apiDailyBestSellToProduct);
-    return mockDailyBestSaleProducts;
+    return result.items.map(apiDailyBestSellToProduct);
   }
 
-  async getDailyBestSalesPromo(): Promise<DailyBestSalesPromo> {
+  async getDailyBestSalesPromo(): Promise<DailyBestSalesPromo | null> {
     const result = await fetchDailyBestSells(6);
     const banner = result.promoBanner;
     if (banner?.title) {
@@ -389,36 +355,26 @@ export class ApiHomeService implements HomeRepository {
         image: banner.bg_image_url ?? undefined,
       };
     }
-    return {
-      title: "5 000 F de réduction sur votre première commande",
-      subtitle: "Livraison avant 6h15",
-      ctaLabel: "Acheter maintenant",
-      href: "/search",
-      image: "/promos/grocery-bag.png",
-    };
+    return null;
   }
 
   async getProduitsVedettes(): Promise<ProductColumnItem[]> {
     const result = await fetchProductLists(6);
-    if (result.featured.items.length > 0) return result.featured.items.map(apiProdListToColumnItem);
-    return mockProduitsVedettes;
+    return result.featured.items.map(apiProdListToColumnItem);
   }
 
   async getMeilleuresVentes(): Promise<ProductColumnItem[]> {
     const result = await fetchProductLists(6);
     if (result.topSelling.items.length > 0) return result.topSelling.items.map(apiProdListToColumnItem);
-    // Fallback: use featured products (real DB data) instead of mock when top_selling is empty
-    if (result.featured.items.length > 0) return result.featured.items.map(apiProdListToColumnItem);
-    return mockMeilleuresVentes;
+    return [];
   }
 
   async getEnPromotion(): Promise<ProductColumnItem[]> {
     const result = await fetchProductLists(6);
-    if (result.onSale.items.length > 0) return result.onSale.items.map(apiProdListToColumnItem);
-    return mockEnPromotion;
+    return result.onSale.items.map(apiProdListToColumnItem);
   }
 
-  async getWeeklyDeal(): Promise<WeeklyDeal> {
+  async getWeeklyDeal(): Promise<WeeklyDeal | null> {
     const result = await fetchProductLists(6);
     if (result.dealOfWeek?.product) {
       const p = result.dealOfWeek.product as ApiDealOfWeekProduct;
@@ -437,10 +393,10 @@ export class ApiHomeService implements HomeRepository {
         isInStock: p.in_stock,
       };
     }
-    return mockWeeklyDeal;
+    return null;
   }
 
   async getTrustBadges(): Promise<TrustBadge[]> {
-    return mockTrustBadges;
+    return TRUST_BADGES;
   }
 }

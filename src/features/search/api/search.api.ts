@@ -53,6 +53,7 @@ function normalizeProduct(raw: ApiProduct): SearchProductItem {
     sold: raw.sales_count ?? 0,
     vendorName: raw.store?.name ?? "",
     categoryName: raw.primary_category?.name ?? "",
+    categorySlug: raw.primary_category?.slug ?? "",
   };
 }
 
@@ -107,24 +108,24 @@ export async function fetchSearchResults(
 
   const products = data.data.products.map(normalizeProduct);
 
-  // ── Category facets: use Typesense native facets (accurate across ALL results)
-  //    Falls back to client-side counting if facets aren't returned (browse mode)
+  // ── Category facets: Typesense native facets, keyed by the real category
+  //    slug (accurate across ALL results). Falls back to counting the current
+  //    page (browse mode, no Typesense). A slug made from the category name
+  //    is not always the slug, and the filter then matched nothing.
   let categoryFacets: FilterCategoryFacet[];
 
-  const backendCategoryFacets = data.data.facets?.category_name;
+  const backendCategoryFacets = data.data.facets.category;
   if (backendCategoryFacets && backendCategoryFacets.length > 0) {
-    // Typesense native facets — accurate counts across ALL matching products
     categoryFacets = backendCategoryFacets.map((f) => ({
-      slug: slugify(f.value),
+      slug: f.value,
       name: f.label || f.value,
       count: f.count,
     }));
   } else {
-    // Fallback: derive from current page products (browse mode, no Typesense)
     const categoryMap = new Map<string, { name: string; count: number }>();
     for (const p of products) {
-      if (p.categoryName) {
-        const slug = slugify(p.categoryName);
+      if (p.categorySlug) {
+        const slug = p.categorySlug;
         const existing = categoryMap.get(slug);
         if (existing) {
           existing.count++;
@@ -160,15 +161,4 @@ export async function fetchSearchResults(
  */
 export function getStaticPriceRanges(): PriceRange[] {
   return [...DEFAULT_PRICE_RANGES];
-}
-
-// ─── Helpers ─────────────────────────────────────────────────
-
-function slugify(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }

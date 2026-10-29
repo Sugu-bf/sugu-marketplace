@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Breadcrumb, Container } from "@/components/ui";
 import { SITE_URL } from "@/lib/constants";
+import { safeJsonLd } from "@/lib/seo/structured-data";
 
 export interface EcosystemPageContent {
   path: string;
@@ -53,7 +54,7 @@ export function EcosystemPage({ content }: { content: EcosystemPageContent }) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-orange-50 via-white to-emerald-50">
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
         <Container className="relative py-16 sm:py-20 lg:py-28">

@@ -7,12 +7,10 @@ import type { DailyDealCard } from "@/features/home";
 
 interface OrderNowBannerProps {
   products: ProductListItem[];
-  dealCard: DailyDealCard;
+  dealCard: DailyDealCard | null;
 }
 
 export default function OrderNowBanner({ products, dealCard }: OrderNowBannerProps) {
-  const href = dealCard.href || "/search";
-  const ctaLabel = dealCard.ctaLabel || "Explorer la boutique";
 
   return (
     <Container
@@ -36,51 +34,53 @@ export default function OrderNowBanner({ products, dealCard }: OrderNowBannerPro
           ))}
         </div>
 
-        {/* Right side - Offres du jour */}
-        <Link
-          href={href}
-          className="lg:w-[380px] flex-shrink-0 relative overflow-hidden rounded-3xl bg-primary block group"
-          style={{
-            minHeight: "340px",
-            animation: "fadeSlideUp 0.6s ease-out 500ms both",
-          }}
-        >
-          {/* Content */}
-          <div className="relative z-10 p-7">
-            {/* Category badge */}
-            <span className="inline-block rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-foreground mb-4">
-              {dealCard.category}
-            </span>
+        {/* Right side - Offres du jour (only when the API has one) */}
+        {dealCard && (
+          <Link
+            href={dealCard.href || "/search"}
+            className="lg:w-[380px] flex-shrink-0 relative overflow-hidden rounded-3xl bg-primary block group"
+            style={{
+              minHeight: "340px",
+              animation: "fadeSlideUp 0.6s ease-out 500ms both",
+            }}
+          >
+            {/* Content */}
+            <div className="relative z-10 p-7">
+              {/* Category badge */}
+              <span className="inline-block rounded-md bg-accent px-3 py-1.5 text-xs font-bold text-foreground mb-4">
+                {dealCard.category}
+              </span>
 
-            <h2 className="text-3xl font-extrabold text-white mb-2 leading-tight">
-              {dealCard.title}
-            </h2>
+              <h2 className="text-3xl font-extrabold text-white mb-2 leading-tight">
+                {dealCard.title}
+              </h2>
 
-            <p className="text-sm text-white/90 mb-4">
-              {dealCard.subtitle}
-            </p>
+              <p className="text-sm text-white/90 mb-4">
+                {dealCard.subtitle}
+              </p>
 
-            <p className="text-sm text-white/70 italic mb-5">
-              {dealCard.expiry}
-            </p>
+              <p className="text-sm text-white/70 italic mb-5">
+                {dealCard.expiry}
+              </p>
 
-            <span className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-foreground transition-all duration-300 group-hover:shadow-lg group-hover:shadow-black/10 group-hover:scale-105">
-              {ctaLabel}
-              <ShoppingCart size={16} className="transition-transform duration-300 group-hover:translate-x-0.5" />
-            </span>
-          </div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-foreground transition-all duration-300 group-hover:shadow-lg group-hover:shadow-black/10 group-hover:scale-105">
+                {dealCard.ctaLabel || "Explorer la boutique"}
+                <ShoppingCart size={16} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+              </span>
+            </div>
 
-          {/* Grocery basket image */}
-          <div className="absolute bottom-0 right-0 w-[55%] h-[60%]">
-            <Image
-              src={dealCard.image}
-              alt={dealCard.title}
-              fill
-              className="object-contain object-bottom-right"
-              sizes="250px"
-            />
-          </div>
-        </Link>
+            {/* Grocery basket image */}
+            <div className="absolute bottom-0 right-0 w-[55%] h-[60%]">
+              <Image
+                src={dealCard.image}
+                alt={dealCard.title}
+                fill
+                className="object-contain object-bottom-right"
+                sizes="250px"
+              />
+            </div>
+          </Link>
+        )}
       </div>
 
       {/* Bottom divider */}

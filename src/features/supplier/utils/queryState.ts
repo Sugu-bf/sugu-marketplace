@@ -1,5 +1,6 @@
 /**
- * URL state management for the supplier listing page.
+ * URL state of the vendor listings (/fournisseurs and /stores): sort, search
+ * and the cursor of GET /api/v1/vendors.
  */
 
 // ─── Types ───────────────────────────────────────────────────
@@ -25,8 +26,9 @@ export function parseSupplierSearchParams(
 ): SupplierListingState {
   return {
     sort: isValidSort(sp.sort) ? sp.sort : DEFAULT_STATE.sort,
-    q: typeof sp.q === "string" ? sp.q : "",
-    cursor: typeof sp.cursor === "string" ? sp.cursor : null,
+    q: typeof sp.q === "string" ? sp.q.slice(0, 200) : "",
+    // The API refuses a cursor longer than 500 characters.
+    cursor: typeof sp.cursor === "string" && sp.cursor.length <= 500 ? sp.cursor : null,
   };
 }
 
@@ -49,10 +51,11 @@ export function serializeSupplierListingState(
 
 export function buildSupplierListingUrl(
   state: Partial<SupplierListingState>,
+  basePath = "/fournisseurs",
 ): string {
   const params = serializeSupplierListingState(state);
   const qs = params.toString();
-  return qs ? `/fournisseurs?${qs}` : `/fournisseurs`;
+  return qs ? `${basePath}?${qs}` : basePath;
 }
 
 // ─── Defaults ────────────────────────────────────────────────

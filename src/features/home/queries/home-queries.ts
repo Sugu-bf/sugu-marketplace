@@ -21,7 +21,7 @@ import type { ProductListItem } from "@/features/product";
  * These are the ONLY entry points the page should use.
  *
  * Production: uses ApiHomeService (real API → https://api.mysugu.com)
- * Fallback: each API call falls back to mock data on failure.
+ * Empty list or null card when the API has nothing: no stand-in content.
  *
  * Cache strategy documented in each function.
  */
@@ -40,7 +40,7 @@ export async function queryBannerSlides(): Promise<BannerSlide[]> {
  * Hero banner (single large image).
  * Cache: frequent (2 min) — same cache as banner slides.
  */
-export async function queryHeroBanner(): Promise<HeroBanner> {
+export async function queryHeroBanner(): Promise<HeroBanner | null> {
   return homeService.getHeroBanner();
 }
 
@@ -54,7 +54,7 @@ export async function queryCategoryPills(): Promise<CategoryPill[]> {
 
 /**
  * Fresh category promo cards (4 cards with prices).
- * Cache: static — uses mock data (no dedicated API endpoint).
+ * Cache: frequent — banners of the "marketplace.home.promotional" slot.
  */
 export async function queryFreshCategories(): Promise<FreshCategory[]> {
   return homeService.getFreshCategories();
@@ -96,7 +96,7 @@ export async function queryOrderNowProducts(): Promise<ProductListItem[]> {
  * Daily deal sidebar card.
  * Cache: short (1 min) — from hot-deals endpoint.
  */
-export async function queryDailyDealCard(): Promise<DailyDealCard> {
+export async function queryDailyDealCard(): Promise<DailyDealCard | null> {
   return homeService.getDailyDealCard();
 }
 
@@ -120,7 +120,7 @@ export async function queryDailyBestSaleProducts(): Promise<DailyBestSaleProduct
  * Promo card beside daily best sells.
  * Cache: short (1 min) — same endpoint as daily best sells.
  */
-export async function queryDailyBestSalesPromo(): Promise<DailyBestSalesPromo> {
+export async function queryDailyBestSalesPromo(): Promise<DailyBestSalesPromo | null> {
   return homeService.getDailyBestSalesPromo();
 }
 
@@ -152,7 +152,7 @@ export async function queryEnPromotion(): Promise<ProductColumnItem[]> {
  * Weekly deal feature product.
  * Cache: frequent (2 min) — from product-lists endpoint.
  */
-export async function queryWeeklyDeal(): Promise<WeeklyDeal> {
+export async function queryWeeklyDeal(): Promise<WeeklyDeal | null> {
   return homeService.getWeeklyDeal();
 }
 

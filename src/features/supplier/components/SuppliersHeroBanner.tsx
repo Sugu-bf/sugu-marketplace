@@ -1,16 +1,11 @@
 import { Building2 } from "lucide-react";
 import { Container } from "@/components/ui";
 
-interface SuppliersHeroBannerProps {
-  totalSuppliers: number;
-}
-
 /**
  * Hero for /fournisseurs — aligned with marketplace card language.
+ * No count: the vendors API gives none.
  */
-export default function SuppliersHeroBanner({
-  totalSuppliers,
-}: SuppliersHeroBannerProps) {
+export default function SuppliersHeroBanner() {
   return (
     <Container as="section" className="pb-2">
       <div className="rounded-2xl border border-border-light bg-white p-5 sm:p-8 shadow-sm">
@@ -25,11 +20,6 @@ export default function SuppliersHeroBanner({
             <p className="mt-1 text-sm text-muted-foreground leading-relaxed max-w-2xl">
               Grossistes et fabricants vérifiés pour vos achats en gros sur Sugu.
             </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center rounded-full border border-border bg-background px-3.5 py-1.5 text-sm font-medium text-foreground">
-              {totalSuppliers} fournisseur{totalSuppliers !== 1 ? "s" : ""}
-            </span>
           </div>
         </div>
       </div>

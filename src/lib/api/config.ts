@@ -65,5 +65,8 @@ export const API_RETRY_BASE_DELAY_MS = 500;
 /** The longest Retry-After the client waits out before retrying, in ms */
 export const API_MAX_RETRY_AFTER_MS = 3_000;
 
+/** Timeout of the public content fetched while rendering a page (blog, CMS, FAQ, branding) */
+export const API_CONTENT_TIMEOUT_MS = 3_000;
+
 /** Default ISR revalidation in seconds for public data */
 export const API_DEFAULT_REVALIDATE_S = 300;

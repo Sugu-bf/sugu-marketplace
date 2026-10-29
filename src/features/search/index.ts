@@ -29,12 +29,3 @@ export {
   DEFAULT_SEARCH_STATE,
 } from "./utils/queryState";
 export { buildBackendParams, SEARCH_PER_PAGE } from "./utils/buildBackendParams";
-
-// ─── Queries (legacy compatibility) ──────────────────────────
-export {
-  querySearchResults,
-  queryRelatedSearches,
-  queryPriceRanges,
-  queryFilterCategories,
-  querySearchResultsCount,
-} from "./queries/search-queries";

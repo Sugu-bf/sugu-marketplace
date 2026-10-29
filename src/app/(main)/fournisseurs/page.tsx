@@ -1,5 +1,9 @@
 import { Container, Breadcrumb } from "@/components/ui";
-import { queryAllSuppliers, queryFeaturedSuppliers } from "@/features/supplier";
+import {
+  queryAllSuppliers,
+  queryFeaturedSuppliers,
+  parseSupplierSearchParams,
+} from "@/features/supplier";
 import { createMetadata } from "@/lib/metadata";
 import SuppliersHeroBanner from "@/features/supplier/components/SuppliersHeroBanner";
 import BecomeSupplierCTA from "@/features/supplier/components/BecomeSupplierCTA";
@@ -10,7 +14,7 @@ import SuppliersPageClient from "./SuppliersPageClient";
 export const metadata = createMetadata({
   title: "Nos Fournisseurs",
   description:
-    "Découvrez les grossistes et fabricants de confiance sur SUGU. Des dizaines de fournisseurs vérifiés en Afrique de l'Ouest.",
+    "Découvrez les grossistes et fabricants présents sur SUGU, en Afrique de l'Ouest.",
   path: "/fournisseurs",
 });
 
@@ -21,14 +25,11 @@ export default async function SuppliersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const sp = await searchParams;
-  const sector = (sp.sector as string) || "all";
-  const search = (sp.q as string) || "";
-  const page = parseInt((sp.page as string) || "1", 10);
+  const state = parseSupplierSearchParams(await searchParams);
 
-  const [featured, { suppliers, total, totalPages }] = await Promise.all([
+  const [featured, { suppliers, nextCursor }] = await Promise.all([
     queryFeaturedSuppliers(),
-    queryAllSuppliers(sector, search, page),
+    queryAllSuppliers(state),
   ]);
 
   return (
@@ -39,18 +40,15 @@ export default async function SuppliersPage({
       </Container>
 
       {/* Hero banner */}
-      <SuppliersHeroBanner totalSuppliers={total} />
+      <SuppliersHeroBanner />
 
       {/* Main content */}
       <Container as="section" className="py-6 sm:py-8">
         <SuppliersPageClient
-          featuredSuppliers={featured}
+          featuredSuppliers={state.cursor || state.q ? [] : featured}
           suppliers={suppliers}
-          totalSuppliers={total}
-          totalPages={totalPages}
-          currentPage={page}
-          initialSector={sector}
-          initialSearch={search}
+          nextCursor={nextCursor}
+          state={state}
         />
       </Container>
 

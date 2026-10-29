@@ -46,7 +46,7 @@ export {
 // ─── Listing Queries ─────────────────────────────────────
 export {
   queryAllStores,
-  queryFeaturedStores,
+  queryTopRatedStores,
 } from "./queries/store-queries";
 
 // ─── URL State ───────────────────────────────────────────

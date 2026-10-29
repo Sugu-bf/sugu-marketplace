@@ -140,6 +140,7 @@ export interface SearchProductItem {
   sold: number;
   vendorName: string;
   categoryName: string;
+  categorySlug: string;
 }
 
 // ─── Filter Facets ───────────────────────────────────────────

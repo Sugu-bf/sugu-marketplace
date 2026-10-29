@@ -3,11 +3,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { Newspaper, Search, Clock, X } from "lucide-react";
 import { createMetadata } from "@/lib/metadata";
-import { API_BASE_URL } from "@/lib/api/config";
+import { API_CONTENT_TIMEOUT_MS } from "@/lib/api/config";
+import { publicUrl } from "@/lib/api/endpoints";
 import { Container, Breadcrumb } from "@/components/ui";
 import { cn } from "@/lib/utils";
-
-const API_BASE = `${API_BASE_URL}/v1`;
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -52,11 +51,10 @@ async function fetchPosts(
   params: Record<string, string> = {}
 ): Promise<BlogListResponse | null> {
   try {
-    const searchParams = new URLSearchParams(params);
-    const res = await fetch(
-      `${API_BASE}/public/blog/posts?${searchParams.toString()}`,
-      { next: { revalidate: 300 } }
-    );
+    const res = await fetch(publicUrl("blog/posts", params), {
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(API_CONTENT_TIMEOUT_MS),
+    });
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -66,8 +64,9 @@ async function fetchPosts(
 
 async function fetchCategories(): Promise<BlogCategory[]> {
   try {
-    const res = await fetch(`${API_BASE}/public/blog/categories`, {
+    const res = await fetch(publicUrl("blog/categories"), {
       next: { revalidate: 600 },
+      signal: AbortSignal.timeout(API_CONTENT_TIMEOUT_MS),
     });
     if (!res.ok) return [];
     const data = await res.json();

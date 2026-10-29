@@ -1,74 +1,26 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { ProductImage } from "@/features/product";
-import { addToWishlist, removeFromWishlist, fetchWishlist } from "@/features/product";
-import { isApiError } from "@/lib/api";
-import { Heart, Loader2 } from "lucide-react";
+import { FavoriteHeart } from "@/features/wishlist/components/FavoriteHeart";
 
 interface ProductImageGalleryProps {
   images: ProductImage[];
   productName: string;
-  /** Product ID for wishlist API calls */
+  /** Product ID, for the favorite heart */
   productId?: string;
 }
 
 /**
- * Product image gallery with thumbnail navigation and wishlist button.
- * Client component — handles thumbnail selection and wishlist toggle.
+ * Product image gallery with thumbnail navigation and favorite heart.
+ * Client component — handles thumbnail selection. The heart is the shared
+ * FavoriteHeart (favorites store, synced with cards, header and /wishlist).
  */
 function ProductImageGallery({ images, productName, productId }: ProductImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isToggling, setIsToggling] = useState(false);
-  const [wishlistItemId, setWishlistItemId] = useState<string | number | null>(null);
-  const toggleMutex = useRef(false);
   const currentImage = images[selectedIndex] ?? images[0];
-
-  // ─── Wishlist Toggle (Optimistic + Revert) ─────────────
-  const handleWishlistToggle = useCallback(async () => {
-    if (toggleMutex.current || isToggling || !productId) return;
-    toggleMutex.current = true;
-    setIsToggling(true);
-
-    const previousState = isWishlisted;
-    const previousItemId = wishlistItemId;
-
-    // Optimistic update
-    setIsWishlisted(!previousState);
-
-    try {
-      if (previousState && previousItemId) {
-        // Remove from wishlist
-        await removeFromWishlist(previousItemId);
-        setWishlistItemId(null);
-      } else {
-        // Add to wishlist
-        const result = await addToWishlist({ product_id: productId });
-        // Find the item we just added
-        const addedItem = result.data.items.find(
-          (item) => String(item.product_id) === String(productId)
-        );
-        if (addedItem) {
-          setWishlistItemId(addedItem.id);
-        }
-      }
-    } catch (error) {
-      // Revert on failure
-      setIsWishlisted(previousState);
-      setWishlistItemId(previousItemId);
-
-      if (isApiError(error) && error.code === "UNAUTHORIZED") {
-        // Could open login modal here
-        console.warn("[Wishlist] User not authenticated");
-      }
-    } finally {
-      setIsToggling(false);
-      toggleMutex.current = false;
-    }
-  }, [isWishlisted, isToggling, productId, wishlistItemId]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -83,26 +35,8 @@ function ProductImageGallery({ images, productName, productId }: ProductImageGal
           priority
         />
 
-        {/* Wishlist button */}
-        <button
-          onClick={handleWishlistToggle}
-          disabled={isToggling}
-          className={cn(
-            "absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all duration-300",
-            "hover:scale-110 active:scale-90",
-            isToggling && "opacity-50 cursor-wait",
-            isWishlisted
-              ? "bg-primary text-white"
-              : "bg-white/90 text-muted-foreground hover:bg-white hover:text-primary"
-          )}
-          aria-label={isWishlisted ? "Retirer des favoris" : "Ajouter aux favoris"}
-        >
-          {isToggling ? (
-            <Loader2 size={18} className="animate-spin" />
-          ) : (
-            <Heart size={18} className={cn(isWishlisted && "fill-current")} />
-          )}
-        </button>
+        {/* Favorite heart */}
+        {productId && <FavoriteHeart productId={productId} className="right-3 top-3 h-10 w-10" />}
 
         {/* Image counter */}
         <div className="absolute bottom-3 left-3 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">

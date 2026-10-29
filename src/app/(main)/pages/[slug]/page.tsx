@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SITE_URL, SEO } from "@/lib/constants";
-import { API_BASE_URL } from "@/lib/api/config";
-
-const API_BASE = `${API_BASE_URL}/v1`;
+import { API_CONTENT_TIMEOUT_MS } from "@/lib/api/config";
+import { publicUrl } from "@/lib/api/endpoints";
 
 interface CmsPageData {
   id: string;
@@ -33,19 +32,19 @@ interface CmsApiResponse {
   meta: { cache_ttl: number };
 }
 
+/**
+ * The page, or null when the API says it does not exist. Any other failure
+ * throws: a passing outage must not be served (and cached) as a 404.
+ */
 async function fetchCmsPage(slug: string): Promise<CmsPageData | null> {
-  try {
-    const res = await fetch(`${API_BASE}/public/pages/${slug}`, {
-      next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
-    });
-
-    if (!res.ok) return null;
-
-    const data: CmsApiResponse = await res.json();
-    return data.page;
-  } catch {
-    return null;
-  }
+  const res = await fetch(publicUrl(`pages/${encodeURIComponent(slug)}`), {
+    next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
+    signal: AbortSignal.timeout(API_CONTENT_TIMEOUT_MS),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`[CMS] API answered ${res.status} for a page`);
+  const data: CmsApiResponse = await res.json();
+  return data.page;
 }
 
 // ─── Dynamic Metadata ────────────────────────────────────

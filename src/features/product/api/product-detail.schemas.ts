@@ -284,22 +284,6 @@ export const CartCountResponseSchema = z.object({
   }),
 });
 
-// ─── Wishlist Actions ────────────────────────────────────────
-
-export const WishlistItemSchema = z.object({
-  id: z.union([z.string(), z.number()]),
-  variant_id: z.union([z.string(), z.number()]).optional(),
-  product_id: z.union([z.string(), z.number()]).optional(),
-}).passthrough();
-
-export const WishlistResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    items: z.array(WishlistItemSchema),
-  }),
-  meta: z.record(z.string(), z.unknown()).optional(),
-});
-
 // ─── Derived Types ───────────────────────────────────────────
 
 export type ApiProductDetail = z.infer<typeof ApiProductDetailSchema>;
@@ -312,4 +296,3 @@ export type ApiBulkPrice = z.infer<typeof ApiBulkPriceSchema>;
 export type ApiStock = z.infer<typeof ApiStockSchema>;
 export type ApiSeller = z.infer<typeof ApiSellerSchema>;
 export type CartResponse = z.infer<typeof CartResponseSchema>;
-export type WishlistResponse = z.infer<typeof WishlistResponseSchema>;
