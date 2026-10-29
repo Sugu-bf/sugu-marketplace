@@ -153,7 +153,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       {/* P3 — Facebook Pixel: ViewContent event */}
       {process.env.NEXT_PUBLIC_META_PIXEL_ID && (
         <FacebookPixel
-          pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID}
           contentId={
             product._api?.sku || String(product._api?.id ?? product.id)
           }

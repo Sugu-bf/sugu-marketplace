@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import Script from "next/script";
 import { Bell, ArrowLeft, User, Store, Shirt, Hash, MapPin, Locate, MessageCircle, Mail, Globe, Briefcase, BadgeCheck, ShieldCheck, Smartphone, CheckCircle2 } from "lucide-react";
 import s from "./ComingSoon.module.css";
 import { API_BASE_URL } from "@/lib/api/config";
+import { trackPixel } from "@/features/consent/meta-pixel";
 
 
 const PROGRESS_GOAL = 50000;
@@ -80,9 +80,7 @@ export default function ComingSoon() {
         throw new Error(data.message || "Une erreur est survenue.");
       }
 
-      if (typeof window !== "undefined" && (window as any).fbq) {
-        (window as any).fbq("track", "CompleteRegistration");
-      }
+      trackPixel("CompleteRegistration");
       setIsSellerSubmitted(true);
     } catch (err: any) {
       setSellerError(err.message);
@@ -141,9 +139,7 @@ export default function ComingSoon() {
         throw new Error(data.message || "Une erreur est survenue.");
       }
 
-      if (typeof window !== "undefined" && (window as any).fbq) {
-        (window as any).fbq("track", "Lead");
-      }
+      trackPixel("Lead");
 
       setIsSubmitted(true);
     } catch (err: any) {
@@ -247,28 +243,6 @@ export default function ComingSoon() {
 
   return (
     <>
-      {/* Google Fonts — loaded once, deduped by the browser */}
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"
-      />
-
-      <Script id="fb-pixel" strategy="afterInteractive">
-        {`
-          !function(f,b,e,v,n,t,s)
-          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-          n.queue=[];t=b.createElement(e);t.async=!0;
-          t.src=v;s=b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t,s)}(window, document,'script',
-          'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL_ID || ''}');
-          fbq('track', 'PageView');
-        `}
-      </Script>
-
       <div className={s.page}>
         <div className={s.heroBg}>
           <nav className={s.nav}>

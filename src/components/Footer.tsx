@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { ConsentPreferencesButton } from "@/features/consent/components/ConsentBanner";
+import { META_PIXEL_ID } from "@/lib/constants";
 import {
   Phone,
   Mail,
@@ -213,6 +215,12 @@ export default function Footer() {
           {/* Left — copyright */}
           <p className="text-xs text-gray-400 text-center sm:text-left">
             Sugu © 2026. Tous droits réservés
+            {META_PIXEL_ID && (
+              <>
+                {" · "}
+                <ConsentPreferencesButton className="underline hover:text-gray-600" />
+              </>
+            )}
           </p>
 
           {/* Center — (Logo removed) */}
