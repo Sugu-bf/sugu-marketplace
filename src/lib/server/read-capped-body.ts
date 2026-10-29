@@ -5,7 +5,10 @@
  *
  * Returns null when the body is larger than the limit.
  */
-export async function readCappedBody(request: Request, limit: number): Promise<Uint8Array | null> {
+export async function readCappedBody(
+  request: Request,
+  limit: number,
+): Promise<Uint8Array<ArrayBuffer> | null> {
   const declared = request.headers.get("content-length");
   if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > limit)) {
     return null;

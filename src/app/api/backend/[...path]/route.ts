@@ -217,7 +217,7 @@ async function proxyToBackend(request: NextRequest, context: RouteContext): Prom
   }
 
   const method = request.method.toUpperCase();
-  let body: Uint8Array | undefined;
+  let body: Uint8Array<ArrayBuffer> | undefined;
   if (method !== "GET" && method !== "HEAD") {
     const read = await readCappedBody(request, bodyLimit(request));
     if (!read) return errorResponse(413, "La requête est trop volumineuse.");
@@ -240,7 +240,7 @@ async function relay(
   path: string[],
   target: URL,
   method: string,
-  body: Uint8Array | undefined,
+  body: Uint8Array<ArrayBuffer> | undefined,
 ): Promise<NextResponse> {
   const upstream = await fetch(target, {
     method,
