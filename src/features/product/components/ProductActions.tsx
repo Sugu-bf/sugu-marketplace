@@ -17,6 +17,7 @@ import { useToast } from "@/features/toast/toast-store";
 import { emitCartChanged } from "@/features/cart/events/cart-events";
 import { createCheckoutSession } from "@/features/checkout";
 import {
+  buyNowNeedsCartReview,
   isStockQuantityUnknown,
   resolveApiVariant,
 } from "../utils/product-availability";
@@ -334,7 +335,15 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
       if (!payload) {
         throw new Error("Veuillez sélectionner une combinaison de variantes disponible.");
       }
-      await addToCart(payload);
+      const cart = await addToCart(payload);
+
+      // The checkout buys the whole cart. With other articles in it, the
+      // buyer sees them in the cart first: nothing is bought silently.
+      if (buyNowNeedsCartReview(cart.data.items.length)) {
+        toast.info("Votre panier contient d'autres articles : vérifiez-le avant de payer.");
+        router.push("/cart");
+        return;
+      }
 
       // Create a checkout session
       try {
@@ -364,7 +373,7 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
       setIsBuyingNow(false);
       submitMutex.current = false;
     }
-  }, [getCartPayload, isBuyingNow, router]);
+  }, [getCartPayload, isBuyingNow, router, toast]);
 
   const isProcessing = isAddingToCart || isBuyingNow;
   const requiresResolvedVariant = Boolean(
