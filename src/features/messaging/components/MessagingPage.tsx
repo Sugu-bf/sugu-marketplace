@@ -41,8 +41,6 @@ export function MessagingPage({ user }: MessagingPageProps) {
   const setMobileView = useMessagingStore((s) => s.setMobileView);
   const addTypingUser = useMessagingStore((s) => s.addTypingUser);
   const removeTypingUser = useMessagingStore((s) => s.removeTypingUser);
-  const incrementUnread = useMessagingStore((s) => s.incrementUnread);
-  const clearUnread = useMessagingStore((s) => s.clearUnread);
 
   // Ref to avoid stale closure in real-time callbacks
   const activeConvRef = useRef(activeConversationId);
@@ -54,30 +52,21 @@ export function MessagingPage({ user }: MessagingPageProps) {
 
   const handleMessageCreated = useCallback(
     (payload: MessageCreatedPayload) => {
-      // Always refresh conversation list for latest preview
+      // The list is read again: its preview and its unread counts are the
+      // server's, already counting this message. Adding one here counted it
+      // twice.
       queryClient.invalidateQueries({
         queryKey: messagingKeys.conversations(),
       });
 
-      const currentActiveId = activeConvRef.current;
-      if (payload.conversation_id === currentActiveId) {
-        // Active conversation — refresh messages
+      // The open conversation reads its messages again (and marks them read).
+      if (payload.conversation_id === activeConvRef.current) {
         queryClient.invalidateQueries({
           queryKey: messagingKeys.messages(payload.conversation_id),
         });
-
-        // Mark as read if not own message
-        if (payload.sender_id !== user.id) {
-          clearUnread(payload.conversation_id);
-        }
-      } else {
-        // Not active — increment unread
-        if (payload.sender_id !== user.id) {
-          incrementUnread(payload.conversation_id);
-        }
       }
     },
-    [user.id, queryClient, clearUnread, incrementUnread]
+    [queryClient]
   );
 
   const handleMessageRead = useCallback(
@@ -128,9 +117,8 @@ export function MessagingPage({ user }: MessagingPageProps) {
   const handleSelectConversation = useCallback(
     (id: string) => {
       setActiveConversation(id);
-      clearUnread(id);
     },
-    [setActiveConversation, clearUnread]
+    [setActiveConversation]
   );
 
   const handleBack = useCallback(() => {

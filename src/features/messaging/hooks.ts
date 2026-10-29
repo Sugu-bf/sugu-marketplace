@@ -65,11 +65,6 @@ interface MessagingStore {
   ) => void;
   removeTypingUser: (userId: string) => void;
 
-  // Unread counts (real-time updates)
-  unreadUpdates: Record<string, number>;
-  incrementUnread: (conversationId: string) => void;
-  clearUnread: (conversationId: string) => void;
-
   // Mobile view state
   mobileView: "list" | "chat";
   setMobileView: (view: "list" | "chat") => void;
@@ -96,21 +91,6 @@ export const useMessagingStore = create<MessagingStore>((set) => ({
     set((state) => {
       const { [userId]: _, ...rest } = state.typingUsers;
       return { typingUsers: rest };
-    }),
-
-  unreadUpdates: {},
-  incrementUnread: (conversationId) =>
-    set((state) => ({
-      unreadUpdates: {
-        ...state.unreadUpdates,
-        [conversationId]:
-          (state.unreadUpdates[conversationId] ?? 0) + 1,
-      },
-    })),
-  clearUnread: (conversationId) =>
-    set((state) => {
-      const { [conversationId]: _, ...rest } = state.unreadUpdates;
-      return { unreadUpdates: rest };
     }),
 
   mobileView: "list",
@@ -286,11 +266,10 @@ export function useMarkAsRead() {
       conversationId: string;
       lastReadMessageId: string;
     }) => markAsRead(conversationId, lastReadMessageId),
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: messagingKeys.conversations(),
       });
-      useMessagingStore.getState().clearUnread(variables.conversationId);
     },
   });
 }

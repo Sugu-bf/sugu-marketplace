@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useConversations, useMessagingStore } from "../hooks";
+import { useConversations } from "../hooks";
 import { ConversationCard } from "./ConversationCard";
 import { EmptyState } from "./EmptyState";
 import { ConversationListSkeleton } from "./ChatSkeleton";
@@ -23,7 +23,6 @@ export function ConversationList({
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const unreadUpdates = useMessagingStore((s) => s.unreadUpdates);
 
   // Debounce search input (300ms)
   useEffect(() => {
@@ -55,10 +54,8 @@ export function ConversationList({
   // Memoized counts
   const { totalCount, unreadCount } = useMemo(() => ({
     totalCount: conversations.length,
-    unreadCount: conversations.filter(
-      (c) => c.unread_count > 0 || (unreadUpdates[c.id] ?? 0) > 0
-    ).length,
-  }), [conversations, unreadUpdates]);
+    unreadCount: conversations.filter((c) => c.unread_count > 0).length,
+  }), [conversations]);
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -140,7 +137,6 @@ export function ConversationList({
                 key={conversation.id}
                 conversation={conversation}
                 isActive={conversation.id === activeConversationId}
-                extraUnread={unreadUpdates[conversation.id] ?? 0}
                 onClick={onSelectConversation}
               />
             ))}

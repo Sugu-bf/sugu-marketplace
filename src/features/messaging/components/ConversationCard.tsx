@@ -8,7 +8,6 @@ import { safeSrc } from "../security";
 interface ConversationCardProps {
   conversation: Conversation;
   isActive: boolean;
-  extraUnread?: number;
   onClick: (id: string) => void;
 }
 
@@ -64,7 +63,6 @@ function getRoleBadge(conversation: Conversation): string | null {
 export function ConversationCard({
   conversation,
   isActive,
-  extraUnread = 0,
   onClick,
 }: ConversationCardProps) {
   const store = conversation.store;
@@ -78,7 +76,7 @@ export function ConversationCard({
     "Conversation";
   const avatarUrl = store?.logo_url ?? null;
   const isOnline = store?.is_online ?? false;
-  const totalUnread = (conversation.unread_count ?? 0) + extraUnread;
+  const totalUnread = conversation.unread_count ?? 0;
   const roleBadge = getRoleBadge(conversation);
 
   const initials = (displayName ?? "")

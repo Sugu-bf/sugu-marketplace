@@ -3,11 +3,12 @@
  * /messages follows the buyer's own channel. Without it (no Reverb key,
  * socket down, channel refused) nothing would come: the list and the open
  * conversation are read again every 30 s while the tab is visible, and at
- * once when the socket is back.
+ * once when the socket is back. A new message is counted once: by the
+ * server, in the list it sends again.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderWithProviders, render, act } from "@/test/render";
+import { renderWithProviders, render, act, screen } from "@/test/render";
 
 const echoState = vi.hoisted(() => ({
   live: false,
@@ -161,5 +162,24 @@ describe("MessagingPage — without realtime", () => {
 
     expect(vi.mocked(fetchConversations).mock.calls.length).toBeGreaterThan(lists);
     expect(vi.mocked(fetchMessages).mock.calls.length).toBeGreaterThan(reads);
+  });
+});
+
+describe("MessagingPage — unread messages", () => {
+  it("counts a new message once: the list read again says how many", async () => {
+    renderWithProviders(<MessagingPage user={USER} />);
+    await flush();
+    vi.mocked(fetchConversations).mockResolvedValue({
+      data: [conversation({ unread_count: 1, last_message: { id: "01jkqz3m5baxnp9c7hd2fewys1", body: "Bonjour", sender_type: "seller", created_at: "2026-10-29T10:01:00Z" } })],
+      meta: { has_more: false, next_cursor: null },
+    });
+
+    await act(async () => {
+      echoState.events["message.created"]?.({ conversation_id: CONV, sender_id: "seller-1", message_id: "01jkqz3m5baxnp9c7hd2fewys1" });
+    });
+    await flush();
+
+    expect(screen.getAllByText("1").length).toBeGreaterThan(0);
+    expect(screen.queryByText("2")).toBeNull();
   });
 });
