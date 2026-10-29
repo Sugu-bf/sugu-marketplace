@@ -246,13 +246,6 @@ export default function ComingSoon() {
 
   return (
     <>
-      {/* Google Fonts — loaded once, deduped by the browser */}
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"
-      />
-
       <Script id="fb-pixel" strategy="afterInteractive">
         {`
           !function(f,b,e,v,n,t,s)
