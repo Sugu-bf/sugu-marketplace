@@ -8,7 +8,7 @@ import {
   mapVendorProductToListItem,
 } from "@/features/store/api/store.mappers";
 import { parseStoreSearchParams } from "@/features/store/utils/queryState";
-import type { ProductsMeta } from "@/features/store/api/store.schemas";
+import type { VendorPageResponse } from "@/features/store/api/store.schemas";
 import StoreHeroBanner from "@/features/store/components/StoreHeroBanner";
 import StorePageClient from "@/features/store/components/StorePageClient";
 import StoreAboutSection from "@/features/store/components/StoreAboutSection";
@@ -38,7 +38,9 @@ export async function generateMetadata({
         `Découvrez la boutique ${data.vendor.name} sur Sugu.`,
       path: `/store/${slug}`,
     });
-  } catch {
+  } catch (error) {
+    // Only a 404 of the API is a missing store; an outage goes to the error boundary.
+    if (!(error instanceof ApiError && error.status === 404)) throw error;
     return createMetadata({
       title: "Boutique introuvable",
       description: "La boutique demandée n'existe pas sur Sugu.",
@@ -61,8 +63,9 @@ export default async function StorePage({
   const sp = await searchParams;
   const state = parseStoreSearchParams(sp);
 
+  let data: VendorPageResponse;
   try {
-    const { data } = await fetchVendorPage(
+    ({ data } = await fetchVendorPage(
       {
         slug,
         limit: 20,
@@ -74,54 +77,7 @@ export default async function StorePage({
         revalidate: RevalidatePresets.frequent, // 2 min
         tags: [CacheTags.store(slug), CacheTags.storeProducts(slug)],
       },
-    );
-
-    // Map API data → UI types
-    const store = mapVendorToStore(data.vendor, data.reviews);
-    const products = data.products.items.map((p) =>
-      mapVendorProductToListItem(p, data.vendor.name),
-    );
-
-    return (
-      <>
-        {/* ─── Breadcrumb ───────────────────────────────────────── */}
-        <Container className="py-3">
-          <Breadcrumb
-            items={[
-              { label: "Boutiques", href: "/boutiques" },
-              { label: store.name },
-            ]}
-          />
-        </Container>
-
-        {/* ─── Store Hero Banner ────────────────────────────────── */}
-        <StoreHeroBanner
-          store={store}
-          storeId={data.vendor.id}
-          isFollowed={data.vendor.is_followed}
-        />
-
-        {/* ─── Products + Filters ───────────────────────────────── */}
-        <Container as="section" className="py-6 sm:py-8">
-          <StorePageClient
-            store={store}
-            storeSlug={slug}
-            initialProducts={products}
-            totalProducts={data.products.meta.total}
-            hasMore={data.products.meta.has_more}
-            nextCursor={data.products.meta.next_cursor}
-            initialSort={state.sort}
-            initialSearch={state.q}
-            initialView={state.view}
-          />
-        </Container>
-
-        {/* ─── About + Reviews ──────────────────────────────────── */}
-        <Container as="section" className="pb-10">
-          <StoreAboutSection store={store} />
-        </Container>
-      </>
-    );
+    ));
   } catch (error) {
     // 404 from API → Next.js notFound
     if (error instanceof ApiError && error.status === 404) {
@@ -130,4 +86,51 @@ export default async function StorePage({
     // Re-throw for error.tsx boundary
     throw error;
   }
+
+  // Map API data → UI types
+  const store = mapVendorToStore(data.vendor, data.reviews);
+  const products = data.products.items.map((p) =>
+    mapVendorProductToListItem(p, data.vendor.name),
+  );
+
+  return (
+    <>
+      {/* ─── Breadcrumb ───────────────────────────────────────── */}
+      <Container className="py-3">
+        <Breadcrumb
+          items={[
+            { label: "Boutiques", href: "/boutiques" },
+            { label: store.name },
+          ]}
+        />
+      </Container>
+
+      {/* ─── Store Hero Banner ────────────────────────────────── */}
+      <StoreHeroBanner
+        store={store}
+        storeId={data.vendor.id}
+        isFollowed={data.vendor.is_followed}
+      />
+
+      {/* ─── Products + Filters ───────────────────────────────── */}
+      <Container as="section" className="py-6 sm:py-8">
+        <StorePageClient
+          store={store}
+          storeSlug={slug}
+          initialProducts={products}
+          totalProducts={data.products.meta.total}
+          hasMore={data.products.meta.has_more}
+          nextCursor={data.products.meta.next_cursor}
+          initialSort={state.sort}
+          initialSearch={state.q}
+          initialView={state.view}
+        />
+      </Container>
+
+      {/* ─── About + Reviews ──────────────────────────────────── */}
+      <Container as="section" className="pb-10">
+        <StoreAboutSection store={store} />
+      </Container>
+    </>
+  );
 }

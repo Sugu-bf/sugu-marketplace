@@ -27,27 +27,20 @@ const mockService = new MockProductService();
 
 /**
  * Fetch product by slug from the real API.
- * Falls back to mock data if API fails (dev convenience).
  *
- * Also returns the raw API data alongside the mapped Product 
+ * null means the product does not exist (404 of the API). Any other failure
+ * throws to the error boundary: never a 404, never a stand-in product.
+ *
+ * Also returns the raw API data alongside the mapped Product
  * so the page can pass api-specific fields (variants, options) to client components.
  */
 export async function queryProductBySlug(
   slug: string
 ): Promise<(Product & { _api?: ApiProductDetail }) | null> {
-  try {
-    const apiProduct = await fetchProductDetail(slug);
-    if (apiProduct) {
-      const product = mapApiProductToProduct(apiProduct);
-      // Attach raw API data for client components that need the real variant structure
-      return { ...product, _api: apiProduct };
-    }
-  } catch (error) {
-    console.error("[Product] API fetch failed, falling back to mock:", (error as Error).message);
-  }
-
-  // Fallback to mock for dev (will be removed once API is stable)
-  return mockService.getBySlug(slug);
+  const apiProduct = await fetchProductDetail(slug);
+  if (!apiProduct) return null;
+  // Attach raw API data for client components that need the real variant structure
+  return { ...mapApiProductToProduct(apiProduct), _api: apiProduct };
 }
 
 // ─── Related Products (REAL API) ─────────────────────────────

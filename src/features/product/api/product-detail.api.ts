@@ -44,10 +44,14 @@ import {
  * IMPORTANT: skipCredentials=true prevents cookies() from being called,
  * which would force Next.js to render this page dynamically and break ISR.
  * Product detail is fully public — no auth needed to read it.
+ *
+ * Returns null only when the API says the product does not exist. Any other
+ * failure (outage, timeout, schema drift) throws: rendered as a 404 it would
+ * be cached by ISR and the CDN, and a whole catalogue would vanish.
  */
 export async function fetchProductDetail(slug: string): Promise<ApiProductDetail | null> {
   try {
-    const { data } = await api.get(v1Url(`products/${slug}`), {
+    const { data } = await api.get(v1Url(`products/${encodeURIComponent(slug)}`), {
       schema: ProductDetailResponseSchema,
       revalidate: RevalidatePresets.frequent, // 120s — prices/stock change often
       tags: [CacheTags.product(slug), CacheTags.products()],
@@ -59,7 +63,7 @@ export async function fetchProductDetail(slug: string): Promise<ApiProductDetail
       return null;
     }
     console.error(`[ProductDetail] Failed to fetch product "${slug}":`, (error as Error).message);
-    return null;
+    throw error;
   }
 }
 
@@ -67,7 +71,7 @@ export async function fetchProductDetail(slug: string): Promise<ApiProductDetail
 
 export async function fetchRelatedProducts(slug: string, limit = 12): Promise<ApiRelatedProduct[]> {
   try {
-    const { data } = await api.get(v1Url(`products/${slug}/related`, { limit }), {
+    const { data } = await api.get(v1Url(`products/${encodeURIComponent(slug)}/related`, { limit }), {
       schema: RelatedProductsResponseSchema,
       revalidate: RevalidatePresets.frequent,
       tags: [CacheTags.product(slug)],
@@ -94,7 +98,7 @@ export async function fetchProductReviews(
     const params: Record<string, string | number> = { limit };
     if (cursor) params.cursor = cursor;
 
-    const { data } = await api.get(v1Url(`products/${slug}/reviews`, params), {
+    const { data } = await api.get(v1Url(`products/${encodeURIComponent(slug)}/reviews`, params), {
       schema: ReviewsResponseSchema,
       revalidate: RevalidatePresets.frequent,
       tags: [CacheTags.product(slug)],
