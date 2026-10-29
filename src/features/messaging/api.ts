@@ -29,6 +29,14 @@ interface ConversationListMeta extends CursorMeta {
   counts?: ConversationCounts;
 }
 
+/**
+ * An identifier as one segment of a path: whatever it holds (`/`, `?`, `#`),
+ * it cannot reach another route or add a query.
+ */
+function seg(id: string): string {
+  return encodeURIComponent(id);
+}
+
 // ── Recommended Product ────────────────────────────────────
 
 export interface RecommendedProduct {
@@ -122,7 +130,7 @@ export async function fetchConversation(
   conversationId: string
 ): Promise<Conversation> {
   const { data } = await api.get<ApiEnvelope<Conversation>>(
-    meUrl(`conversations/${conversationId}`)
+    meUrl(`conversations/${seg(conversationId)}`)
   );
   return data.data;
 }
@@ -136,7 +144,7 @@ export async function fetchMessages(
   const { data } = await api.get<
     ApiEnvelope<{ messages: Message[]; has_more: boolean }>
   >(
-    meUrl(`conversations/${conversationId}/messages`, {
+    meUrl(`conversations/${seg(conversationId)}/messages`, {
       ...(params?.before_id ? { before_id: params.before_id } : {}),
       limit: params?.limit ?? 30,
     })
@@ -168,14 +176,14 @@ export async function sendMessage(
       formData.append("attachments[]", file);
     }
     const { data } = await api.post<ApiEnvelope<Message>>(
-      meUrl(`conversations/${conversationId}/messages`),
+      meUrl(`conversations/${seg(conversationId)}/messages`),
       { body: formData, retries: SEND_RETRIES, timeout: ATTACHMENT_SEND_TIMEOUT_MS }
     );
     return data.data;
   }
 
   const { data } = await api.post<ApiEnvelope<Message>>(
-    meUrl(`conversations/${conversationId}/messages`),
+    meUrl(`conversations/${seg(conversationId)}/messages`),
     { body: { body, client_message_id: clientMessageId }, retries: SEND_RETRIES }
   );
   return data.data;
@@ -188,7 +196,7 @@ export async function sendProductCard(
   body?: string
 ): Promise<Message> {
   const { data } = await api.post<ApiEnvelope<Message>>(
-    meUrl(`conversations/${conversationId}/product-card`),
+    meUrl(`conversations/${seg(conversationId)}/product-card`),
     {
       body: { product_id: productId, client_message_id: clientMessageId, ...(body ? { body } : {}) },
       retries: SEND_RETRIES,
@@ -203,20 +211,20 @@ export async function markAsRead(
   conversationId: string,
   lastReadMessageId: string
 ): Promise<void> {
-  await api.post(meUrl(`conversations/${conversationId}/read`), {
+  await api.post(meUrl(`conversations/${seg(conversationId)}/read`), {
     body: { last_read_message_id: lastReadMessageId },
   });
 }
 
 export async function sendTyping(conversationId: string): Promise<void> {
-  await api.post(meUrl(`conversations/${conversationId}/typing`));
+  await api.post(meUrl(`conversations/${seg(conversationId)}/typing`));
 }
 
 export async function fetchPresence(
   conversationId: string
 ): Promise<PresenceInfo[]> {
   const { data } = await api.get<ApiEnvelope<PresenceInfo[]>>(
-    meUrl(`conversations/${conversationId}/presence`)
+    meUrl(`conversations/${seg(conversationId)}/presence`)
   );
   return data.data;
 }
@@ -228,7 +236,7 @@ export async function reportMessage(
   note?: string
 ): Promise<{ report_id: string }> {
   const { data } = await api.post<ApiEnvelope<{ report_id: string }>>(
-    meUrl(`conversations/${conversationId}/messages/${messageId}/report`),
+    meUrl(`conversations/${seg(conversationId)}/messages/${seg(messageId)}/report`),
     { body: { reason_code: reasonCode, ...(note ? { note } : {}) } }
   );
   return data.data;
@@ -240,7 +248,7 @@ export async function fetchRecommendedProducts(
   conversationId: string
 ): Promise<RecommendedProduct[]> {
   const { data } = await api.get<ApiEnvelope<RecommendedProduct[]>>(
-    buildApiUrl(`/api/v1/conversations/${conversationId}/recommended-products`)
+    buildApiUrl(`/api/v1/conversations/${seg(conversationId)}/recommended-products`)
   );
   return data.data;
 }

@@ -1,8 +1,11 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getAuthUser } from "@/lib/api/auth";
 import { ConversationPageClient } from "./ConversationPageClient";
 
 export const dynamic = "force-dynamic";
+
+/** A conversation is named by a ULID; anything else names none. */
+const CONVERSATION_ID = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 
 /**
  * Mobile chat room page — /messages/[conversationId]
@@ -16,6 +19,9 @@ export default async function ConversationPage({
   params: Promise<{ conversationId: string }>;
 }) {
   const { conversationId } = await params;
+  if (!CONVERSATION_ID.test(conversationId)) {
+    notFound();
+  }
 
   const user = await getAuthUser();
   if (!user) {
