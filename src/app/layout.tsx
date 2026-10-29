@@ -8,7 +8,7 @@ import { ToastContainer } from "@/features/toast/ToastContainer";
 import { QueryProvider } from "@/lib/query-provider";
 import { WishlistProvider } from "@/features/wishlist/components/WishlistProvider";
 import { TokenRefreshProvider } from "@/components/TokenRefreshProvider";
-import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/structured-data";
+import { organizationJsonLd, safeJsonLd, webSiteJsonLd } from "@/lib/seo/structured-data";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -53,10 +53,10 @@ export default async function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonLd({
               "@context": "https://schema.org",
               "@graph": [organizationJsonLd(), webSiteJsonLd()],
-            }).replace(/</g, "\\u003c"),
+            }),
           }}
         />
         <BrandingProvider branding={branding}>

@@ -5,7 +5,7 @@ import { queryFaqItems, groupFaqsByCategory } from "@/features/faq";
 import { FaqSection } from "@/features/faq/components/FaqSection";
 import { cn } from "@/lib/utils";
 import { Headphones, Mail } from "lucide-react";
-import Script from "next/script";
+import { faqPageJsonLd, safeJsonLd } from "@/lib/seo/structured-data";
 
 export const metadata = createMetadata({
   title: "Centre d'aide - FAQ",
@@ -17,28 +17,16 @@ export default async function HelpCenterPage() {
   const faqItems = await queryFaqItems();
   const categories = groupFaqsByCategory(faqItems);
 
-  // Build FAQ JSON-LD structured data for SEO
-  const faqJsonLd = faqItems.length > 0 ? {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": faqItems.map((faq) => ({
-      "@type": "Question",
-      "name": faq.question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": faq.answer,
-      },
-    })),
-  } : null;
+  // FAQ JSON-LD, rendered with the page so crawlers read it without running scripts
+  const faqJsonLd = faqItems.length > 0 ? faqPageJsonLd(faqItems) : null;
 
   return (
     <main className="pb-12">
       {/* FAQ JSON-LD Structured Data */}
       {faqJsonLd && (
-        <Script
-          id="faq-jsonld"
+        <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
         />
       )}
 

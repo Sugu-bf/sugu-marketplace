@@ -6,7 +6,7 @@ export {
   breadcrumbJsonLd,
   articleJsonLd,
   faqPageJsonLd,
-  jsonLdScript,
+  safeJsonLd,
 } from "./structured-data";
 export type {
   ProductJsonLdInput,

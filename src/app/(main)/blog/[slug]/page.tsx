@@ -4,6 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock } from "lucide-react";
 import { SITE_URL, SEO } from "@/lib/constants";
+import { safeJsonLd } from "@/lib/seo/structured-data";
 import { API_BASE_URL } from "@/lib/api/config";
 import { Container, Breadcrumb } from "@/components/ui";
 
@@ -284,7 +285,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: safeJsonLd({
             "@context": "https://schema.org",
             "@type": "BlogPosting",
             headline: post.title,
