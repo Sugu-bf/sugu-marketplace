@@ -30,7 +30,7 @@ const footerColumns = [
       { label: "Chat Support", href: "/support-chat" },
       { label: "Contactez-nous", href: "/help" },
       { label: "Signaler un abus", href: "/help" },
-      { label: "Soumettre un litige", href: "/help" },
+      { label: "Signaler un problème de commande", href: "/help" },
       { label: "Livraison & Retours", href: "/politique-livraison-retours" },
     ],
   },
@@ -170,7 +170,7 @@ export default function Footer() {
               </div> */}
               <div className="flex items-center gap-2.5">
                 <Mail size={14} className="text-[#F15412] flex-shrink-0" />
-                <span className="text-sm text-gray-600">contact@sugu.pro</span>
+                <span className="text-sm text-gray-600">support@sugu.pro</span>
               </div>
               {/* <div className="flex items-start gap-2.5">
                 <MapPin size={14} className="text-[#F15412] flex-shrink-0 mt-0.5" />

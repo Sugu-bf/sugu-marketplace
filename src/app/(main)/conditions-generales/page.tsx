@@ -198,7 +198,7 @@ export default function TermsPage() {
               <p>
                 L&apos;utilisateur est seul responsable de la confidentialité de ses identifiants. Toute activité
                 réalisée sous son compte est présumée effectuée par lui. En cas d&apos;utilisation non autorisée,
-                il doit immédiatement en informer Sugu à <a href="mailto:contact@sugu.pro" className="text-[#F15412] hover:underline">contact@sugu.pro</a>.
+                il doit immédiatement en informer Sugu à <a href="mailto:support@sugu.pro" className="text-[#F15412] hover:underline">support@sugu.pro</a>.
               </p>
             </Sub>
             <Sub title="3.4 Vérification d'identité">
@@ -264,7 +264,10 @@ export default function TermsPage() {
             </Sub>
             <Sub title="5.4 Annulation">
               <p>
-                L&apos;acheteur peut annuler une commande tant que son statut est « pending » ou « confirmed ».
+                L&apos;acheteur ne peut pas annuler lui-même une commande depuis la plateforme. Toute
+                demande d&apos;annulation est adressée au support de Sugu à{" "}
+                <a href="mailto:support@sugu.pro" className="text-[#F15412] hover:underline">support@sugu.pro</a>,
+                en indiquant le numéro de la commande ; Sugu l&apos;examine au regard de l&apos;état de la commande.
                 Le vendeur peut annuler avant l&apos;expédition (statut « processing » max). Les annulations
                 abusives répétées impactent le score de fiabilité de l&apos;acteur concerné.
               </p>
@@ -314,7 +317,9 @@ export default function TermsPage() {
               <p>
                 À la réception, l&apos;acheteur <strong>doit vérifier les produits</strong> en présence du coursier.
                 Il peut accepter ou refuser les produits. En cas de refus (produit endommagé, non conforme
-                ou manquant), un <strong>litige est automatiquement ouvert</strong> et le colis est retourné.
+                ou manquant), le colis est retourné au vendeur et l&apos;acheteur adresse sa réclamation
+                au support à{" "}
+                <a href="mailto:support@sugu.pro" className="text-[#F15412] hover:underline">support@sugu.pro</a>.
               </p>
             </Sub>
             <Sub title="7.3 Paiement COD">
@@ -343,7 +348,7 @@ export default function TermsPage() {
               <p>
                 La saisie correcte du code de livraison par le coursier constitue la preuve de remise
                 du colis. Cette vérification déclenche le passage du statut de commande à « Livré »
-                et ouvre la période de garantie de 72 heures, au terme de laquelle le wallet du
+                et ouvre une période de garantie d&apos;au moins 72 heures, au terme de laquelle le wallet du
                 vendeur est crédité (après déduction de la commission Sugu).
               </p>
             </Sub>
@@ -353,7 +358,7 @@ export default function TermsPage() {
           <Section icon={CreditCard} title="Portefeuille vendeur (Wallet)" id="wallet">
             <Sub title="8.1 Crédit du wallet">
               <p>
-                Le wallet du vendeur est crédité <strong>72 heures après la confirmation de livraison</strong>{" "}
+                Le wallet du vendeur est crédité <strong>à partir de 72 heures après la confirmation de livraison</strong>{" "}
                 (code de livraison vérifié). Pendant cette période de garantie, le montant de la vente
                 n&apos;est pas encore dans le wallet et ne peut pas être retiré.
                 Le montant crédité correspond au prix de vente <strong>moins la commission Sugu</strong> et
@@ -387,18 +392,23 @@ export default function TermsPage() {
 
           {/* 9 — Litiges */}
           <Section icon={MessageSquare} title="Litiges et réclamations" id="litiges">
-            <Sub title="9.1 Processus de litige">
+            <Sub title="9.1 Réclamations">
               <p>
                 En cas de problème avec une commande (produit non conforme, endommagé, manquant),
-                un litige peut être ouvert automatiquement lors du refus de produits à la livraison
-                ou manuellement depuis l&apos;espace client. Chaque litige reçoit un numéro unique
-                (format : <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm">DSP-XXXXXX</code>).
+                l&apos;acheteur adresse sa réclamation au support de Sugu à{" "}
+                <a href="mailto:support@sugu.pro" className="text-[#F15412] hover:underline">support@sugu.pro</a>,
+                en indiquant le numéro de la commande et, si possible, des photos du problème.
+                Aucun litige ne peut être ouvert directement depuis l&apos;espace client.
+              </p>
+              <p>
+                Une demande de retour est faite dans les <strong>48 heures suivant la livraison</strong>,
+                et dans les <strong>24 heures</strong> pour les produits frais.
               </p>
             </Sub>
             <Sub title="9.2 Médiation">
               <p>
                 Sugu intervient en qualité de médiateur entre l&apos;acheteur et le vendeur. L&apos;équipe support
-                examined les preuves (photos, historique de commande, tracking) et propose une résolution
+                examine les preuves (photos, historique de commande, tracking) et propose une résolution
                 dans un délai de <strong>5 jours ouvrés</strong>.
               </p>
             </Sub>
@@ -462,8 +472,9 @@ export default function TermsPage() {
               <li>Vérifier les produits <strong>en présence du coursier</strong> avant de payer</li>
               <li>Payer le montant exact de la commande (COD)</li>
               <li>Ne communiquer le code de livraison qu&apos;<strong>après</strong> vérification et paiement</li>
-              <li>Signaler tout problème dans un <strong>délai raisonnable</strong> (48h après livraison)</li>
-              <li>Ne pas utiliser la plateforme à des fins frauduleuses (commandes fictives, abus de litiges)</li>
+              <li>Signaler tout problème au support (support@sugu.pro) dans les <strong>48 heures suivant la livraison</strong>{" "}
+                (24 heures pour les produits frais)</li>
+              <li>Ne pas utiliser la plateforme à des fins frauduleuses (commandes fictives, abus de réclamations)</li>
             </ul>
           </Section>
 

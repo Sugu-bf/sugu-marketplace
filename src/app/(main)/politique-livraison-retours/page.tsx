@@ -182,7 +182,7 @@ export default function DeliveryPolicyPage() {
             <p>
               Sugu ne peut être tenu responsable des retards de livraison, sauf en cas de faute
               avérée de la plateforme. Cependant, si un délai raisonnable est dépassé, vous pouvez
-              ouvrir un litige pour obtenir une résolution.
+              adresser une réclamation au support à <a href="mailto:support@sugu.pro" className="text-[#F15412] hover:underline">support@sugu.pro</a>.
             </p>
           </Section>
 
@@ -267,7 +267,7 @@ export default function DeliveryPolicyPage() {
                   </div>
                   <div className="flex items-center gap-1.5 text-red-600">
                     <XCircle size={14} />
-                    <span>Refuser (litige auto-ouvert)</span>
+                    <span>Refuser</span>
                   </div>
                 </div>
               </div>
@@ -362,19 +362,18 @@ export default function DeliveryPolicyPage() {
                   Sélectionnez la catégorie de rejet et ajoutez une description.
                 </li>
                 <li>
-                  <strong>Ouverture automatique de litige</strong> — Un litige (numéro DSP-XXXXXX) est
-                  créé automatiquement. Toutes les parties (vous, le vendeur, l&apos;agence, l&apos;admin Sugu)
-                  sont notifiées.
+                  <strong>Réclamation au support</strong> — Écrivez au support à <a href="mailto:support@sugu.pro" className="text-[#F15412] hover:underline">support@sugu.pro</a>{" "}
+                  en indiquant le numéro de la commande et le motif du refus.
                 </li>
                 <li>
                   <strong>Photos de preuve</strong> — Prenez des photos du problème si possible.
-                  Ces preuves accélèrent le traitement du litige.
+                  Ces preuves accélèrent le traitement de votre réclamation.
                 </li>
                 <li>
                   <strong>Retour du colis</strong> — Le coursier reprend le colis et le retourne au vendeur.
                 </li>
                 <li>
-                  <strong>Résolution</strong> — L&apos;équipe Sugu examine le litige et propose une résolution
+                  <strong>Résolution</strong> — L&apos;équipe Sugu examine la réclamation et propose une résolution
                   sous <strong>5 jours ouvrés</strong>.
                 </li>
               </ol>
@@ -382,17 +381,18 @@ export default function DeliveryPolicyPage() {
 
             <Sub title="7.3 Délai de signalement">
               <p>
-                Les problèmes doivent être signalés <strong>au moment de la livraison</strong> (lors de la
-                vérification des produits). Après validation du code de livraison, les réclamations
-                sont traitées au cas par cas par le support client dans un délai maximum de{" "}
-                <strong>48 heures après livraison</strong>.
+                Les problèmes sont à signaler de préférence <strong>au moment de la livraison</strong> (lors de la
+                vérification des produits). Après la livraison, une demande de retour est adressée au
+                support à <a href="mailto:support@sugu.pro" className="text-[#F15412] hover:underline">support@sugu.pro</a> dans les{" "}
+                <strong>48 heures suivant la livraison</strong>, et dans les <strong>24 heures</strong> pour
+                les produits frais. Aucune demande d&apos;annulation, de retour ou de litige ne peut être
+                faite directement depuis le site : elle passe par le support.
               </p>
             </Sub>
 
             <Sub title="7.4 Produits non retournables">
               <p>Certains produits ne peuvent pas être retournés :</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Produits alimentaires périssables</li>
                 <li>Articles d&apos;hygiène et de soin (ouverts ou utilisés)</li>
                 <li>Produits personnalisés sur commande</li>
                 <li>Sous-vêtements et maillots de bain</li>
@@ -405,7 +405,7 @@ export default function DeliveryPolicyPage() {
           <Section icon={CreditCard} title="Remboursements" id="remboursements">
             <Sub title="8.1 Processus de remboursement">
               <p>
-                Lorsqu&apos;un litige est résolu en faveur de l&apos;acheteur, le remboursement est effectué
+                Lorsqu&apos;une réclamation est résolue en faveur de l&apos;acheteur, le remboursement est effectué
                 de la manière suivante :
               </p>
               <div className="overflow-x-auto">
@@ -450,8 +450,7 @@ export default function DeliveryPolicyPage() {
               <p>
                 Si le colis est visiblement endommagé à l&apos;arrivée du coursier, <strong>refusez
                 la livraison</strong> lors de l&apos;étape de vérification et sélectionnez le motif
-                « Produit endommagé ». Un litige sera automatiquement ouvert et l&apos;agence de
-                livraison sera informée.
+                « Produit endommagé », puis adressez votre réclamation au support à <a href="mailto:support@sugu.pro" className="text-[#F15412] hover:underline">support@sugu.pro</a>.
               </p>
             </Sub>
 

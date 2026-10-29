@@ -14,8 +14,8 @@ export const BRANDING_FALLBACK: BrandingData = {
   site: {
     name: "SUGU",
     tagline: "La plus grande plateforme de vente en ligne",
-    support_email: "contact@sugu.pro",
-    support_phone: "+226 64 52 89 58",
+    support_email: "support@sugu.pro",
+    support_phone: null,
   },
   logos: {
     light_url: "https://cdn.sugu.pro/p/logo-sugu.avif",
