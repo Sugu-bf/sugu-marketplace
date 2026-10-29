@@ -51,5 +51,8 @@ export const API_MAX_RETRIES = 2;
 /** Base delay for exponential backoff in ms */
 export const API_RETRY_BASE_DELAY_MS = 500;
 
+/** Timeout of the public content fetched while rendering a page (blog, CMS, FAQ, branding) */
+export const API_CONTENT_TIMEOUT_MS = 3_000;
+
 /** Default ISR revalidation in seconds for public data */
 export const API_DEFAULT_REVALIDATE_S = 300;

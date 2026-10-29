@@ -5,10 +5,9 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Clock } from "lucide-react";
 import { SITE_URL, SEO } from "@/lib/constants";
 import { safeJsonLd } from "@/lib/seo/structured-data";
-import { API_BASE_URL } from "@/lib/api/config";
+import { API_CONTENT_TIMEOUT_MS } from "@/lib/api/config";
+import { publicUrl } from "@/lib/api/endpoints";
 import { Container, Breadcrumb } from "@/components/ui";
-
-const API_BASE = `${API_BASE_URL}/v1`;
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -46,17 +45,19 @@ interface BlogPostResponse {
 
 // ─── Data Fetching ───────────────────────────────────────
 
+/**
+ * The post, or null when the API says it does not exist. Any other failure
+ * throws: a passing outage must not be served (and cached) as a 404.
+ */
 async function fetchPost(slug: string): Promise<BlogPostData | null> {
-  try {
-    const res = await fetch(`${API_BASE}/public/blog/posts/${slug}`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return null;
-    const data: BlogPostResponse = await res.json();
-    return data.post;
-  } catch {
-    return null;
-  }
+  const res = await fetch(publicUrl(`blog/posts/${encodeURIComponent(slug)}`), {
+    next: { revalidate: 300 },
+    signal: AbortSignal.timeout(API_CONTENT_TIMEOUT_MS),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`[Blog] API answered ${res.status} for a post`);
+  const data: BlogPostResponse = await res.json();
+  return data.post;
 }
 
 function formatLongDate(iso: string) {

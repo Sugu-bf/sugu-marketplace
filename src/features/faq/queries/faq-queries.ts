@@ -1,7 +1,6 @@
 import type { FaqItem, FaqApiResponse } from "../models/faq";
-import { API_BASE_URL } from "@/lib/api/config";
-
-const API_BASE = `${API_BASE_URL}/v1`;
+import { API_CONTENT_TIMEOUT_MS } from "@/lib/api/config";
+import { publicUrl } from "@/lib/api/endpoints";
 
 /**
  * Fetch FAQ items from the backend API.
@@ -12,14 +11,10 @@ export async function queryFaqItems(
   categorySlug?: string
 ): Promise<FaqItem[]> {
   try {
-    const url = new URL(`${API_BASE}/public/help/faqs`);
-    if (categorySlug) {
-      url.searchParams.set("category", categorySlug);
-    }
-
-    const res = await fetch(url.toString(), {
+    const res = await fetch(publicUrl("help/faqs", { category: categorySlug }), {
       headers: { Accept: "application/json" },
       next: { revalidate: 600 }, // ISR: revalidate every 10min (matches backend cache)
+      signal: AbortSignal.timeout(API_CONTENT_TIMEOUT_MS),
     });
 
     if (!res.ok) {
