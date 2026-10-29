@@ -27,6 +27,8 @@ export const ApiProfileSchema = z.object({
 export const ApiSecuritySchema = z.object({
   two_factor_enabled: z.boolean(),
   password_updated_at: z.string().nullable(),
+  /** False for an account that signs in by SMS code or Google only. */
+  has_password: z.boolean().optional(),
 });
 
 // ─── Preferences ─────────────────────────────────────────────
@@ -196,6 +198,17 @@ export const ApiReferralResponseSchema = z.object({
 export const ApiMessageResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
+});
+
+export const ApiCodeSentResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  data: z.object({
+    expires_in: z.number(),
+    cooldown_seconds: z.number().optional(),
+    channel: z.enum(["sms", "email"]).optional(),
+    destination: z.string().optional(),
+  }),
 });
 
 export const ApiMarkedReadResponseSchema = z.object({

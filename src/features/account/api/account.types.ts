@@ -49,6 +49,8 @@ export interface UserProfile {
 /** Security info for the account page */
 export interface SecurityInfo {
   twoFactorEnabled: boolean;
+  /** False for an account that signs in by SMS code or Google only. */
+  hasPassword: boolean;
   passwordUpdatedAt: string | null;
   passwordLastChanged: string; // Computed relative string e.g. "Il y a 3 mois"
 }
