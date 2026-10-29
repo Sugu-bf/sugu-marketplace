@@ -18,7 +18,7 @@ function mapOrderStores(raw: unknown[] | undefined): OrderStore[] {
 
 /**
  * Map backend order status to simplified UI status.
- * The UI shows 4 states + cancelled; the backend has 10.
+ * The UI shows 4 states + cancelled, returned and failed; the backend has 10.
  */
 function mapBackendStatusToUI(status: BackendOrderStatus): OrderStatus {
   const mapping: Record<BackendOrderStatus, OrderStatus> = {
@@ -30,8 +30,8 @@ function mapBackendStatusToUI(status: BackendOrderStatus): OrderStatus {
     shipped: "shipping",
     delivered: "delivered",
     canceled: "cancelled",
-    returned: "cancelled",
-    failed: "cancelled",
+    returned: "returned",
+    failed: "failed",
   };
   return mapping[status] ?? "confirmed";
 }

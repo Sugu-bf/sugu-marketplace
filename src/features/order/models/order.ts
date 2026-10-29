@@ -15,7 +15,9 @@ export const BackendOrderStatusSchema = z.enum([
   "failed",
 ]);
 
-// ─── UI Status (simplified 4-step + error states) ───────────
+// ─── UI Status (simplified 4-step + end states) ─────────────
+// A returned or failed order has its own state: told « cancelled », the
+// buyer read « annulée » for an order that was not.
 
 export const OrderStatusSchema = z.enum([
   "confirmed",
@@ -23,6 +25,8 @@ export const OrderStatusSchema = z.enum([
   "shipping",
   "delivered",
   "cancelled",
+  "returned",
+  "failed",
 ]);
 
 // ─── Payment status (matches Order::paymentSituation() on the backend) ──

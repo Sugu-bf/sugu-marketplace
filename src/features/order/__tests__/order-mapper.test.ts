@@ -217,3 +217,13 @@ describe("stores of the order", () => {
     expect(mapped([{ ...STORE_A, owner_phone: "+22670000000" }]).stores).toEqual([STORE_A]);
   });
 });
+
+describe("mapApiToTrackedOrder — orders that ended without delivery", () => {
+  test.each([
+    ["canceled", "cancelled"],
+    ["returned", "returned"],
+    ["failed", "failed"],
+  ] as const)("a %s order is %s, not cancelled", (statusCode, status) => {
+    expect(mapApiToTrackedOrder({ ...baseApiOrder(), statusCode }).status).toBe(status);
+  });
+});

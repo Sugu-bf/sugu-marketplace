@@ -13,6 +13,12 @@ import { TrackingOrderSummary } from "./TrackingOrderSummary";
 import { EstimatedDeliveryCard } from "./EstimatedDeliveryCard";
 import SupportChatWidget from "@/features/support-chat/SupportChatWidget";
 
+const END_STATUS_MESSAGES: Partial<Record<TrackedOrder["status"], string>> = {
+  cancelled: "Votre commande a été annulée",
+  returned: "Votre commande a été retournée",
+  failed: "Votre commande n'a pas abouti",
+};
+
 interface TrackingLiveWrapperProps {
   orderId: string;
   initialData: TrackedOrder;
@@ -57,6 +63,10 @@ export function TrackingLiveWrapper({
 
   // Determine map status message
   const mapStatusMessage = (() => {
+    // An order that ended without delivery says so, whatever its COD step
+    const endMessage = END_STATUS_MESSAGES[order.status];
+    if (endMessage) return endMessage;
+
     // COD Mixte-specific messages
     if (order.codMixte?.isCodMixte) {
       switch (order.codMixte.currentStep) {
