@@ -5,7 +5,10 @@ export type ConversationType =
   | "pre_order"
   | "order_support"
   | "delivery_support"
-  | "support_chat";
+  | "support_chat"
+  | "courier_customer"
+  | "courier_store"
+  | "lanaya";
 
 export type ConversationStatus = "open" | "closed" | "archived" | "blocked";
 
@@ -19,15 +22,21 @@ export interface ConversationStore {
 
 export interface ConversationParticipant {
   id: string;
-  type: "customer" | "seller" | "admin" | "courier" | "agency";
+  type: "customer" | "seller" | "admin" | "courier" | "agency" | "lanabaga";
   role: string;
   name: string;
 }
 
 export interface MessagePreview {
   id: string;
+  /** Empty when the message was hidden by moderation. */
   body: string;
   sender_type: string;
+  sender_id?: string | null;
+  message_type?: MessageType;
+  attachment_kind?: "image" | "file" | null;
+  /** Hidden by moderation: no preview is shown. Absent from an older answer. */
+  is_hidden?: boolean;
   created_at: string;
 }
 
@@ -58,7 +67,7 @@ export interface ContactPolicy {
 // ── Message ───────────────────────────────────────
 
 export type MessageType = "text" | "product_card" | "image" | "system_event";
-export type SenderType = "customer" | "seller" | "admin" | "courier" | "system";
+export type SenderType = "customer" | "seller" | "admin" | "courier" | "lanabaga" | "system";
 
 /**
  * An attachment is not public: it is read through the API, at `path`

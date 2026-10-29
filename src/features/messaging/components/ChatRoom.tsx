@@ -90,9 +90,11 @@ export function ChatRoom({
       .map((t) => t.userName);
   }, [typingUsers, conversationId]);
 
-  // Store info
+  // The other side: the store, else the courier (never the buyer's own name).
   const store = conversation?.store;
-  const displayName = store?.name ?? conversation?.participants?.[0]?.name ?? "Chat";
+  const displayName = store?.name
+    ?? conversation?.participants?.find((p) => p.type !== "customer")?.name
+    ?? "Chat";
   const avatarUrl = store?.logo_url ?? null;
   const isOnline = store?.is_online ?? false;
   // What this conversation does not pass on (numbers, e-mails, links).

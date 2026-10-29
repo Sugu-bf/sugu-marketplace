@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 /**
  * The chat room marks a message read only when the buyer can see it: not
- * while the tab is in the background, but as soon as it is shown again.
+ * while the tab is in the background, but as soon as it is shown again. Its
+ * header names the other side, never the buyer.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, act, waitFor } from "@/test/render";
+import { renderWithProviders, act, waitFor, screen } from "@/test/render";
 
 vi.mock("../api", () => ({
   fetchConversation: vi.fn(),
@@ -85,5 +86,22 @@ describe("ChatRoom — read only when seen", () => {
     });
 
     await waitFor(() => expect(vi.mocked(markAsRead)).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe("ChatRoom — the other side", () => {
+  it("names the courier of a delivery conversation, not the buyer", async () => {
+    vi.mocked(fetchConversation).mockResolvedValue(conversation({
+      type: "courier_customer",
+      store: null,
+      participants: [
+        { id: "u1", type: "customer", role: "customer", name: "Awa Ouédraogo" },
+        { id: "c1", type: "courier", role: "courier", name: "Issa Livreur" },
+      ],
+    }));
+    renderWithProviders(<ChatRoom conversationId={CONV} />);
+
+    expect(await screen.findByRole("heading", { name: "Issa Livreur" })).toBeInTheDocument();
+    expect(screen.queryByText("Awa Ouédraogo")).toBeNull();
   });
 });
