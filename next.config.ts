@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { securityHeaders } from "./src/lib/security/security-headers";
 
 const privateNoIndexHeaders = [
   { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
@@ -33,6 +34,17 @@ const nextConfig: NextConfig = {
   // explicit so Cloudflare's CDN reads it reliably.
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: securityHeaders({
+          production: process.env.NODE_ENV === "production",
+          enforceCsp: process.env.CSP_ENFORCE === "true",
+          apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com",
+          reverbHost: process.env.NEXT_PUBLIC_REVERB_HOST,
+          reverbPort: process.env.NEXT_PUBLIC_REVERB_PORT,
+          reverbScheme: process.env.NEXT_PUBLIC_REVERB_SCHEME,
+        }),
+      },
       {
         // Homepage — ISR 60s + stale-while-revalidate 5 min
         source: "/",

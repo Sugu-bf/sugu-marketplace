@@ -1,5 +1,6 @@
 /**
- * next.config — the image optimizer and the response fingerprint (audit P0-4).
+ * next.config — the image optimizer, the response fingerprint (audit P0-4)
+ * and the security headers sent with every route (audit P1-12).
  *
  * Until Next is upgraded past the advisories, the optimizer must never encode
  * AVIF, must only fetch from the hosts the site really serves images from, and
@@ -16,6 +17,20 @@ describe("next.config", () => {
   it("only optimizes images from the CDN and the API host", () => {
     const hosts = nextConfig.images?.remotePatterns?.map((pattern) => pattern.hostname);
     expect(hosts).toEqual(["cdn.sugu.pro", "api.mysugu.com"]);
+  });
+
+  it("sends the security headers with every route", async () => {
+    const rules = await nextConfig.headers!();
+    const everyRoute = rules.find((rule) => rule.source === "/:path*");
+    expect(everyRoute?.headers.map((entry) => entry.key)).toEqual(
+      expect.arrayContaining([
+        "X-Content-Type-Options",
+        "Referrer-Policy",
+        "X-Frame-Options",
+        "Permissions-Policy",
+        "Content-Security-Policy-Report-Only",
+      ]),
+    );
   });
 
   it("does not announce the framework", () => {
