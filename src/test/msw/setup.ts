@@ -13,7 +13,8 @@ import { server } from "./server";
  * intercepted by MSW and keep asserting on the real fetch(url, init) signature.
  */
 export function setupMswServer(): void {
-  beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
+  // An unmocked request fails the test instead of going out to the network.
+  beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
   afterEach(() => server.resetHandlers());
   afterAll(() => server.close());
 }

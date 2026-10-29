@@ -1,45 +1,47 @@
 /**
  * API Configuration — Single source of truth.
  *
- * RULE: The base URL MUST point to https://api.mysugu.com.
- * Any attempt to use localhost / 127.0.0.1 will throw at startup.
+ * A production build (`next build`, `next start`: NODE_ENV=production) only
+ * talks to a remote https API: a local address throws at startup. Development
+ * and tests may point NEXT_PUBLIC_API_BASE_URL at a local or staging API, so
+ * that nobody develops or tests against production data (audit M7).
  */
 
-const FORBIDDEN_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "::1"] as const;
+const LOCAL_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "[::1]"] as const;
+
+function isLocalHost(hostname: string): boolean {
+  return LOCAL_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+}
 
 function resolveApiBaseUrl(): string {
-  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const fallback = "https://api.mysugu.com";
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "https://api.mysugu.com";
 
-  const baseUrl = envUrl?.trim() || fallback;
-
-  // Guard: reject any local URL
+  let parsed: URL;
   try {
-    const parsed = new URL(baseUrl);
-    if (
-      FORBIDDEN_HOSTS.some(
-        (host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)
-      )
-    ) {
+    parsed = new URL(baseUrl);
+  } catch {
+    throw new Error(`[API Config] FATAL: Invalid API base URL "${baseUrl}". Must be a valid URL.`);
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    if (isLocalHost(parsed.hostname)) {
       throw new Error(
         `[API Config] FATAL: API base URL "${baseUrl}" points to a local address. ` +
-          `Only https://api.mysugu.com (or its subdomains) is allowed.`
+          `A production build only talks to a remote https API.`
       );
     }
-  } catch (e) {
-    if (e instanceof TypeError) {
-      throw new Error(
-        `[API Config] FATAL: Invalid API base URL "${baseUrl}". Must be a valid URL.`
-      );
+    if (parsed.protocol !== "https:") {
+      throw new Error(`[API Config] FATAL: API base URL "${baseUrl}" must use https in production.`);
     }
-    throw e;
+  } else if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error(`[API Config] FATAL: Invalid API base URL "${baseUrl}". Must be http(s).`);
   }
 
   // Strip trailing slash for consistent URL building
   return baseUrl.replace(/\/+$/, "");
 }
 
-/** The resolved, validated API base URL. Always https://api.mysugu.com in production. */
+/** The resolved, validated API base URL (a remote https API in production). */
 export const API_BASE_URL = resolveApiBaseUrl();
 
 /** Request timeout in the browser, in milliseconds */

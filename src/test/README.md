@@ -53,6 +53,11 @@ lifecycle is not wired into the global `setupFiles`.
   );
   ```
 
+- An unmocked request **fails the test** (`onUnhandledRequest: "error"`), and
+  outside MSW a global guard (`src/test/network-guard.ts`, wired in
+  `vitest.setup.ts`) rejects any real request to `*.mysugu.com` or `sugu.pro`:
+  tests never reach production.
+
 - Use the **MSW 2.x** API (`http`, `HttpResponse`, `setupServer` from
   `msw/node`). The 1.x `rest.*` API is not available.
 
