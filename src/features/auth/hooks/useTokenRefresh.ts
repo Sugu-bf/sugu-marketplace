@@ -10,12 +10,15 @@
  *  - L'user reste connecté indéfiniment tant qu'il visite le site au moins une fois
  *    dans les 7 derniers jours (fenêtre de refresh)
  *  - 0 SMS, 0 interaction utilisateur
+ *
+ * Plusieurs onglets partagent le même cookie : un seul rafraîchit à la fois
+ * (verrou Web Locks), et celui qui obtient le verrou relit l'échéance avant
+ * d'appeler l'API, car un autre onglet vient peut-être de la repousser.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import {
   tokenDaysRemaining,
-  getTokenExpiry,
   hasAuthSession,
   refreshToken,
   clearAuthTokenCookie,
@@ -28,60 +31,64 @@ const REFRESH_THRESHOLD_DAYS = 7;
 /** Vérifier toutes les heures (en ms) */
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
-export function useTokenRefresh() {
-  const refreshing = useRef(false);
+const REFRESH_LOCK_NAME = "sugu-auth-token-refresh";
 
-  const tryRefresh = async () => {
-    // Ne refresh que si le user a une session locale.
-    if (!hasAuthSession()) return;
+/**
+ * Codes par lesquels le backend dit que la session est terminée (plafond de
+ * la chaîne de rotation, appareil différent). Tout autre échec — réseau, 5xx,
+ * 401 sans code, rotation déjà faite par un autre onglet — laisse le cookie.
+ */
+const SESSION_ENDED_CODES = new Set(["AUTH_080", "AUTH_081"]);
 
-    // Ne refresh que si on a une date d'expiration enregistrée
-    const expiry = getTokenExpiry();
-    if (!expiry) return;
+function isDue(): boolean {
+  return hasAuthSession() && tokenDaysRemaining() <= REFRESH_THRESHOLD_DAYS;
+}
 
-    // Ne refresh que si le token expire bientôt
-    const daysLeft = tokenDaysRemaining();
-    if (daysLeft > REFRESH_THRESHOLD_DAYS) return;
+let refreshingInThisTab = false;
 
-    // Anti-double-refresh
-    if (refreshing.current) return;
-    refreshing.current = true;
+async function refreshWhileHoldingLock(): Promise<void> {
+  // Relu sous verrou : l'onglet qui tenait le verrou a peut-être déjà renouvelé.
+  if (!isDue()) return;
 
-    try {
-      await refreshToken();
-      console.debug("[auth] Token auto-refreshed silently. Days left were:", daysLeft);
-    } catch (err) {
-      // Backend signale un vol de token (fingerprint device différent) ou une
-      // session dont la chaîne de rotation a dépassé son plafond absolu (H4).
-      // Dans les deux cas le cookie est devenu inutile : on le purge tout de
-      // suite plutôt que d'attendre le prochain appel protégé pour planter.
-      // Une erreur réseau / 5xx ne déclenche PAS de logout (non bloquant).
-      if (isApiError(err) && err.status === 401) {
-        void clearAuthTokenCookie();
-        // Signaler la perte de session aux composants UI (header, toast, …)
-        // qui peuvent décider d'afficher un message ou de rediriger.
-        // L'event est intentionnellement passif : aucun redirect forcé ici
-        // car l'utilisateur navigue peut-être sur une page publique.
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("auth:session-expired", {
-            detail: { reason: "refresh_failed", status: err.status },
-          }));
-        }
-      }
-      console.debug("[auth] Token refresh failed (non-blocking):", err);
-    } finally {
-      refreshing.current = false;
+  try {
+    await refreshToken();
+  } catch (err) {
+    if (isApiError(err) && err.status === 401 && SESSION_ENDED_CODES.has(err.details?.errorCode ?? "")) {
+      await clearAuthTokenCookie();
+      window.dispatchEvent(new CustomEvent("auth:session-expired", {
+        detail: { reason: "refresh_failed", status: err.status },
+      }));
     }
-  };
+  }
+}
 
+/**
+ * Renouvelle le token s'il arrive à échéance, au plus une fois à la fois
+ * pour tous les onglets du navigateur.
+ */
+export async function refreshTokenIfDue(): Promise<void> {
+  if (typeof window === "undefined" || !isDue() || refreshingInThisTab) return;
+
+  refreshingInThisTab = true;
+  try {
+    const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+    if (locks) {
+      // ifAvailable : un autre onglet rafraîchit déjà, celui-ci n'attend pas.
+      await locks.request(REFRESH_LOCK_NAME, { ifAvailable: true }, async (lock) => {
+        if (lock) await refreshWhileHoldingLock();
+      });
+    } else {
+      await refreshWhileHoldingLock();
+    }
+  } finally {
+    refreshingInThisTab = false;
+  }
+}
+
+export function useTokenRefresh() {
   useEffect(() => {
-    // Vérifier immédiatement au chargement de la page
-    tryRefresh();
-
-    // Puis toutes les heures
-    const interval = setInterval(tryRefresh, CHECK_INTERVAL_MS);
+    void refreshTokenIfDue();
+    const interval = setInterval(() => void refreshTokenIfDue(), CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }

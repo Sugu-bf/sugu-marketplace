@@ -36,6 +36,10 @@ export type ApiErrorCode =
 export interface ApiErrorDetails {
   /** Laravel-style field validation errors */
   errors?: Record<string, string[]>;
+  /** Backend machine code (`error_code`), e.g. AUTH_040 */
+  errorCode?: string;
+  /** Seconds before a retry is accepted (Retry-After) */
+  retryAfter?: number;
   /** Any additional context (never secrets) */
   [key: string]: unknown;
 }

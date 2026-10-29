@@ -17,6 +17,15 @@ describe("session helpers", () => {
     expect(isValidSanctumTokenFormat(`1|${"A".repeat(39)}-`)).toBe(false);
   });
 
+  it("accepts a token carrying the backend SANCTUM_TOKEN_PREFIX", () => {
+    expect(isValidSanctumTokenFormat(`42|sugu_${"a1B2".repeat(12)}`)).toBe(true);
+    expect(isValidSanctumTokenFormat(`42|sugu-live_${"a1B2".repeat(12)}`)).toBe(true);
+
+    expect(isValidSanctumTokenFormat(`42|sugu_${"A".repeat(39)}`)).toBe(false);
+    expect(isValidSanctumTokenFormat(`42|${"x".repeat(33)}_${"A".repeat(40)}`)).toBe(false);
+    expect(isValidSanctumTokenFormat(`42|sugu ${"A".repeat(40)}`)).toBe(false);
+  });
+
   it("defaults to the configured max-age window", () => {
     const before = Date.now();
     const expiresAt = Date.parse(defaultAuthTokenExpiresAt());

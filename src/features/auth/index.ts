@@ -39,7 +39,6 @@ export {
   verifyPhone,
   resendOtp,
   forgotPassword,
-  forgotPasswordByPhone,
   resetPassword,
   sendPhoneOtp,
   guestEntry,

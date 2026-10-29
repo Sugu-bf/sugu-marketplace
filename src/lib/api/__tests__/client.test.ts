@@ -197,4 +197,22 @@ describe("api.post", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1); // No retries
   });
+
+  it("should carry the backend error code and the Retry-After delay", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(
+        { success: false, message: "Trop de tentatives.", error_code: "AUTH_041", retry_after: 600 },
+        429,
+        { "Retry-After": "540" },
+      )
+    );
+
+    const error = await api
+      .post(buildApiUrl("/v1/web-auth/check-phone"), { body: {} })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(429);
+    expect((error as ApiError).details).toEqual({ errorCode: "AUTH_041", retryAfter: 540 });
+  });
 });

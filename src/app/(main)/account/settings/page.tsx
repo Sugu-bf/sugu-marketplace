@@ -20,7 +20,7 @@ export default async function SettingsPage() {
 
       <SecurityCard security={data.security} />
       <PreferencesCard initialPreferences={data.preferences} />
-      <DataPrivacyCard />
+      <DataPrivacyCard hasPassword={data.security.hasPassword} />
     </div>
   );
 }

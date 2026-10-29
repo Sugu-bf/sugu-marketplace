@@ -19,6 +19,7 @@ import {
   safeRelativePath,
 } from "../services/auth-service";
 import type { AuthUserProfile } from "../services/auth-service";
+import { isApiError } from "@/lib/api/errors";
 import { mockCountryCodes } from "../mocks/auth";
 import type { SocialProviderConfig } from "../mocks/auth";
 import type { CountryCode } from "../models/auth";
@@ -48,6 +49,8 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
   const [otpIdentifier, setOtpIdentifier] = useState("");
   const [otpExpiresIn,  setOtpExpiresIn]  = useState(0);
   const [resendCooldown, setResendCooldown] = useState(0);
+  // 429 sur la vérification du numéro : secondes avant de pouvoir réessayer.
+  const [rateLimitWait, setRateLimitWait] = useState(0);
 
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState("");
@@ -66,6 +69,13 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
     setResendCooldown(60);
     const t = setInterval(() => {
       setResendCooldown((p) => { if (p <= 1) { clearInterval(t); return 0; } return p - 1; });
+    }, 1000);
+  };
+
+  const startRateLimitWait = (seconds: number) => {
+    setRateLimitWait(seconds);
+    const t = setInterval(() => {
+      setRateLimitWait((p) => { if (p <= 1) { clearInterval(t); return 0; } return p - 1; });
     }, 1000);
   };
 
@@ -91,6 +101,7 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
     setError("");
     const phoneE164 = formatPhoneE164(phone);
     if (!phone.trim()) { setError("Entrez votre numéro de téléphone"); return; }
+    if (rateLimitWait > 0) return;
 
     setLoading(true);
     try {
@@ -107,12 +118,17 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
       setStep("otp-verify");
       startResendCooldown();
     } catch (err) {
+      // Trop de vérifications : on attend, on ne conclut jamais « pas de compte ».
+      if (isApiError(err) && err.status === 429) {
+        startRateLimitWait(err.details?.retryAfter ?? 60);
+        return;
+      }
       setError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phone, selectedCountry]);
+  }, [phone, selectedCountry, rateLimitWait]);
 
   // ─── ÉTAPE 2 : Vérification OTP SMS → tokens ─────────────
   const handleVerifyOtp = useCallback(async (code: string) => {
@@ -283,7 +299,17 @@ function LoginPageClient({ socialProviders: _ }: LoginPageClientProps) {
 
         {error && <p className="text-xs text-error" role="alert">{error}</p>}
 
-        <button type="submit" id="login-phone-submit" disabled={loading}
+        {rateLimitWait > 0 && (
+          <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3" role="alert">
+            <p className="text-sm font-semibold text-foreground">Trop de tentatives</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Ce numéro a été vérifié trop de fois. Réessayez dans{" "}
+              {rateLimitWait >= 60 ? `${Math.ceil(rateLimitWait / 60)} min` : `${rateLimitWait} s`}.
+            </p>
+          </div>
+        )}
+
+        <button type="submit" id="login-phone-submit" disabled={loading || rateLimitWait > 0}
           className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-dark active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? (

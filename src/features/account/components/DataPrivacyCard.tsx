@@ -8,16 +8,24 @@ import {
   Loader2,
   CheckCircle,
 } from "lucide-react";
-import { Button, Input, Modal } from "@/components/ui";
-import { deleteAccount, exportAccountData } from "@/features/account";
-import { logout } from "@/lib/api/auth";
+import { Button, Input, Modal, OtpInput } from "@/components/ui";
+import { deleteAccount, exportAccountData, sendAccountDeletionCode } from "@/features/account";
+import { clearAuthTokenCookie } from "@/features/auth/services/auth-service";
 import { resetClientSession } from "@/lib/session/reset-client-session";
+
+interface DataPrivacyCardProps {
+  /**
+   * False for an account that signs in by SMS code or Google: the deletion is
+   * then confirmed by a code sent to it, not by a password it does not have.
+   */
+  hasPassword: boolean;
+}
 
 /**
  * Data & Privacy section — delete account + export data.
  * Client component — handles modals and API calls.
  */
-function DataPrivacyCard() {
+function DataPrivacyCard({ hasPassword }: DataPrivacyCardProps) {
   // ── Export data state ──
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
@@ -27,6 +35,9 @@ function DataPrivacyCard() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Account without a password: where the confirmation code was sent.
+  const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
+  const [codeAttempt, setCodeAttempt] = useState(0);
 
   // ── Export data ──
   const handleExport = useCallback(async () => {
@@ -60,28 +71,44 @@ function DataPrivacyCard() {
   const openDeleteModal = () => {
     setDeletePassword("");
     setDeleteError(null);
+    setCodeSentTo(null);
     setShowDeleteModal(true);
   };
 
-  const handleDelete = async () => {
+  const deleteWith = async (confirmation: { password: string } | { code: string }) => {
     setDeleteError(null);
-
-    if (!deletePassword) {
-      setDeleteError("Veuillez entrer votre mot de passe pour confirmer.");
-      return;
-    }
-
     try {
       setDeleting(true);
-      await deleteAccount(deletePassword);
+      await deleteAccount(confirmation);
       // The account is gone: drop its session cookie and every trace it left
       // in this browser, then start over from home.
-      await logout();
+      await clearAuthTokenCookie();
       await resetClientSession("/");
     } catch (err) {
       setDeleteError(
         (err as Error)?.message ?? "Erreur lors de la suppression du compte."
       );
+      setCodeAttempt((n) => n + 1);
+      setDeleting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletePassword) {
+      setDeleteError("Veuillez entrer votre mot de passe pour confirmer.");
+      return;
+    }
+    await deleteWith({ password: deletePassword });
+  };
+
+  const handleSendCode = async () => {
+    setDeleteError(null);
+    try {
+      setDeleting(true);
+      const sent = await sendAccountDeletionCode();
+      setCodeSentTo(sent.destination ?? (sent.channel === "email" ? "votre adresse e-mail" : "votre numéro"));
+    } catch (err) {
+      setDeleteError((err as Error)?.message ?? "Le code n'a pas pu être envoyé.");
     } finally {
       setDeleting(false);
     }
@@ -178,18 +205,41 @@ function DataPrivacyCard() {
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            Pour confirmer la suppression, veuillez entrer votre mot de passe :
-          </p>
+          {hasPassword ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Pour confirmer la suppression, veuillez entrer votre mot de passe :
+              </p>
 
-          <Input
-            label="Mot de passe"
-            type="password"
-            value={deletePassword}
-            onChange={(e) => setDeletePassword(e.target.value)}
-            placeholder="Votre mot de passe actuel"
-            disabled={deleting}
-          />
+              <Input
+                label="Mot de passe"
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Votre mot de passe actuel"
+                disabled={deleting}
+              />
+            </>
+          ) : codeSentTo ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Entrez le code envoyé à <span className="font-semibold text-foreground">{codeSentTo}</span> pour
+                supprimer définitivement votre compte :
+              </p>
+              <OtpInput
+                key={codeAttempt}
+                length={6}
+                onComplete={(code) => void deleteWith({ code })}
+                error={!!deleteError}
+                disabled={deleting}
+              />
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Votre compte n&apos;a pas de mot de passe : pour confirmer, nous vous
+              envoyons un code.
+            </p>
+          )}
 
           {deleteError && (
             <div className="p-3 rounded-lg bg-error/10 border border-error/20">
@@ -206,23 +256,37 @@ function DataPrivacyCard() {
             >
               Annuler
             </Button>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={handleDelete}
-              disabled={deleting || !deletePassword}
-              className="bg-error hover:bg-error/90 border-error"
-            >
-              {deleting ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" /> Suppression...
-                </>
-              ) : (
-                <>
-                  <Trash2 size={14} /> Supprimer définitivement
-                </>
-              )}
-            </Button>
+            {!hasPassword && !codeSentTo && (
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleSendCode}
+                disabled={deleting}
+                className="bg-error hover:bg-error/90 border-error"
+              >
+                {deleting ? <Loader2 size={14} className="animate-spin" /> : null}
+                Recevoir le code
+              </Button>
+            )}
+            {hasPassword && (
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleDelete}
+                disabled={deleting || !deletePassword}
+                className="bg-error hover:bg-error/90 border-error"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" /> Suppression...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} /> Supprimer définitivement
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </Modal>

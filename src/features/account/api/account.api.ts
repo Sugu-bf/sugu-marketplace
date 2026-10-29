@@ -17,6 +17,7 @@ import {
   ApiNotificationListResponseSchema,
   ApiReferralResponseSchema,
   ApiMessageResponseSchema,
+  ApiCodeSentResponseSchema,
   ApiMarkedReadResponseSchema,
 } from "./account.schemas";
 import type {
@@ -71,6 +72,7 @@ function mapApiAccountToUI(data: {
   security: {
     two_factor_enabled: boolean;
     password_updated_at: string | null;
+    has_password?: boolean;
   };
   preferences: {
     newsletter_subscribed: boolean;
@@ -95,6 +97,7 @@ function mapApiAccountToUI(data: {
     },
     security: {
       twoFactorEnabled: data.security.two_factor_enabled,
+      hasPassword: data.security.has_password ?? true,
       passwordUpdatedAt: data.security.password_updated_at,
       passwordLastChanged: relativeTimeFromDate(
         data.security.password_updated_at
@@ -333,11 +336,51 @@ export async function fetchReferralData(): Promise<ReferralData> {
  */
 export async function updateProfile(data: {
   name?: string;
-  phone_e164?: string;
 }): Promise<void> {
   const url = v1Url("marketplace/account/profile");
   await api.patch(url, {
     body: data,
+    schema: ApiMessageResponseSchema,
+    retries: 0,
+  });
+}
+
+// ─── Phone number change (SMS-confirmed) ────────────────────
+
+/** Code sent to the NEW number; nothing changes on the account yet. */
+export interface CodeSent {
+  expiresIn: number;
+  cooldownSeconds: number;
+  channel: "sms" | "email";
+  destination: string | null;
+}
+
+/**
+ * First step of a number change: the backend texts a code to the new number.
+ */
+export async function sendPhoneChangeCode(phoneE164: string): Promise<CodeSent> {
+  const url = v1Url("marketplace/account/phone/code");
+  const { data } = await api.post(url, {
+    body: { phone_e164: phoneE164 },
+    schema: ApiCodeSentResponseSchema,
+    retries: 0,
+  });
+  return {
+    expiresIn: data.data.expires_in,
+    cooldownSeconds: data.data.cooldown_seconds ?? 60,
+    channel: "sms",
+    destination: phoneE164,
+  };
+}
+
+/**
+ * Second step: the code proves the new number belongs to the user; the
+ * number and its verification are then written together.
+ */
+export async function confirmPhoneChange(phoneE164: string, code: string): Promise<void> {
+  const url = v1Url("marketplace/account/phone");
+  await api.post(url, {
+    body: { phone_e164: phoneE164, code },
     schema: ApiMessageResponseSchema,
     retries: 0,
   });
@@ -439,12 +482,34 @@ export async function setDefaultAddress(id: string): Promise<void> {
 // ─── DELETE Account ─────────────────────────────────────────
 
 /**
- * Delete the authenticated user's account (requires password confirmation).
+ * Account without a password (SMS code or Google sign-in): ask the code that
+ * confirms the deletion — by SMS to the verified number, else by e-mail.
  */
-export async function deleteAccount(password: string): Promise<void> {
+export async function sendAccountDeletionCode(): Promise<CodeSent> {
+  const url = v1Url("marketplace/account/deletion-code");
+  const { data } = await api.post(url, {
+    body: {},
+    schema: ApiCodeSentResponseSchema,
+    retries: 0,
+  });
+  return {
+    expiresIn: data.data.expires_in,
+    cooldownSeconds: data.data.cooldown_seconds ?? 60,
+    channel: data.data.channel ?? "sms",
+    destination: data.data.destination ?? null,
+  };
+}
+
+/**
+ * Delete the authenticated user's account, confirmed by its password or, for
+ * an account without one, by the code received.
+ */
+export async function deleteAccount(
+  confirmation: { password: string } | { code: string },
+): Promise<void> {
   const url = v1Url("marketplace/account");
   await api.delete(url, {
-    body: { password },
+    body: confirmation,
     schema: ApiMessageResponseSchema,
     retries: 0,
   });

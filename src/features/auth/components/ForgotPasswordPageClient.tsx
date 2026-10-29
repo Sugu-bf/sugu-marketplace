@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Loader2,
   Mail,
-  Phone,
   Lock,
   Eye,
   EyeOff,
@@ -16,36 +15,26 @@ import {
   KeyRound,
 } from "lucide-react";
 import { OtpInput } from "@/components/ui";
-import { CountryCodeSelector } from "./CountryCodeSelector";
-import { mockCountryCodes } from "../mocks/auth";
-import type { CountryCode } from "../models/auth";
+import { passwordPolicyError } from "../models/password-policy";
 import {
   forgotPassword,
-  forgotPasswordByPhone,
   resetPassword,
   resendOtp,
   verifyOtp,
-  verifyPhone,
   OTP_TYPE,
   getAuthErrorMessage,
 } from "../services/auth-service";
 
 type ForgotStep = "email" | "otp" | "new-password" | "success";
-type ForgotMethod = "email" | "phone";
 
+// Un compte ouvert avec un numéro de téléphone n'a pas de mot de passe : il se
+// connecte avec le code reçu par SMS. La réinitialisation se fait par e-mail.
 function ForgotPasswordPageClient() {
   const router = useRouter();
-
-  // Method switch
-  const [forgotMethod, setForgotMethod] = useState<ForgotMethod>("email");
 
   // Step management
   const [step, setStep] = useState<ForgotStep>("email");
   const [emailValue, setEmailValue] = useState("");
-  const [phoneValue, setPhoneValue] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(
-    mockCountryCodes.find((c) => c.code === "BF") ?? mockCountryCodes[0]
-  );
   const [verifiedOtpCode, setVerifiedOtpCode] = useState("");
 
   // New password fields
@@ -60,78 +49,38 @@ function ForgotPasswordPageClient() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Helper
-  const formatPhoneE164 = (raw: string) => {
-    const cleaned = raw.replace(/[\s\-(). ]/g, "");
-    return cleaned.startsWith("+") ? cleaned : `${selectedCountry.dialCode}${cleaned}`;
-  };
-
-  const activeIdentifier = forgotMethod === "email" ? emailValue.trim() : formatPhoneE164(phoneValue);
-
   // ─── Step 1: Envoyer l'email de réinitialisation ───────────
   const handleSendEmail = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       setError("");
 
-      if (forgotMethod === "email") {
-        if (!emailValue.trim()) { setError("Entrez votre adresse email"); return; }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) { setError("Entrez une adresse email valide"); return; }
-        setLoading(true);
-        try {
-          await forgotPassword(emailValue.trim());
-          setStep("otp");
-        } catch (err) {
-          setError(getAuthErrorMessage(err));
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        // Méthode téléphone
-        const phone = formatPhoneE164(phoneValue);
-        if (!phoneValue.trim()) { setError("Entrez votre numéro de téléphone"); return; }
-        setLoading(true);
-        try {
-          await forgotPasswordByPhone(phone);
-          setStep("otp");
-        } catch (err) {
-          setError(getAuthErrorMessage(err));
-        } finally {
-          setLoading(false);
-        }
+      if (!emailValue.trim()) { setError("Entrez votre adresse email"); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) { setError("Entrez une adresse email valide"); return; }
+      setLoading(true);
+      try {
+        await forgotPassword(emailValue.trim());
+        setStep("otp");
+      } catch (err) {
+        setError(getAuthErrorMessage(err));
+      } finally {
+        setLoading(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [forgotMethod, emailValue, phoneValue, selectedCountry]
+    [emailValue]
   );
 
-  // ─── Étape 2 : Vérification OTP ─────────────────────────────
-  //
-  // SEC-01 FIX : le code est vérifié côté serveur QUELLE QUE SOIT la méthode.
-  // - Email  → POST /web-auth/verify-otp (type=PASSWORD_RESET)
-  // - Téléphone → POST /web-auth/verify-phone (vérifie l'OTP SMS Ikoddi)
-  //
-  // AVANT ce fix : pour la méthode téléphone, n'importe quel code
-  // passait et l'utilisateur accédait à l'écran "new-password" sans OTP valide.
+  // ─── Étape 2 : Vérification OTP (côté serveur, type PASSWORD_RESET) ──
   const handleVerifyOtp = useCallback(
     async (code: string) => {
       setError("");
       setLoading(true);
       try {
-        if (forgotMethod === "email") {
-          // Vérification OTP email côté serveur
-          await verifyOtp({
-            identifier: emailValue.trim(),
-            code,
-            type: OTP_TYPE.PASSWORD_RESET,
-          });
-        } else {
-          // SEC-01 : vérification OTP SMS côté serveur (Ikoddi) — était manquant
-          await verifyPhone({
-            phone_e164: formatPhoneE164(phoneValue),
-            code,
-          });
-        }
+        await verifyOtp({
+          identifier: emailValue.trim(),
+          code,
+          type: OTP_TYPE.PASSWORD_RESET,
+        });
         // Seulement si le serveur accepte le code
         setVerifiedOtpCode(code);
         setStep("new-password");
@@ -141,8 +90,7 @@ function ForgotPasswordPageClient() {
         setLoading(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [forgotMethod, emailValue, phoneValue, selectedCountry]
+    [emailValue]
   );
 
   // ─── Step 3: Réinitialiser le mot de passe ─────────────────
@@ -155,8 +103,9 @@ function ForgotPasswordPageClient() {
         setError("Entrez un nouveau mot de passe");
         return;
       }
-      if (newPassword.length < 8) {
-        setError("Le mot de passe doit contenir au moins 8 caractères");
+      const policyError = passwordPolicyError(newPassword);
+      if (policyError) {
+        setError(policyError);
         return;
       }
       if (newPassword !== confirmPassword) {
@@ -195,15 +144,10 @@ function ForgotPasswordPageClient() {
     if (resendCooldown > 0) return;
     setError("");
     try {
-      if (forgotMethod === "email") {
-        await resendOtp({
-          identifier: emailValue.trim(),
-          type: OTP_TYPE.PASSWORD_RESET,
-        });
-      } else {
-        // SEC-10 FIX : renvoyer le SMS (avant : message "Code renvoyé !" mensonger)
-        await forgotPasswordByPhone(formatPhoneE164(phoneValue));
-      }
+      await resendOtp({
+        identifier: emailValue.trim(),
+        type: OTP_TYPE.PASSWORD_RESET,
+      });
       setSuccessMessage("Code renvoyé !");
       setTimeout(() => setSuccessMessage(""), 3000);
       setResendCooldown(60);
@@ -216,8 +160,7 @@ function ForgotPasswordPageClient() {
     } catch (err) {
       setError(getAuthErrorMessage(err));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forgotMethod, emailValue, phoneValue, selectedCountry, resendCooldown]);
+  }, [emailValue, resendCooldown]);
 
   // ─── Étape Succès ──────────────────────────────────────────
   if (step === "success") {
@@ -400,7 +343,7 @@ function ForgotPasswordPageClient() {
               Un code de vérification à 6 chiffres a été envoyé à
             </p>
             <p className="mt-0.5 text-sm font-semibold text-foreground">
-              {activeIdentifier}
+              {emailValue.trim()}
             </p>
           </div>
         </div>
@@ -469,80 +412,39 @@ function ForgotPasswordPageClient() {
           Mot de passe oublié ?
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Entrez votre email ou téléphone pour recevoir un code de réinitialisation.
+          Entrez votre adresse email pour recevoir un code de réinitialisation.
         </p>
       </div>
 
-      {/* Onglets email / téléphone */}
-      <div className="flex gap-2 rounded-xl border border-border bg-muted/30 p-1">
-        <button
-          type="button"
-          onClick={() => { setForgotMethod("email"); setError(""); }}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all duration-200 ${
-            forgotMethod === "email"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Mail className="h-4 w-4" />
-          Email
-        </button>
-        <button
-          type="button"
-          onClick={() => { setForgotMethod("phone"); setError(""); }}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all duration-200 ${
-            forgotMethod === "phone"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Phone className="h-4 w-4" />
-          Téléphone
-        </button>
+      <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
+        <p className="text-sm text-muted-foreground">
+          Vous vous connectez avec votre numéro de téléphone ? Votre compte n&apos;a
+          pas de mot de passe : il suffit du code reçu par SMS.{" "}
+          <Link href="/login" className="font-semibold text-primary hover:underline">
+            Se connecter par SMS
+          </Link>
+        </p>
       </div>
 
       <form onSubmit={handleSendEmail} className="space-y-5" noValidate>
-        {forgotMethod === "email" ? (
-          <div className="space-y-1.5">
-            <label htmlFor="forgot-email" className="text-sm font-medium text-foreground">
-              Adresse email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                id="forgot-email"
-                type="email"
-                value={emailValue}
-                onChange={(e) => { setEmailValue(e.target.value); setError(""); }}
-                placeholder="votre@email.com"
-                autoComplete="email"
-                autoFocus
-                className="h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              />
-            </div>
+        <div className="space-y-1.5">
+          <label htmlFor="forgot-email" className="text-sm font-medium text-foreground">
+            Adresse email
+          </label>
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="forgot-email"
+              type="email"
+              value={emailValue}
+              onChange={(e) => { setEmailValue(e.target.value); setError(""); }}
+              placeholder="votre@email.com"
+              autoComplete="email"
+              autoFocus
+              className="h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
           </div>
-        ) : (
-          <div className="space-y-1.5">
-            <label htmlFor="forgot-phone" className="text-sm font-medium text-foreground">
-              Numéro de téléphone
-            </label>
-            <div className="flex items-center rounded-xl border border-border bg-background transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
-              <div className="flex items-center border-r border-border pl-2 pr-1">
-                <CountryCodeSelector countryCodes={mockCountryCodes} value={selectedCountry} onChange={setSelectedCountry} />
-                <span className="text-xs text-muted-foreground pr-2 select-none">{selectedCountry.dialCode}</span>
-              </div>
-              <input
-                id="forgot-phone"
-                type="tel"
-                value={phoneValue}
-                onChange={(e) => { setPhoneValue(e.target.value); setError(""); }}
-                placeholder="70 00 00 00"
-                autoComplete="tel-national"
-                className="h-12 flex-1 border-none bg-transparent pl-3 pr-4 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-              />
-            </div>
-          </div>
-        )}
+        </div>
 
         {error && (
           <p className="text-xs text-error" role="alert">

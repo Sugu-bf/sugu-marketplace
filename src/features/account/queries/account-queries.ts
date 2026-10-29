@@ -66,6 +66,7 @@ export async function queryAccountPageData(): Promise<AccountPageData> {
       },
       security: {
         twoFactorEnabled: false,
+        hasPassword: false,
         passwordUpdatedAt: null,
         passwordLastChanged: "Non renseigné",
       },

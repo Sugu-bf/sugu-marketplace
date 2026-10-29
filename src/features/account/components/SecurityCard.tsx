@@ -7,6 +7,7 @@ import { Button, Badge, Input, Modal } from "@/components/ui";
 import { changePassword } from "@/features/account";
 import type { SecurityInfo } from "@/features/account";
 import { useRouter } from "next/navigation";
+import { passwordPolicyError } from "@/features/auth/models/password-policy";
 
 interface SecurityCardProps {
   security: SecurityInfo;
@@ -48,10 +49,9 @@ function SecurityCard({ security, className }: SecurityCardProps) {
       setPasswordError("Le mot de passe actuel est requis.");
       return;
     }
-    if (newPassword.length < 8) {
-      setPasswordError(
-        "Le nouveau mot de passe doit contenir au moins 8 caractères."
-      );
+    const policyError = passwordPolicyError(newPassword);
+    if (policyError) {
+      setPasswordError(policyError);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -110,13 +110,17 @@ function SecurityCard({ security, className }: SecurityCardProps) {
                   Mot de passe
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Dernière modification {security.passwordLastChanged}
+                  {security.hasPassword
+                    ? `Dernière modification ${security.passwordLastChanged}`
+                    : "Aucun : vous vous connectez avec un code SMS ou avec Google."}
                 </p>
               </div>
             </div>
-            <Button variant="primary" size="sm" onClick={openPasswordModal}>
-              Modifier
-            </Button>
+            {security.hasPassword && (
+              <Button variant="primary" size="sm" onClick={openPasswordModal}>
+                Modifier
+              </Button>
+            )}
           </div>
 
           {/* 2FA */}

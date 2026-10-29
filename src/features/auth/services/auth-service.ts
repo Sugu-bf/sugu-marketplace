@@ -516,25 +516,6 @@ export async function forgotPassword(email: string): Promise<ForgotPasswordData>
   return data.data!;
 }
 
-// ─── Forgot Password by Phone (SMS) ─────────────────────────
-
-export async function forgotPasswordByPhone(phone_e164: string): Promise<ForgotPasswordData> {
-  const { data } = await api.post<ApiSuccessResponse<ForgotPasswordData>>(
-    buildApiUrl("/api/v1/web-auth/forgot-password-phone"),
-    { body: { phone_e164 } }
-  );
-
-  if (!data.success) {
-    throw new ApiError({
-      status: 422,
-      code: "VALIDATION_ERROR",
-      message: data.message || "Erreur.",
-    });
-  }
-
-  return data.data!;
-}
-
 // ─── Reset Password ─────────────────────────────────────────
 
 export interface ResetPasswordParams {
