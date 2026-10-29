@@ -31,6 +31,9 @@ const ALLOWED_EXACT = [
 /** Subtrees reachable while the wall is up (editorial content only). */
 const ALLOWED_PREFIXES = ["/blog/", "/pages/"] as const;
 
+/** Reachable, but canonicalised to pro.sugu.pro: never listed in a sitemap. */
+const CANONICAL_ELSEWHERE: readonly string[] = ["/vendeurs", "/agences-de-livraison", "/coursiers"];
+
 export function isComingSoon(): boolean {
   return process.env.COMING_SOON_ENABLED === "true";
 }
@@ -49,5 +52,16 @@ export function isAllowedDuringComingSoon(pathname: string): boolean {
  * the catalogue would be crawled straight into a redirect.
  */
 export function comingSoonSitemapPaths(): string[] {
-  return [...ALLOWED_EXACT];
+  return ALLOWED_EXACT.filter((path) => !CANONICAL_ELSEWHERE.includes(path));
+}
+
+/**
+ * robots.txt Allow rules while the wall is up, next to `Disallow: /`.
+ *
+ * The longest matching rule wins, and on a tie Allow wins: `Allow: /` against
+ * `Disallow: /` opened the whole site. Exact paths end with `$`, so "/" only
+ * allows the home page.
+ */
+export function comingSoonRobotsAllow(): string[] {
+  return [...ALLOWED_EXACT.map((path) => `${path}$`), ...ALLOWED_PREFIXES];
 }

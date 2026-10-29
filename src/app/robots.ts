@@ -11,7 +11,7 @@
 
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/constants";
-import { comingSoonSitemapPaths, isComingSoon } from "@/lib/coming-soon";
+import { comingSoonRobotsAllow, isComingSoon } from "@/lib/coming-soon";
 
 export default function robots(): MetadataRoute.Robots {
   // While the wall is up everything outside the allow-list 307s to "/".
@@ -21,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
       rules: [
         {
           userAgent: "*",
-          allow: comingSoonSitemapPaths(),
+          allow: comingSoonRobotsAllow(),
           disallow: "/",
         },
       ],
