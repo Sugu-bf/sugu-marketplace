@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
+import { assertBuildEnv } from "./src/lib/env/build-env";
+import { securityHeaders } from "./src/lib/security/security-headers";
 
 const privateNoIndexHeaders = [
   { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
@@ -26,6 +29,12 @@ const privateRoutePatterns = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+
+  // Fixed at build time so the proxy and the prerendered pages read the same
+  // value (see src/lib/coming-soon.ts).
+  env: {
+    COMING_SOON_ENABLED: process.env.COMING_SOON_ENABLED === "true" ? "true" : "false",
+  },
   reactCompiler: true,
 
   // ─── Cache-Control headers for Cloudflare edge caching ──────
@@ -33,6 +42,17 @@ const nextConfig: NextConfig = {
   // explicit so Cloudflare's CDN reads it reliably.
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: securityHeaders({
+          production: process.env.NODE_ENV === "production",
+          enforceCsp: process.env.CSP_ENFORCE === "true",
+          apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.mysugu.com",
+          reverbHost: process.env.NEXT_PUBLIC_REVERB_HOST,
+          reverbPort: process.env.NEXT_PUBLIC_REVERB_PORT,
+          reverbScheme: process.env.NEXT_PUBLIC_REVERB_SCHEME,
+        }),
+      },
       {
         // Homepage — ISR 60s + stale-while-revalidate 5 min
         source: "/",
@@ -73,6 +93,9 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // Every response used to announce "X-Powered-By: Next.js".
+  poweredByHeader: false,
+
   images: {
     remotePatterns: [
       {
@@ -85,21 +108,20 @@ const nextConfig: NextConfig = {
         hostname: "api.mysugu.com",
         pathname: "/**",
       },
-      {
-        protocol: "https",
-        hostname: "via.placeholder.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "georgianna-lowerable-laurene.ngrok-free.dev",
-        pathname: "/**",
-      },
     ],
-    formats: ["image/avif", "image/webp"],
+    // No "image/avif" while Next is below 16.4.3: its AVIF encoder path in the
+    // image optimizer carries a remote code execution advisory (audit P0-4).
+    formats: ["image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 };
 
-export default nextConfig;
+/**
+ * A production build fails on an incomplete environment: the NEXT_PUBLIC_*
+ * values are inlined into the bundle and cannot be fixed afterwards.
+ */
+export default function config(phase: string): NextConfig {
+  if (phase === PHASE_PRODUCTION_BUILD) assertBuildEnv(process.env);
+  return nextConfig;
+}

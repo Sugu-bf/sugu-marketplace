@@ -3,12 +3,12 @@
  *
  * Features:
  * - Works in Server Components (SSR/RSC) and Client Components
- * - Automatic timeout via AbortController
- * - Exponential retry for idempotent requests (GET/HEAD only)
+ * - Automatic timeout via AbortController (shorter while rendering on the server)
+ * - Bounded retry for idempotent requests (GET/HEAD only), honouring Retry-After
  * - Normalized error handling (always throws ApiError)
  * - Optional Zod runtime validation
  * - CSRF token management for Sanctum
- * - X-Request-Id tracking
+ * - X-Request-Id tracking (never on server reads served from the Next data cache)
  * - Credentials included for cookie-based auth
  * - Next.js fetch caching integration (revalidate, tags)
  *
@@ -19,7 +19,15 @@
  */
 
 import type { z } from "zod";
-import { API_BASE_URL, API_TIMEOUT_MS, API_MAX_RETRIES, API_RETRY_BASE_DELAY_MS } from "./config";
+import {
+  API_BASE_URL,
+  API_MAX_RETRIES,
+  API_MAX_RETRY_AFTER_MS,
+  API_RETRY_BASE_DELAY_MS,
+  API_SERVER_MAX_RETRIES,
+  API_SERVER_TIMEOUT_MS,
+  API_TIMEOUT_MS,
+} from "./config";
 import { ApiError, httpStatusToErrorCode } from "./errors";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -37,13 +45,13 @@ export interface ApiRequestOptions<T = unknown> extends Omit<RequestInit, "body"
   /** Next.js cache tags for targeted invalidation (server only) */
   tags?: string[];
 
-  /** Request timeout in ms (default: API_TIMEOUT_MS) */
+  /** Request timeout in ms (default: API_SERVER_TIMEOUT_MS on the server, API_TIMEOUT_MS in the browser) */
   timeout?: number;
 
-  /** Number of retries for idempotent requests (default: API_MAX_RETRIES for GET/HEAD, 0 for others) */
+  /** Number of retries for idempotent requests (default: API_SERVER_MAX_RETRIES / API_MAX_RETRIES for GET/HEAD, 0 for others) */
   retries?: number;
 
-  /** Custom X-Request-Id (auto-generated if not provided) */
+  /** Custom X-Request-Id (auto-generated if not provided; not sent on cached server reads) */
   requestId?: string;
 
   /** Skip credentials (useful for fully public SSR requests) */
@@ -90,8 +98,55 @@ function isIdempotent(method: string): boolean {
   return method === "GET" || method === "HEAD";
 }
 
+function isServer(): boolean {
+  return typeof window === "undefined";
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * A server read the Next data cache serves. Next keys that cache on the
+ * request headers: a random X-Request-Id on it would make every lookup a miss
+ * (revalidate and tags inert, the disk cache growing without bound).
+ */
+function isCachedServerRead(
+  method: string,
+  revalidate: number | false | undefined,
+  tags: string[] | undefined,
+  cache: RequestCache | undefined,
+): boolean {
+  if (!isServer() || method !== "GET") return false;
+  // An explicit no-store wins over any revalidate value, as in Next.
+  if (cache === "no-store" || cache === "no-cache") return false;
+  return (
+    revalidate === false ||
+    (typeof revalidate === "number" && revalidate > 0) ||
+    (tags?.length ?? 0) > 0 ||
+    cache === "force-cache"
+  );
+}
+
+/** Retry-After as a delay in ms: delta-seconds or an HTTP date. */
+export function parseRetryAfter(value: string | null, now = Date.now()): number | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (/^\d+$/.test(trimmed)) return Number(trimmed) * 1000;
+  // An HTTP date opens with its day name: anything else is not one.
+  if (!/^[A-Za-z]{3}, /.test(trimmed)) return undefined;
+  const date = Date.parse(trimmed);
+  return Number.isNaN(date) ? undefined : Math.max(0, date - now);
+}
+
+function abortedError(requestId: string, cause: unknown): ApiError {
+  return new ApiError({
+    status: 0,
+    code: "ABORTED",
+    message: "La requête a été annulée.",
+    requestId,
+    cause,
+  });
 }
 
 /**
@@ -116,6 +171,12 @@ async function getAuthToken(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** The signed visitor address for a server call (see ./server-client-ip). */
+async function getVisitorAddressHeaders(): Promise<Record<string, string>> {
+  const { getServerClientIpHeaders } = await import("./server-client-ip");
+  return getServerClientIpHeaders();
 }
 
 function shouldProxyThroughBff(url: string, skipCredentials: boolean): boolean {
@@ -162,7 +223,7 @@ async function executeRequest<T>(
     schema,
     revalidate,
     tags,
-    timeout = API_TIMEOUT_MS,
+    timeout = isServer() ? API_SERVER_TIMEOUT_MS : API_TIMEOUT_MS,
     requestId = generateRequestId(),
     skipCredentials = false,
     body,
@@ -181,7 +242,10 @@ async function executeRequest<T>(
     headers.set("Accept", "application/json");
   }
 
-  headers.set("X-Request-Id", requestId);
+  const cachedServerRead = isCachedServerRead(method, revalidate, tags, restInit.cache);
+  if (!cachedServerRead) {
+    headers.set("X-Request-Id", requestId);
+  }
 
   // Server direct calls can read the HttpOnly cookie. Browser calls go through
   // the same-origin BFF, so the token never enters JavaScript.
@@ -192,6 +256,14 @@ async function executeRequest<T>(
     }
   }
 
+  // A credentialed server call made for one visitor carries that visitor's
+  // signed address. A cached read is shared by every visitor: it carries none.
+  if (isServer() && !skipCredentials && !cachedServerRead) {
+    for (const [name, value] of Object.entries(await getVisitorAddressHeaders())) {
+      headers.set(name, value);
+    }
+  }
+
   // Content-Type for JSON body (skip for FormData — browser sets boundary)
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
   if (body && !isFormData && !headers.has("Content-Type")) {
@@ -199,13 +271,14 @@ async function executeRequest<T>(
   }
 
   // ─ AbortController for timeout ────────────────────────────
-  const controller = new AbortController();
-  const externalSignal = restInit.signal;
+  const externalSignal = restInit.signal ?? undefined;
+  if (externalSignal?.aborted) throw abortedError(requestId, externalSignal.reason);
 
-  // Merge external signal with timeout
-  if (externalSignal) {
-    externalSignal.addEventListener("abort", () => controller.abort(externalSignal.reason));
-  }
+  // Merge the caller's signal with the timeout; the listener is removed once
+  // the request settles, so a long-lived signal does not collect them.
+  const controller = new AbortController();
+  const onExternalAbort = () => controller.abort(externalSignal?.reason);
+  externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
 
   const timeoutId = setTimeout(() => controller.abort("TIMEOUT"), timeout);
 
@@ -233,8 +306,6 @@ async function executeRequest<T>(
   try {
     const response = await fetch(requestUrl, fetchOptions);
 
-    clearTimeout(timeoutId);
-
     // ─ Handle error responses ─────────────────────────────
     if (!response.ok) {
       const errorBody = await safeParseJson(response).catch(() => null);
@@ -250,6 +321,7 @@ async function executeRequest<T>(
           ? { errors: errorData.errors as Record<string, string[]> }
           : undefined,
         requestId,
+        retryAfterMs: parseRetryAfter(response.headers.get("retry-after")),
       });
     }
 
@@ -282,8 +354,6 @@ async function executeRequest<T>(
 
     return { data: data as T, status: response.status, headers: response.headers, requestId };
   } catch (error) {
-    clearTimeout(timeoutId);
-
     // Already an ApiError — rethrow
     if (error instanceof ApiError) throw error;
 
@@ -293,12 +363,12 @@ async function executeRequest<T>(
         (error as DOMException).message === "TIMEOUT" ||
         controller.signal.reason === "TIMEOUT";
 
+      if (!isTimeout) throw abortedError(requestId, error);
+
       throw new ApiError({
         status: 0,
-        code: isTimeout ? "TIMEOUT" : "ABORTED",
-        message: isTimeout
-          ? "La requête a expiré. Vérifiez votre connexion."
-          : "La requête a été annulée.",
+        code: "TIMEOUT",
+        message: "La requête a expiré. Vérifiez votre connexion.",
         requestId,
         cause: error,
       });
@@ -312,40 +382,44 @@ async function executeRequest<T>(
       requestId,
       cause: error,
     });
+  } finally {
+    clearTimeout(timeoutId);
+    externalSignal?.removeEventListener("abort", onExternalAbort);
   }
 }
 
 // ─── Retry Logic ─────────────────────────────────────────────
+
+/**
+ * Whether a failed attempt is worth another one. Never a 4xx (a 429 only with
+ * a short enough Retry-After), never after the caller aborted, and never a
+ * server-side timeout: the render already waited a full timeout once.
+ */
+function shouldRetry(error: ApiError, signal: AbortSignal | null | undefined): boolean {
+  if (!error.isRetryable || signal?.aborted) return false;
+  if (isServer() && error.code === "TIMEOUT") return false;
+  return error.retryAfterMs === undefined || error.retryAfterMs <= API_MAX_RETRY_AFTER_MS;
+}
 
 async function requestWithRetry<T>(
   url: string,
   options: ApiRequestOptions<T>
 ): Promise<ApiResponse<T>> {
   const method = (options.method ?? "GET").toUpperCase();
-  const maxRetries = options.retries ?? (isIdempotent(method) ? API_MAX_RETRIES : 0);
+  const defaultRetries = isServer() ? API_SERVER_MAX_RETRIES : API_MAX_RETRIES;
+  const maxRetries = options.retries ?? (isIdempotent(method) ? defaultRetries : 0);
 
-  let lastError: ApiError | undefined;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  for (let attempt = 0; ; attempt++) {
     try {
       return await executeRequest<T>(url, options);
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
+      if (attempt >= maxRetries || !shouldRetry(error, options.signal)) throw error;
 
-      lastError = error;
-
-      // Only retry if the error is retryable and we have attempts left
-      if (!error.isRetryable || attempt >= maxRetries) {
-        throw error;
-      }
-
-      // Exponential backoff: 500ms, 1000ms, 2000ms, ...
-      const delay = API_RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
-      await sleep(delay);
+      // The server's Retry-After, else exponential backoff: 500ms, 1000ms, …
+      await sleep(error.retryAfterMs ?? API_RETRY_BASE_DELAY_MS * Math.pow(2, attempt));
     }
   }
-
-  throw lastError!;
 }
 
 // ─── Public API ──────────────────────────────────────────────

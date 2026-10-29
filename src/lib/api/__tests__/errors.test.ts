@@ -46,8 +46,11 @@ describe("ApiError", () => {
       new ApiError({ status: 0, code: "TIMEOUT", message: "" }).isRetryable
     ).toBe(true);
     expect(
-      new ApiError({ status: 429, code: "RATE_LIMITED", message: "" }).isRetryable
+      new ApiError({ status: 429, code: "RATE_LIMITED", message: "", retryAfterMs: 1_000 }).isRetryable
     ).toBe(true);
+    expect(
+      new ApiError({ status: 429, code: "RATE_LIMITED", message: "" }).isRetryable
+    ).toBe(false);
     expect(
       new ApiError({ status: 503, code: "SERVER_ERROR", message: "" }).isRetryable
     ).toBe(true);

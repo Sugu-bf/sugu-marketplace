@@ -31,7 +31,7 @@ let qc: QueryClient;
 beforeEach(() => {
   sessionStorage.clear();
   localStorage.clear();
-  useFavoritesStore.setState({ favoriteSet: new Set<string>() });
+  useFavoritesStore.setState({ favoriteSet: new Set<string>(), owner: "guest" });
   useToast.setState({ toasts: [] });
   vi.mocked(hasAuthSession).mockReturnValue(true);
   qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -69,6 +69,25 @@ describe("useMergeFavoritesOnLogin", () => {
     await waitFor(() => expect(useFavoritesStore.getState().size()).toBe(0));
     expect(body).toEqual({ ids: ["g1", "g2"] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: favoritesKeys.ids() });
+  });
+
+  it("never merges a Set that belongs to an account (shared device, audit P1-11)", async () => {
+    let called = false;
+    server.use(
+      http.post(BULK_URL, () => {
+        called = true;
+        return HttpResponse.json({ merged_count: 1, skipped_count: 0, truncated: false });
+      }),
+    );
+    act(() => {
+      useFavoritesStore.getState().replaceAll(["previous-account-1", "previous-account-2"]);
+    });
+
+    renderHook(() => useMergeFavoritesOnLogin(), { wrapper });
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(called).toBe(false);
+    expect(sessionStorage.getItem(FLAG_KEY)).toBeNull();
   });
 
   it("does nothing when guest set is empty", async () => {

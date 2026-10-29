@@ -10,15 +10,14 @@ import {
 } from "lucide-react";
 import { Button, Input, Modal } from "@/components/ui";
 import { deleteAccount, exportAccountData } from "@/features/account";
-import { useRouter } from "next/navigation";
+import { logout } from "@/lib/api/auth";
+import { resetClientSession } from "@/lib/session/reset-client-session";
 
 /**
  * Data & Privacy section — delete account + export data.
  * Client component — handles modals and API calls.
  */
 function DataPrivacyCard() {
-  const router = useRouter();
-
   // ── Export data state ──
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
@@ -75,8 +74,10 @@ function DataPrivacyCard() {
     try {
       setDeleting(true);
       await deleteAccount(deletePassword);
-      // Redirect to home after deletion
-      router.push("/");
+      // The account is gone: drop its session cookie and every trace it left
+      // in this browser, then start over from home.
+      await logout();
+      await resetClientSession("/");
     } catch (err) {
       setDeleteError(
         (err as Error)?.message ?? "Erreur lors de la suppression du compte."

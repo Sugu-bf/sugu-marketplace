@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
@@ -17,6 +17,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { logout } from "@/lib/api/auth";
+import { resetClientSession } from "@/lib/session/reset-client-session";
 import type { UserProfile } from "@/features/account";
 
 // ─── Navigation items ────────────────────────────────────────
@@ -53,7 +54,6 @@ interface AccountSidebarProps {
  */
 function AccountSidebar({ profile, className }: AccountSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
 
   // Extract initials from the single `name` field
   const nameParts = (profile.name ?? "").trim().split(/\s+/);
@@ -70,11 +70,10 @@ function AccountSidebar({ profile, className }: AccountSidebarProps) {
   const handleLogout = async () => {
     try {
       await logout();
-      router.push("/login");
     } catch {
-      // Even if logout fails, redirect to login
-      router.push("/login");
+      // Even if logout fails, the browser's session state is cleared.
     }
+    await resetClientSession("/login");
   };
 
   const SECONDARY_NAV: NavItem[] = [

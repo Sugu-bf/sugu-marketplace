@@ -9,7 +9,7 @@ declare global {
   interface Window {
     /**
      * Facebook Pixel / Meta Pixel function.
-     * Injected by fbevents.js when the FacebookPixel component is mounted.
+     * Installed by @/features/consent/meta-pixel, only after consent.
      */
     fbq: (...args: unknown[]) => void;
     _fbq?: (...args: unknown[]) => void;

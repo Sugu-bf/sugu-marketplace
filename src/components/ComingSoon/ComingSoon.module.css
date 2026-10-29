@@ -17,7 +17,7 @@
   min-height: 100vh;
   background: #f9f9fc;
   color: #1a1a1a;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-quicksand), sans-serif;
 }
 
 /* ── Hero Background ── */
@@ -67,7 +67,7 @@
 }
 
 .navLogoText {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-quicksand), sans-serif;
   font-weight: 700;
   font-size: 18px;
   letter-spacing: 12px;
@@ -82,7 +82,7 @@
   color: #fff;
   border: none;
   padding: 10px 22px;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-quicksand), sans-serif;
   font-size: 14px;
   font-weight: 500;
   border-radius: 99px;
@@ -124,7 +124,7 @@
 }
 
 .heroBrandText {
-  font-family: 'Quicksand', sans-serif; font-weight: 700;
+  font-family: var(--font-quicksand), sans-serif; font-weight: 700;
   font-size: clamp(60px, 12vw, 120px);
   letter-spacing: 8px;
   line-height: 1;
@@ -133,7 +133,7 @@
 }
 
 .heroSub {
-  font-family: 'Quicksand', sans-serif; font-weight: 600;
+  font-family: var(--font-quicksand), sans-serif; font-weight: 600;
   font-size: 13px;
   letter-spacing: 4px;
   color: #666;
@@ -142,7 +142,7 @@
 }
 
 .heroHeadline {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-quicksand), sans-serif;
   font-size: clamp(28px, 5vw, 52px);
   font-weight: 600;
   color: #111;
@@ -178,7 +178,7 @@
 }
 
 .pbTopLabel {
-  font-family: 'Quicksand', sans-serif; font-weight: 600;
+  font-family: var(--font-quicksand), sans-serif; font-weight: 600;
   font-size: 12px;
   letter-spacing: 3px;
   color: #888;
@@ -186,7 +186,7 @@
 }
 
 .pbPct {
-  font-family: 'Quicksand', sans-serif; font-weight: 700;
+  font-family: var(--font-quicksand), sans-serif; font-weight: 700;
   font-size: 38px;
   color: #f15412;
   letter-spacing: 2px;
@@ -338,7 +338,7 @@
 }
 
 .msLbl {
-  font-family: 'Quicksand', sans-serif; font-weight: 600;
+  font-family: var(--font-quicksand), sans-serif; font-weight: 600;
   font-size: 10px;
   letter-spacing: 1.5px;
   color: #888;
@@ -367,14 +367,14 @@
 }
 
 .statN {
-  font-family: 'Quicksand', sans-serif; font-weight: 700;
+  font-family: var(--font-quicksand), sans-serif; font-weight: 700;
   font-size: 22px;
   color: #111;
   letter-spacing: 1px;
 }
 
 .statL {
-  font-family: 'Quicksand', sans-serif; font-weight: 600;
+  font-family: var(--font-quicksand), sans-serif; font-weight: 600;
   font-size: 10px;
   letter-spacing: 2px;
   color: #777;
@@ -438,7 +438,7 @@
 }
 
 .successTitle {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-quicksand), sans-serif;
   font-size: 24px;
   font-weight: 700;
   color: #111;
@@ -862,7 +862,7 @@
 }
 
 .cardTtl {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-quicksand), sans-serif;
   font-size: 18px;
   font-weight: 600;
   color: #111;
@@ -904,7 +904,7 @@
 }
 
 .fLogoText {
-  font-family: 'Quicksand', sans-serif; font-weight: 700;
+  font-family: var(--font-quicksand), sans-serif; font-weight: 700;
   font-size: 20px;
   letter-spacing: 2px;
   color: #111;

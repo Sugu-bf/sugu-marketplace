@@ -1,0 +1,91 @@
+/**
+ * The proxy end to end: a legacy URL is redirected, an App Router path never
+ * reaches the backend, the coming-soon wall sends the catalogue home and
+ * serves the landing page in place of "/" (audit M2).
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NextRequest } from "next/server";
+import proxy from "@/proxy";
+import { __clearSeoRedirectCache } from "@/lib/routing/seo-redirects";
+
+beforeEach(() => __clearSeoRedirectCache());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
+
+describe("proxy", () => {
+  it("redirects a legacy URL to the backend's destination", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ match: true, to: "/category/fruits", status_code: 301 })),
+    );
+
+    const response = await proxy(new NextRequest("https://sugu.pro/ancienne-categorie?p=2"));
+
+    expect(response.status).toBe(301);
+    expect(response.headers.get("location")).toBe("https://sugu.pro/category/fruits?p=2");
+  });
+
+  it("asks the backend with the visitor's signed address, never the written chain", async () => {
+    vi.stubEnv("SUGU_EDGE_SECRET", "0123456789abcdef0123456789abcdef");
+    const fetchMock = vi.fn(async () => Response.json({ match: false }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await proxy(
+      new NextRequest("https://sugu.pro/vieille-page", {
+        headers: { "x-forwarded-for": "198.18.0.9, 41.203.64.10" },
+      }),
+    );
+
+    const sent = new Headers((fetchMock.mock.calls[0] as unknown as [URL, RequestInit])[1].headers);
+    expect(sent.get("x-sugu-client-ip")).toBe("41.203.64.10");
+    expect(sent.has("x-forwarded-for")).toBe(false);
+  });
+
+  it("serves an App Router path without asking the backend", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    for (const path of ["/", "/product/x", "/payments/success"]) {
+      const response = await proxy(new NextRequest(`https://sugu.pro${path}`));
+      expect(response.headers.get("x-middleware-next")).toBe("1");
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("walls the catalogue off while coming soon", async () => {
+    vi.stubEnv("COMING_SOON_ENABLED", "true");
+
+    const response = await proxy(new NextRequest("https://sugu.pro/product/x"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://sugu.pro/");
+  });
+
+  it("serves the landing page in place of the home while coming soon", async () => {
+    vi.stubEnv("COMING_SOON_ENABLED", "true");
+
+    const response = await proxy(new NextRequest("https://sugu.pro/"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe("https://sugu.pro/coming-soon");
+  });
+
+  it("serves the home itself once launched", async () => {
+    vi.stubEnv("COMING_SOON_ENABLED", "false");
+
+    const response = await proxy(new NextRequest("https://sugu.pro/"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it.each(["true", "false"])("never serves the landing page at its own address (%s)", async (flag) => {
+    vi.stubEnv("COMING_SOON_ENABLED", flag);
+
+    const response = await proxy(new NextRequest("https://sugu.pro/coming-soon"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://sugu.pro/");
+  });
+});

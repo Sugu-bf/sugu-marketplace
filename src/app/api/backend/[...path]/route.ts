@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { API_BASE_URL } from "@/lib/api/config";
+import { clientIpHeaders } from "@/lib/server/client-ip";
+import { readCappedBody } from "@/lib/server/read-capped-body";
+import { isSameOriginRequest } from "@/lib/server/same-origin";
 import {
   AUTH_TOKEN_COOKIE,
   AUTH_TOKEN_EXPIRES_COOKIE,
@@ -11,6 +14,18 @@ import {
 type RouteContext = {
   params: Promise<{ path?: string[] }>;
 };
+
+/** Laravel has this long to answer; the visitor leaving aborts the call too. */
+const UPSTREAM_TIMEOUT_MS = 15_000;
+
+/** A JSON (or form) body: far above any real payload of the site. */
+const MAX_BODY_BYTES = 1024 * 1024;
+
+/**
+ * A multipart body: a message carries at most 5 attachments of 10 MB each
+ * (messaging Composer), plus the multipart framing and the text fields.
+ */
+const MAX_UPLOAD_BODY_BYTES = 5 * 10 * 1024 * 1024 + 1024 * 1024;
 
 const ALLOWED_RESPONSE_HEADERS = [
   "content-type",
@@ -38,65 +53,10 @@ const FORWARDED_REQUEST_HEADERS = [
   "x-cart-token",
   "x-wishlist-token",
   "x-idempotency-key",
-  // The address of the visitor, as the proxy in front of this app wrote it.
-  // Laravel reads it only where it trusts the hop it comes from
-  // (TRUSTED_PROXIES): its limits by address then count each visitor, not
-  // this server.
-  "x-forwarded-for",
 ] as const;
 
 function isMutatingMethod(method: string): boolean {
   return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
-}
-
-function isSameOriginRequest(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  const expectedOrigin = request.nextUrl.origin;
-
-  // Helper to verify if the origin matches any of our allowed origins
-  const isAllowedOrigin = (originValue: string | null): boolean => {
-    if (!originValue) return false;
-    if (originValue === expectedOrigin) return true;
-
-    // Check NEXT_PUBLIC_APP_URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (appUrl) {
-      try {
-        if (originValue === new URL(appUrl).origin) return true;
-      } catch {}
-    }
-
-    // Check X-Forwarded headers (from reverse proxies)
-    const forwardedHost = request.headers.get("x-forwarded-host");
-    const forwardedProto = request.headers.get("x-forwarded-proto") || "http";
-    if (forwardedHost) {
-      const reconstructedOrigin = `${forwardedProto}://${forwardedHost}`;
-      if (originValue === reconstructedOrigin) return true;
-    }
-
-    // In development, allow localhost/127.0.0.1/[::1] mismatches
-    if (process.env.NODE_ENV !== "production") {
-      try {
-        const originUrl = new URL(originValue);
-        const expectedUrl = new URL(expectedOrigin);
-        const isLocalhost = (host: string) =>
-          host === "localhost" || host === "127.0.0.1" || host === "[::1]";
-        if (isLocalhost(originUrl.hostname) && isLocalhost(expectedUrl.hostname)) {
-          return true;
-        }
-      } catch {}
-    }
-
-    return false;
-  };
-
-  if (origin && !isAllowedOrigin(origin)) return false;
-  if (isMutatingMethod(request.method) && !isAllowedOrigin(origin)) return false;
-
-  const fetchSite = request.headers.get("sec-fetch-site");
-  if (fetchSite === "cross-site") return false;
-
-  return true;
 }
 
 function safeBackendUrl(pathSegments: string[] | undefined, search: string): URL | null {
@@ -113,12 +73,18 @@ function safeBackendUrl(pathSegments: string[] | undefined, search: string): URL
   return url;
 }
 
-function buildForwardHeaders(request: NextRequest): Headers {
+async function buildForwardHeaders(request: NextRequest): Promise<Headers> {
   const headers = new Headers();
 
   for (const name of FORWARDED_REQUEST_HEADERS) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
+  }
+
+  // The visitor's address, signed for Laravel's per-address limits (never the
+  // x-forwarded-for chain itself, which the visitor can write).
+  for (const [name, value] of Object.entries(await clientIpHeaders(request.headers))) {
+    headers.set(name, value);
   }
 
   const token = request.cookies.get(AUTH_TOKEN_COOKIE)?.value;
@@ -224,8 +190,22 @@ function isLogoutPath(pathSegments: string[]): boolean {
   return isWebAuthPath(pathSegments) && pathSegments[3] === "logout";
 }
 
+function bodyLimit(request: NextRequest): number {
+  const contentType = request.headers.get("content-type") ?? "";
+  return contentType.toLowerCase().startsWith("multipart/form-data")
+    ? MAX_UPLOAD_BODY_BYTES
+    : MAX_BODY_BYTES;
+}
+
+function errorResponse(status: number, message: string): NextResponse {
+  return NextResponse.json(
+    { success: false, message },
+    { status, headers: { "cache-control": "no-store" } },
+  );
+}
+
 async function proxyToBackend(request: NextRequest, context: RouteContext): Promise<NextResponse> {
-  if (!isSameOriginRequest(request)) {
+  if (!isSameOriginRequest(request, { requireOrigin: isMutatingMethod(request.method) })) {
     return NextResponse.json({ success: false, message: "Forbidden origin." }, { status: 403 });
   }
 
@@ -237,13 +217,38 @@ async function proxyToBackend(request: NextRequest, context: RouteContext): Prom
   }
 
   const method = request.method.toUpperCase();
-  const hasBody = method !== "GET" && method !== "HEAD";
+  let body: Uint8Array<ArrayBuffer> | undefined;
+  if (method !== "GET" && method !== "HEAD") {
+    const read = await readCappedBody(request, bodyLimit(request));
+    if (!read) return errorResponse(413, "La requête est trop volumineuse.");
+    body = read;
+  }
+
+  try {
+    return await relay(request, path, target, method, body);
+  } catch (error) {
+    const name = error instanceof Error ? error.name : "UnknownError";
+    console.error(`[bff] ${method} /${path.join("/")} failed: ${name}`);
+    return name === "TimeoutError"
+      ? errorResponse(504, "Le service met trop de temps à répondre. Réessayez.")
+      : errorResponse(502, "Le service est momentanément indisponible. Réessayez.");
+  }
+}
+
+async function relay(
+  request: NextRequest,
+  path: string[],
+  target: URL,
+  method: string,
+  body: Uint8Array<ArrayBuffer> | undefined,
+): Promise<NextResponse> {
   const upstream = await fetch(target, {
     method,
-    headers: buildForwardHeaders(request),
-    body: hasBody ? await request.arrayBuffer() : undefined,
+    headers: await buildForwardHeaders(request),
+    body,
     cache: "no-store",
     redirect: "manual",
+    signal: AbortSignal.any([request.signal, AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)]),
   });
 
   const headers = copyResponseHeaders(upstream);

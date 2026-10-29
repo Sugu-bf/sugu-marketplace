@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import NewsletterAndTrust from "@/components/NewsletterAndTrust";
 import { queryTrustBadges } from "@/features/home";
+import { isComingSoon } from "@/lib/coming-soon";
 
 export const metadata: Metadata = {};
 
@@ -12,9 +13,9 @@ export const metadata: Metadata = {};
  * Main layout — wraps all public-facing pages with Header & Footer.
  * Auth pages (login/onboarding) use a separate layout without these.
  *
- * When COMING_SOON_ENABLED=true, the layout renders children directly
- * WITHOUT the marketplace chrome (header, footer, newsletter) because
- * the ComingSoon component has its own branded nav & footer.
+ * While coming soon, the editorial pages that stay open render WITHOUT the
+ * marketplace chrome (header, footer, newsletter): it would only link into
+ * the walled-off catalogue.
  *
  * The MarketplaceHeader is a Server Component that fetches categories
  * and popular searches with ISR caching, then passes data to the
@@ -26,7 +27,7 @@ export default async function MainLayout({
   children: React.ReactNode;
 }) {
   // ── Coming Soon bypass — skip marketplace chrome ──────────
-  if (process.env.COMING_SOON_ENABLED === "true") {
+  if (isComingSoon()) {
     return <>{children}</>;
   }
 

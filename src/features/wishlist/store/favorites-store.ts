@@ -9,9 +9,17 @@
  * size → number, ids → string[]); the Set is never exposed through a public
  * selector.
  *
+ * Owner: "guest" for favorites picked while signed out, "account" once the
+ * signed-in list replaced them (replaceAll). Only a guest Set is ever written
+ * to localStorage, and only a guest Set is merged into an account at login:
+ * on a shared device, an account's favorites never reach the next account
+ * (audit P1-11).
+ *
  * Guest persistence: localStorage key `sugu_favorites_guest_v1`, Set serialized
- * as an ids array, FIFO eviction at cap 200 (matching the backend). Hydration
- * is manual (skipHydration) — WishlistProvider triggers rehydrate() at Lot 3.
+ * as an ids array, FIFO eviction at cap 200 (matching the backend). What is
+ * read back is validated (ids only, capped); version 1 data, which could hold
+ * an account's ids, is dropped. Hydration is manual (skipHydration) —
+ * WishlistProvider triggers rehydrate().
  *
  * Note: the state property is named `favoriteSet` (not `set`) to avoid colliding
  * with Zustand's `set` updater within the store scope.
@@ -21,9 +29,14 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 const CAP = 200;
 const STORAGE_KEY = "sugu_favorites_guest_v1";
+const STORAGE_VERSION = 2;
+const PRODUCT_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+export type FavoritesOwner = "guest" | "account";
 
 type State = {
   favoriteSet: ReadonlySet<string>;
+  owner: FavoritesOwner;
 };
 
 type Actions = {
@@ -40,10 +53,20 @@ type Actions = {
 
 type PersistedFavorites = { ids: string[] };
 
+/** Product ids only, without duplicates, the most recent CAP kept. */
+function validIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids = Array.from(
+    new Set(value.filter((id): id is string => typeof id === "string" && PRODUCT_ID.test(id))),
+  );
+  return ids.slice(-CAP);
+}
+
 export const useFavoritesStore = create<State & Actions>()(
   persist(
     (set, get) => ({
       favoriteSet: new Set<string>(),
+      owner: "guest",
 
       add: (id) => {
         const current = get().favoriteSet;
@@ -73,12 +96,12 @@ export const useFavoritesStore = create<State & Actions>()(
       },
 
       replaceAll: (ids) => {
-        // Authoritative replace, used at bootstrap (Lot 3).
-        set({ favoriteSet: new Set(ids) });
+        // Authoritative replace from the signed-in list (bootstrap).
+        set({ favoriteSet: new Set(ids), owner: "account" });
       },
 
       clearGuest: () => {
-        set({ favoriteSet: new Set<string>() });
+        set({ favoriteSet: new Set<string>(), owner: "guest" });
       },
 
       has: (id) => get().favoriteSet.has(id),
@@ -87,14 +110,20 @@ export const useFavoritesStore = create<State & Actions>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 1,
+      version: STORAGE_VERSION,
       storage: createJSONStorage(() => localStorage),
       skipHydration: true, // manual rehydrate from WishlistProvider (Lot 3)
-      partialize: (state): PersistedFavorites => ({ ids: Array.from(state.favoriteSet) }),
-      merge: (persisted, current) => {
-        const ids = (persisted as PersistedFavorites | undefined)?.ids ?? [];
-        return { ...current, favoriteSet: new Set(ids) };
-      },
+      // An account's list never touches the device's storage.
+      partialize: (state): PersistedFavorites => ({
+        ids: state.owner === "guest" ? Array.from(state.favoriteSet) : [],
+      }),
+      // Version 1 did not tell a guest Set from an account's: drop it.
+      migrate: (): PersistedFavorites => ({ ids: [] }),
+      merge: (persisted, current) => ({
+        ...current,
+        favoriteSet: new Set(validIds((persisted as Partial<PersistedFavorites> | undefined)?.ids)),
+        owner: "guest",
+      }),
     },
   ),
 );

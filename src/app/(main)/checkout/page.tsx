@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createMetadata } from "@/lib/metadata";
 import { Container, Breadcrumb, Stepper } from "@/components/ui";
 import type { StepperStep } from "@/components/ui";
-import { getAuthUser } from "@/lib/api/auth";
+import { getAuthState } from "@/lib/api/auth";
+import { ServiceUnavailable } from "@/components/ServiceUnavailable";
 import { queryCheckoutSession, createCheckoutSession } from "@/features/checkout";
 import { CheckoutOrchestrator } from "@/features/checkout/components/CheckoutOrchestrator";
 import { CheckoutError } from "@/features/checkout/components/CheckoutError";
@@ -53,11 +54,14 @@ interface CheckoutPageProps {
 export default async function CheckoutPage({ searchParams }: CheckoutPageProps) {
   // ── AUTH GATE: Guests cannot checkout ──
   // They must create an account or login first.
-  const user = await getAuthUser();
+  const auth = await getAuthState();
 
-  if (!user) {
+  if (auth.status === "unauthenticated") {
     // Redirect to login with return URL
     redirect("/login?redirect=/checkout");
+  }
+  if (auth.status === "unavailable") {
+    return <ServiceUnavailable retryHref="/checkout" />;
   }
 
   const params = await searchParams;

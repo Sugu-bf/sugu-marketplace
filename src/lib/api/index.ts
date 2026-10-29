@@ -25,8 +25,8 @@ export type { QueryParams, PaginationParams } from "./endpoints";
 export { CacheTags, invalidateTag, invalidateTags, RevalidatePresets } from "./cache";
 
 // Auth
-export { initCsrf, getAuthUser, requireAuth, isAuthenticated, logout } from "./auth";
-export type { AuthUser } from "./auth";
+export { initCsrf, getAuthState, getAuthUser, requireAuth, isAuthenticated, logout } from "./auth";
+export type { AuthState, AuthUser } from "./auth";
 
 // Schemas
 export {

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import Script from "next/script";
 import { Bell, ArrowLeft, User, Store, Shirt, Hash, MapPin, Locate, MessageCircle, Mail, Globe, Briefcase, BadgeCheck, ShieldCheck, Smartphone, CheckCircle2 } from "lucide-react";
 import s from "./ComingSoon.module.css";
 import { API_BASE_URL } from "@/lib/api/config";
+import { trackPixel } from "@/features/consent/meta-pixel";
+import { useModalDialog } from "@/lib/a11y/use-modal-dialog";
 
 
 const PROGRESS_GOAL = 50000;
@@ -16,10 +17,11 @@ const PROGRESS_DURATION = 2200;
 /**
  * Coming Soon — Pre-launch landing page.
  *
- * Rendered instead of the real home page when COMING_SOON_ENABLED=true.
+ * Served by /coming-soon in place of "/" when COMING_SOON_ENABLED=true.
  * Uses CSS Modules for 100% style isolation from the main marketplace.
  *
- * On launch day: remove COMING_SOON_ENABLED from .env → redeploy → done.
+ * On launch day: COMING_SOON_ENABLED=false, rebuild, redeploy, purge the CDN
+ * (see @/lib/coming-soon).
  */
 export default function ComingSoon() {
   const [formData, setFormData] = useState({
@@ -37,6 +39,9 @@ export default function ComingSoon() {
 
   // Seller Modal State
   const [isSellerModalOpen, setIsSellerModalOpen] = useState(false);
+  const sellerModalRef = useModalDialog<HTMLDivElement>(isSellerModalOpen, () =>
+    setIsSellerModalOpen(false),
+  );
   const [isSellerSubmitted, setIsSellerSubmitted] = useState(false);
   const [isSellerLoading, setIsSellerLoading] = useState(false);
   const [sellerError, setSellerError] = useState<string | null>(null);
@@ -79,9 +84,7 @@ export default function ComingSoon() {
         throw new Error(data.message || "Une erreur est survenue.");
       }
 
-      if (typeof window !== "undefined" && (window as any).fbq) {
-        (window as any).fbq("track", "CompleteRegistration");
-      }
+      trackPixel("CompleteRegistration");
       setIsSellerSubmitted(true);
     } catch (err: any) {
       setSellerError(err.message);
@@ -140,9 +143,7 @@ export default function ComingSoon() {
         throw new Error(data.message || "Une erreur est survenue.");
       }
 
-      if (typeof window !== "undefined" && (window as any).fbq) {
-        (window as any).fbq("track", "Lead");
-      }
+      trackPixel("Lead");
 
       setIsSubmitted(true);
     } catch (err: any) {
@@ -246,28 +247,6 @@ export default function ComingSoon() {
 
   return (
     <>
-      {/* Google Fonts — loaded once, deduped by the browser */}
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"
-      />
-
-      <Script id="fb-pixel" strategy="afterInteractive">
-        {`
-          !function(f,b,e,v,n,t,s)
-          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-          n.queue=[];t=b.createElement(e);t.async=!0;
-          t.src=v;s=b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t,s)}(window, document,'script',
-          'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL_ID || ''}');
-          fbq('track', 'PageView');
-        `}
-      </Script>
-
       <div className={s.page}>
         <div className={s.heroBg}>
           <nav className={s.nav}>
@@ -675,27 +654,40 @@ export default function ComingSoon() {
         </footer>
       </div>
 
-      {/* WhatsApp Floating Button */}
-      <a 
-        href={process.env.NEXT_PUBLIC_WHATSAPP_CHANNEL_URL || "#"} 
-        target="_blank" 
-        rel="noopener noreferrer" 
-        className={s.whatsappFloat}
-      >
-        <span className={s.whatsappBadge}>Canal VIP</span>
-        <MessageCircle size={32} />
-      </a>
+      {/* WhatsApp Floating Button — only when the channel is configured */}
+      {process.env.NEXT_PUBLIC_WHATSAPP_CHANNEL_URL && (
+        <a
+          href={process.env.NEXT_PUBLIC_WHATSAPP_CHANNEL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={s.whatsappFloat}
+        >
+          <span className={s.whatsappBadge}>Canal VIP</span>
+          <MessageCircle size={32} />
+        </a>
+      )}
 
       {/* SELLER REGISTRATION MODAL */}
       {isSellerModalOpen && (
         <div className={s.modalOverlay}>
-          <div className={s.modalContent}>
+          <div
+            ref={sellerModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="seller-modal-title"
+            className={s.modalContent}
+          >
             {/* Modal Header */}
             <div className={s.modalHeader}>
-              <button className={s.modalBackBtn} onClick={() => setIsSellerModalOpen(false)}>
-                <ArrowLeft size={24} />
+              <button
+                type="button"
+                className={s.modalBackBtn}
+                onClick={() => setIsSellerModalOpen(false)}
+                aria-label="Fermer"
+              >
+                <ArrowLeft size={24} aria-hidden="true" />
               </button>
-              <h2 className={s.modalTitle}>Portail B2B : Grossistes</h2>
+              <h2 id="seller-modal-title" className={s.modalTitle}>Portail B2B : Grossistes</h2>
               <div style={{width: 24}}></div> {/* spacer for centering */}
             </div>
 

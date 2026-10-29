@@ -7,10 +7,19 @@
  * wall, robots.txt and the sitemap driven by the same list is what stops them
  * from contradicting each other — the wall used to 307 every sitemap URL to "/".
  *
- * `COMING_SOON_ENABLED` is server-only on purpose (no NEXT_PUBLIC_ prefix) so it
- * never reaches the client bundle. Every consumer here runs server-side:
- * middleware, robots.ts and the sitemap route handlers.
+ * `COMING_SOON_ENABLED` is fixed at build time (next.config `env`), so the
+ * proxy, the prerendered pages, robots.txt and the sitemap always agree: read
+ * at runtime by the proxy but at prerender by the pages, the two used to
+ * disagree after a switch. While it is on, the proxy serves /coming-soon in
+ * place of "/".
+ *
+ * Switching it: change the variable, rebuild and redeploy, then purge the CDN
+ * cache (Cloudflare) for "/" and the editorial pages — they are cached with
+ * stale-while-revalidate and would keep serving the previous mode.
  */
+
+/** The route serving the landing page in place of "/" while coming soon. */
+export const COMING_SOON_ROUTE = "/coming-soon";
 
 /** Exact paths reachable while the wall is up. */
 const ALLOWED_EXACT = [

@@ -16,9 +16,10 @@
  * - NEVER log auth cookies or headers
  */
 
+import { cache } from "react";
 import { api } from "./client";
 import { buildApiUrl } from "./endpoints";
-import { isApiError } from "./errors";
+import { ApiError, isApiError } from "./errors";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -62,32 +63,68 @@ export async function initCsrf(): Promise<void> {
 // ─── Auth Helpers ────────────────────────────────────────────
 
 /**
- * Get the currently authenticated user (server or client).
- * Returns null if not authenticated (401).
+ * Who is asking, as far as the backend can tell:
+ * - authenticated: the session is valid;
+ * - unauthenticated: there is no valid session (401/404) — send to login;
+ * - unavailable: the backend could not answer (down, timeout, malformed
+ *   reply) — the session is unknown, so show a degraded page, never the
+ *   protected content and never a login loop.
  */
-export async function getAuthUser(): Promise<AuthUser | null> {
+export type AuthState =
+  | { status: "authenticated"; user: AuthUser }
+  | { status: "unauthenticated" }
+  | { status: "unavailable"; error: ApiError };
+
+function userFromEnvelope(payload: unknown): AuthUser | null {
+  if (!payload || typeof payload !== "object") return null;
+  const envelope = payload as { success?: unknown; data?: { user?: unknown } };
+  const user = envelope.success === true ? envelope.data?.user : null;
+  if (!user || typeof user !== "object") return null;
+  const id = (user as { id?: unknown }).id;
+  return typeof id === "string" || typeof id === "number" ? (user as AuthUser) : null;
+}
+
+/**
+ * The auth state of the current request. Deduplicated per server render
+ * (React cache): a protected layout and its page ask the backend once.
+ */
+export const getAuthState = cache(async (): Promise<AuthState> => {
   try {
-    const { data } = await api.get<{
-      success: boolean;
-      data: { user: AuthUser };
-    }>(buildApiUrl("/api/v1/web-auth/me"), {
+    const { data } = await api.get<unknown>(buildApiUrl("/api/v1/web-auth/me"), {
       revalidate: 0, // Never cache user data
     });
 
-    // Unwrap the backend response envelope
-    if (data?.success && data?.data?.user) {
-      return data.data.user;
-    }
+    const user = userFromEnvelope(data);
+    if (user) return { status: "authenticated", user };
 
-    // Fallback: maybe the response IS the user directly
-    return (data as unknown as AuthUser) ?? null;
+    // A reply that is not a user (success:false, unexpected shape) is never
+    // taken for one.
+    return {
+      status: "unavailable",
+      error: new ApiError({
+        status: 200,
+        code: "INVALID_SCHEMA",
+        message: "La session n'a pas pu être vérifiée.",
+      }),
+    };
   } catch (error) {
     if (isApiError(error) && (error.code === "UNAUTHORIZED" || error.code === "NOT_FOUND")) {
-      return null;
+      return { status: "unauthenticated" };
     }
-    // Re-throw unexpected errors
+    if (isApiError(error)) return { status: "unavailable", error };
     throw error;
   }
+});
+
+/**
+ * Get the currently authenticated user (server or client).
+ * Returns null if not authenticated (401); throws the ApiError when the
+ * backend cannot tell (see getAuthState).
+ */
+export async function getAuthUser(): Promise<AuthUser | null> {
+  const state = await getAuthState();
+  if (state.status === "unavailable") throw state.error;
+  return state.status === "authenticated" ? state.user : null;
 }
 
 /**

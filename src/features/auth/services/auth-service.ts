@@ -102,14 +102,16 @@ export function hasAuthSession(): boolean {
 
 /** Stocker la date d'expiration en localStorage (pour useTokenRefresh) */
 export function setTokenExpiry(expiresAt: string): void {
-  if (typeof localStorage !== "undefined") {
+  // `typeof window`, not `typeof localStorage`: Node 22+ has a localStorage
+  // global of its own, which is not this browser's.
+  if (typeof window !== "undefined") {
     localStorage.setItem("auth_token_expires_at", expiresAt);
   }
 }
 
 /** Lire la date d'expiration du token */
 export function getTokenExpiry(): Date | null {
-  const val = typeof localStorage !== "undefined"
+  const val = typeof window !== "undefined"
     ? localStorage.getItem("auth_token_expires_at") ?? readCookie(AUTH_TOKEN_EXPIRES_COOKIE)
     : readCookie(AUTH_TOKEN_EXPIRES_COOKIE);
   if (!val) return null;
@@ -127,11 +129,9 @@ export function tokenDaysRemaining(): number {
 /** Déconnecter : efface le cookie */
 export async function clearAuthTokenCookie(): Promise<void> {
   // Nettoyage via Route Handler (supprime le cookie côté serveur aussi)
-  if (typeof localStorage !== "undefined") {
-    localStorage.removeItem("auth_token_expires_at");
-  }
-
   if (typeof window === "undefined") return;
+
+  localStorage.removeItem("auth_token_expires_at");
 
   await fetch("/api/auth/set-session", {
     method: "DELETE",

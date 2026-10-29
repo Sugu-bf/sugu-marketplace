@@ -1,14 +1,38 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { isApiError } from "@/lib/api/errors";
 
-function makeQueryClient() {
+/**
+ * Whether a failed query gets one more try. The API client already retries
+ * idempotent reads itself, so a query only tries again once, and never on a
+ * client error: a 4xx (or a 429 without Retry-After) would fail the same way.
+ */
+export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
+  if (failureCount >= 1) return false;
+  return isApiError(error) && error.isRetryable && !error.isClientError;
+}
+
+/** One line per failed query: its key's root and the error code, never data. */
+function logQueryError(error: unknown, queryKey: readonly unknown[]): void {
+  const scope = typeof queryKey[0] === "string" ? queryKey[0] : "query";
+  if (isApiError(error)) {
+    console.error(`[query] ${scope} failed: ${error.code} ${error.status}`, error.requestId ?? "");
+  } else {
+    console.error(`[query] ${scope} failed`, error instanceof Error ? error.message : error);
+  }
+}
+
+export function makeQueryClient(): QueryClient {
   return new QueryClient({
+    queryCache: new QueryCache({
+      onError: (error, query) => logQueryError(error, query.queryKey),
+    }),
     defaultOptions: {
       queries: {
         staleTime: 30 * 1000, // 30 seconds
-        retry: 1,
+        retry: shouldRetryQuery,
         refetchOnWindowFocus: false,
       },
     },
@@ -16,6 +40,11 @@ function makeQueryClient() {
 }
 
 let browserQueryClient: QueryClient | undefined;
+
+/** The browser's query client, once created (cleared by resetClientSession). */
+export function getBrowserQueryClient(): QueryClient | undefined {
+  return browserQueryClient;
+}
 
 function getQueryClient() {
   if (typeof window === "undefined") {

@@ -286,6 +286,7 @@ export default function SupportChatWidget() {
   // Open from its own button, or from the page (openSupportChat()).
   const isOpen = useSupportChatLauncher((s) => s.isOpen);
   const toggleOpen = useSupportChatLauncher((s) => s.toggle);
+  const closeChat = useSupportChatLauncher((s) => s.close);
   const register = useSupportChatLauncher((s) => s.register);
   const suggestedSubject = useSupportChatLauncher((s) => s.suggestedSubject);
   const suggestedOrderId = useSupportChatLauncher((s) => s.suggestedOrderId);
@@ -370,6 +371,7 @@ export default function SupportChatWidget() {
         onClick={toggleOpen}
         aria-label={isOpen ? "Fermer le chat support" : "Ouvrir le chat support"}
         aria-expanded={isOpen}
+        aria-controls="support-chat-window"
         className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110"
         style={{
           background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)",
@@ -413,7 +415,14 @@ export default function SupportChatWidget() {
 
       {/* Chat Window */}
       {isOpen && (
+        // A non-modal window: the page stays usable behind it; Escape closes it.
         <div
+          id="support-chat-window"
+          role="dialog"
+          aria-labelledby="support-chat-title"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") closeChat();
+          }}
           className="fixed bottom-24 right-6 z-[9998] w-[380px] max-w-[calc(100vw-2rem)] shadow-2xl rounded-2xl overflow-hidden flex flex-col"
           style={{
             height: "min(540px, calc(100vh - 8rem))",
@@ -444,7 +453,7 @@ export default function SupportChatWidget() {
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-white font-semibold text-sm">
+              <h3 id="support-chat-title" className="text-white font-semibold text-sm">
                 Chat Support
               </h3>
               <p className="text-white/70 text-xs">
@@ -464,6 +473,7 @@ export default function SupportChatWidget() {
                 }}
                 className="text-white/60 hover:text-white transition-colors"
                 title="Terminer le chat"
+                aria-label="Terminer le chat"
               >
                 <svg
                   width="18"

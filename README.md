@@ -281,13 +281,16 @@ Ouvrir [http://localhost:3000](http://localhost:3000) dans votre navigateur. �
 
 ### Variables d'environnement
 
+La liste complète, commentée, est dans [`.env.example`](.env.example). Un build de
+production échoue si une variable requise manque ou est mal formée
+(`src/lib/env/build-env.ts`) ; chacune est déclarée en `ARG` dans le `Dockerfile`.
+
 | Variable | Description | Valeur par défaut |
 |---|---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | URL de l'API backend Laravel | `https://api.mysugu.com` |
-| `NEXT_PUBLIC_APP_URL` | URL du site frontend | `https://sugu.pro` |
-| `NEXT_PUBLIC_SITE_URL` | URL canonique du site | `https://sugu.pro` |
+| `NEXT_PUBLIC_APP_URL` | URL publique du site (canonique, sitemap, contrôle d'Origin) | `https://sugu.pro` |
 
-> ⚠️ **Sécurité** : l'application refuse tout `API_BASE_URL` pointant vers `localhost`, `127.0.0.1` ou toute adresse locale. Cette règle est appliquée à la fois dans `lib/api/config.ts` et via ESLint.
+> ⚠️ **Sécurité** : un build de production refuse tout `NEXT_PUBLIC_API_BASE_URL` local ou non https (`lib/api/config.ts`). En développement, pointez-le vers une API locale ou de staging, jamais vers la production. Les tests ne peuvent joindre aucun hôte Sugu réel (garde réseau globale, MSW en `onUnhandledRequest: "error"`).
 
 ---
 

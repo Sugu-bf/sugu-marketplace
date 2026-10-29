@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { fontQuicksand } from "@/lib/fonts";
-import { SEO, SITE_NAME, SITE_URL } from "@/lib/constants";
+import { META_PIXEL_ID, SEO, SITE_NAME, SITE_URL } from "@/lib/constants";
 import { fetchBranding } from "@/lib/branding.service";
 import { BrandingProvider } from "@/components/BrandingProvider";
 import BrandingHead from "@/components/BrandingHead";
@@ -8,6 +8,8 @@ import { ToastContainer } from "@/features/toast/ToastContainer";
 import { QueryProvider } from "@/lib/query-provider";
 import { WishlistProvider } from "@/features/wishlist/components/WishlistProvider";
 import { TokenRefreshProvider } from "@/components/TokenRefreshProvider";
+import { ConsentBanner } from "@/features/consent/components/ConsentBanner";
+import { MetaPixelPageViews } from "@/features/consent/components/MetaPixelPageViews";
 import { organizationJsonLd, webSiteJsonLd } from "@/lib/seo/structured-data";
 import "./globals.css";
 
@@ -66,6 +68,13 @@ export default async function RootLayout({
                 <BrandingHead />
                 {children}
                 <ToastContainer />
+                {/* Measurement only exists with a pixel, and only after consent. */}
+                {META_PIXEL_ID && (
+                  <>
+                    <MetaPixelPageViews />
+                    <ConsentBanner />
+                  </>
+                )}
               </TokenRefreshProvider>
             </WishlistProvider>
           </QueryProvider>

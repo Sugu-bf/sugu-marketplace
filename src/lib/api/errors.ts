@@ -45,6 +45,8 @@ export class ApiError extends Error {
   public readonly code: ApiErrorCode;
   public readonly details: ApiErrorDetails | undefined;
   public readonly requestId: string | undefined;
+  /** The delay the server asked for (Retry-After), in ms */
+  public readonly retryAfterMs: number | undefined;
 
   constructor(opts: {
     status: number;
@@ -52,6 +54,7 @@ export class ApiError extends Error {
     message: string;
     details?: ApiErrorDetails;
     requestId?: string;
+    retryAfterMs?: number;
     cause?: unknown;
   }) {
     super(opts.message, { cause: opts.cause });
@@ -60,6 +63,7 @@ export class ApiError extends Error {
     this.code = opts.code;
     this.details = opts.details;
     this.requestId = opts.requestId;
+    this.retryAfterMs = opts.retryAfterMs;
   }
 
   /** Whether this is a client error (4xx) */
@@ -77,12 +81,15 @@ export class ApiError extends Error {
     return this.status === 0;
   }
 
-  /** Whether this request can be retried */
+  /**
+   * Whether this request can be retried. A 429 only when the server said when
+   * (Retry-After): retrying a rate limit blindly only extends it.
+   */
   get isRetryable(): boolean {
     return (
       this.code === "NETWORK_ERROR" ||
       this.code === "TIMEOUT" ||
-      this.status === 429 ||
+      (this.status === 429 && this.retryAfterMs !== undefined) ||
       this.status === 502 ||
       this.status === 503 ||
       this.status === 504
