@@ -34,6 +34,7 @@ import type {
   ApiNotificationItem,
   ApiNotificationGroup,
 } from "./account.types";
+import { resolveNotificationLink } from "../models/notification-link";
 
 // ─── Mappers ─────────────────────────────────────────────────
 
@@ -161,17 +162,12 @@ function mapApiOrderToUI(order: ApiOrderListItem): Order {
 
 /** Map API notification to UI shape */
 function mapApiNotificationToUI(n: ApiNotificationItem): Notification {
-  let actionUrl = n.action_url ?? null;
-  if (actionUrl && actionUrl.startsWith("/orders/")) {
-    actionUrl = "/account/orders";
-  }
-
   return {
     id: n.id,
     type: n.type,
     title: n.title,
     message: n.body ?? n.message ?? "",
-    actionUrl: actionUrl,
+    actionUrl: resolveNotificationLink(n.action_url),
     isRead: n.is_read,
     createdAt: n.time ?? n.created_at ?? "",
   };
