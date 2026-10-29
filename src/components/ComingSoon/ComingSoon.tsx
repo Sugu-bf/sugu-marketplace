@@ -676,16 +676,18 @@ export default function ComingSoon() {
         </footer>
       </div>
 
-      {/* WhatsApp Floating Button */}
-      <a 
-        href={process.env.NEXT_PUBLIC_WHATSAPP_CHANNEL_URL || "#"} 
-        target="_blank" 
-        rel="noopener noreferrer" 
-        className={s.whatsappFloat}
-      >
-        <span className={s.whatsappBadge}>Canal VIP</span>
-        <MessageCircle size={32} />
-      </a>
+      {/* WhatsApp Floating Button — only when the channel is configured */}
+      {process.env.NEXT_PUBLIC_WHATSAPP_CHANNEL_URL && (
+        <a
+          href={process.env.NEXT_PUBLIC_WHATSAPP_CHANNEL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={s.whatsappFloat}
+        >
+          <span className={s.whatsappBadge}>Canal VIP</span>
+          <MessageCircle size={32} />
+        </a>
+      )}
 
       {/* SELLER REGISTRATION MODAL */}
       {isSellerModalOpen && (

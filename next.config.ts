@@ -1,4 +1,6 @@
 import type { NextConfig } from "next";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
+import { assertBuildEnv } from "./src/lib/env/build-env";
 import { securityHeaders } from "./src/lib/security/security-headers";
 
 const privateNoIndexHeaders = [
@@ -115,4 +117,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * A production build fails on an incomplete environment: the NEXT_PUBLIC_*
+ * values are inlined into the bundle and cannot be fixed afterwards.
+ */
+export default function config(phase: string): NextConfig {
+  if (phase === PHASE_PRODUCTION_BUILD) assertBuildEnv(process.env);
+  return nextConfig;
+}

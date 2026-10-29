@@ -6,8 +6,23 @@
  * AVIF, must only fetch from the hosts the site really serves images from, and
  * no response may advertise the framework.
  */
-import { describe, it, expect } from "vitest";
-import nextConfig from "../../next.config";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from "next/constants";
+import config from "../../next.config";
+
+const nextConfig = config(PHASE_DEVELOPMENT_SERVER);
+
+const COMPLETE_BUILD_ENV = {
+  NEXT_PUBLIC_API_BASE_URL: "https://api.mysugu.com",
+  NEXT_PUBLIC_APP_URL: "https://sugu.pro",
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID_WEB: "123-abc.apps.googleusercontent.com",
+  NEXT_PUBLIC_REVERB_APP_KEY: "public-key",
+  NEXT_PUBLIC_REVERB_HOST: "ws.mysugu.com",
+  NEXT_PUBLIC_REVERB_PORT: "443",
+  NEXT_PUBLIC_REVERB_SCHEME: "https",
+};
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("next.config", () => {
   it("never encodes AVIF in the image optimizer", () => {
@@ -41,5 +56,13 @@ describe("next.config", () => {
 
   it("does not announce the framework", () => {
     expect(nextConfig.poweredByHeader).toBe(false);
+  });
+
+  it("fails a production build on an incomplete environment (audit P1-13)", () => {
+    for (const [name, value] of Object.entries(COMPLETE_BUILD_ENV)) vi.stubEnv(name, value);
+    expect(() => config(PHASE_PRODUCTION_BUILD)).not.toThrow();
+
+    vi.stubEnv("NEXT_PUBLIC_GOOGLE_CLIENT_ID_WEB", "");
+    expect(() => config(PHASE_PRODUCTION_BUILD)).toThrow(/NEXT_PUBLIC_GOOGLE_CLIENT_ID_WEB: is required/);
   });
 });

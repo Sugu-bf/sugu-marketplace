@@ -1,7 +1,8 @@
 // ─── Site / Brand ────────────────────────────────────────────
 export const SITE_NAME = "Sugu";
 export const SITE_TAGLINE = "La plus grande plateforme de vente en ligne";
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sugu.pro";
+/** The site's public origin: NEXT_PUBLIC_APP_URL, the one variable for it. */
+export const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://sugu.pro").replace(/\/+$/, "");
 export const CDN_URL = "https://cdn.sugu.pro";
 
 // ─── Analytics ───────────────────────────────────────────────
