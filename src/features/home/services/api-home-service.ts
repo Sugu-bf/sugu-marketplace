@@ -173,24 +173,6 @@ function apiDailyBestSellToProduct(p: ApiDailyBestSellItem): DailyBestSaleProduc
   };
 }
 
-// ─── Compute countdown from ISO 8601 dates ───────────────────
-
-function computeCountdown(endsAt?: string | null, serverNow?: string | null) {
-  if (!endsAt) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-
-  const end = new Date(endsAt).getTime();
-  const now = serverNow ? new Date(serverNow).getTime() : Date.now();
-  const diff = Math.max(0, end - now);
-
-  const totalSeconds = Math.floor(diff / 1000);
-  return {
-    days: Math.floor(totalSeconds / 86400),
-    hours: Math.floor((totalSeconds % 86400) / 3600),
-    minutes: Math.floor((totalSeconds % 3600) / 60),
-    seconds: totalSeconds % 60,
-  };
-}
-
 // ─── ApiHomeService ──────────────────────────────────────────
 
 export class ApiHomeService implements HomeRepository {
@@ -260,10 +242,9 @@ export class ApiHomeService implements HomeRepository {
   async getPromotionalDeals(): Promise<PromotionalDeal[]> {
     const result = await fetchHotDeals(2);
     if (result.items.length > 0 || result.banner) {
-      const countdown = computeCountdown(
-        result.countdown?.ends_at,
-        result.countdown?.server_now
-      );
+      // The end date, not a remaining time: computed at render time, it was
+      // frozen in the ISR page and counted down from there in the browser.
+      const endsAt = result.countdown?.ends_at ?? null;
 
       const deals: PromotionalDeal[] = [];
 
@@ -277,7 +258,7 @@ export class ApiHomeService implements HomeRepository {
           subtitle: result.banner.subtitle ?? "Temps restant jusqu'à la fin de l'offre.",
           image: bannerImage,
           variant: "light",
-          countdown,
+          endsAt,
           href: resolveHomeHref(result.banner.cta_url, "/search"),
         });
       }
@@ -296,7 +277,7 @@ export class ApiHomeService implements HomeRepository {
           subtitle: "Temps restant jusqu'à la fin de l'offre.",
           image: productImage,
           variant: "dark",
-          countdown,
+          endsAt,
           href: firstItem.product.slug
             ? `/product/${firstItem.product.slug}`
             : "/search",

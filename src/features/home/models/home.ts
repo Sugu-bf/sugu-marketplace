@@ -40,20 +40,14 @@ export const FreshCategorySchema = z.object({
 
 // ─── Promotional Deals ───────────────────────────────────────
 
-export const CountdownSchema = z.object({
-  days: z.number(),
-  hours: z.number(),
-  minutes: z.number(),
-  seconds: z.number(),
-});
-
 export const PromotionalDealSchema = z.object({
   id: z.number(),
   title: z.string(),
   subtitle: z.string(),
   image: z.string(),
   variant: z.enum(["light", "dark"]),
-  countdown: CountdownSchema,
+  /** End of the offer (ISO 8601); the page counts down to it in the browser. */
+  endsAt: z.string().nullable(),
   href: z.string().optional(),
 });
 
@@ -163,7 +157,6 @@ export type BannerSlide = z.infer<typeof BannerSlideSchema>;
 export type HeroBanner = z.infer<typeof HeroBannerSchema>;
 export type CategoryPill = z.infer<typeof CategoryPillSchema>;
 export type FreshCategory = z.infer<typeof FreshCategorySchema>;
-export type Countdown = z.infer<typeof CountdownSchema>;
 export type PromotionalDeal = z.infer<typeof PromotionalDealSchema>;
 export type Brand = z.infer<typeof BrandSchema>;
 export type TrustBadge = z.infer<typeof TrustBadgeSchema>;

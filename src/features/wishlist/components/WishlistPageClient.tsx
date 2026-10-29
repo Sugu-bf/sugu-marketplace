@@ -17,6 +17,7 @@ import { Heart } from "lucide-react";
 import { Button } from "@/components/ui";
 import { ProductCard } from "@/components/ui/product-card";
 import { hasAuthSession } from "@/features/auth/services/auth-service";
+import { useIsHydrated } from "@/lib/hydration";
 import { useWishlistPage } from "@/features/wishlist/queries/use-wishlist-page";
 import type { WishlistPageResponse } from "@/features/wishlist/api/favorites.schemas";
 
@@ -160,8 +161,18 @@ function WishlistPageInner() {
  * Renders a neutral unauthenticated state if somehow the auth layout guard
  * is bypassed (edge case). Otherwise mounts <WishlistPageInner> which owns
  * all React hooks unconditionally (no conditional hook call violation).
+ *
+ * The session is a browser cookie: read during the first render, the server
+ * (no cookie) and the browser rendered two different pages. The skeleton is
+ * shown until hydration, then the session is read.
  */
 export function WishlistPageClient() {
+  const hydrated = useIsHydrated();
+
+  if (!hydrated) {
+    return <SkeletonGrid />;
+  }
+
   if (!hasAuthSession()) {
     return (
       <div className="rounded-2xl border border-border-light bg-background p-8 text-center">

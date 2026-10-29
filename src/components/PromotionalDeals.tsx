@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/ui";
-import type { PromotionalDeal, Countdown } from "@/features/home";
+import { calculateTimeLeft } from "@/components/ui/countdown-timer";
+import { useSecondClock } from "@/lib/hydration";
+import type { PromotionalDeal } from "@/features/home";
 
 interface PromotionalDealsProps {
   deals: PromotionalDeal[];
@@ -16,7 +17,8 @@ function CountdownBox({
   label,
   variant,
 }: {
-  value: number;
+  /** null until the browser clock is read: "--". */
+  value: number | null;
   label: string;
   variant: "light" | "dark";
 }) {
@@ -30,43 +32,16 @@ function CountdownBox({
             : "bg-primary text-white"
         }`}
       >
-        {value} {label}
+        {value ?? "--"} {label}
       </div>
     </div>
   );
 }
 
 export default function PromotionalDeals({ deals }: PromotionalDealsProps) {
-  const [countdowns, setCountdowns] = useState<Countdown[]>(
-    deals.map((d) => ({ ...d.countdown }))
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdowns((prev) =>
-        prev.map((c) => {
-          let { days, hours, minutes, seconds } = c;
-          seconds--;
-          if (seconds < 0) {
-            seconds = 59;
-            minutes--;
-          }
-          if (minutes < 0) {
-            minutes = 59;
-            hours--;
-          }
-          if (hours < 0) {
-            hours = 23;
-            days--;
-          }
-          if (days < 0) days = 0;
-          return { days, hours, minutes, seconds };
-        })
-      );
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
+  // Counted down in the browser from the end date: computed on the server,
+  // the remaining time was frozen in the cached page.
+  const now = useSecondClock();
 
   return (
     <Container
@@ -76,7 +51,7 @@ export default function PromotionalDeals({ deals }: PromotionalDealsProps) {
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {deals.map((deal, index) => {
-          const c = countdowns[index];
+          const c = deal.endsAt && now !== null ? calculateTimeLeft(deal.endsAt, now) : null;
           const isLight = deal.variant === "light";
           const href = deal.href || "/search";
 
@@ -141,15 +116,15 @@ export default function PromotionalDeals({ deals }: PromotionalDealsProps) {
                 </p>
 
                 {/* Countdown */}
-                {c && (
+                {deal.endsAt && (
                   <div className="flex items-center gap-1.5 mb-3" aria-label="Compte à rebours">
-                    <CountdownBox value={c.days} label="J" variant={deal.variant} />
+                    <CountdownBox value={c?.days ?? null} label="J" variant={deal.variant} />
                     <span className={`text-sm font-bold ${isLight ? "text-muted-foreground" : "text-white/60"}`}>:</span>
-                    <CountdownBox value={c.hours} label="H" variant={deal.variant} />
+                    <CountdownBox value={c?.hours ?? null} label="H" variant={deal.variant} />
                     <span className={`text-sm font-bold ${isLight ? "text-muted-foreground" : "text-white/60"}`}>:</span>
-                    <CountdownBox value={c.minutes} label="M" variant={deal.variant} />
+                    <CountdownBox value={c?.minutes ?? null} label="M" variant={deal.variant} />
                     <span className={`text-sm font-bold ${isLight ? "text-muted-foreground" : "text-white/60"}`}>:</span>
-                    <CountdownBox value={c.seconds} label="S" variant={deal.variant} />
+                    <CountdownBox value={c?.seconds ?? null} label="S" variant={deal.variant} />
                   </div>
                 )}
 

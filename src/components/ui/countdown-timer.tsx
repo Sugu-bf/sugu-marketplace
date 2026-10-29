@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useSecondClock } from "@/lib/hydration";
 import { Clock } from "lucide-react";
 
 interface CountdownTimerProps {
@@ -19,8 +20,8 @@ interface TimeLeft {
   expired: boolean;
 }
 
-function calculateTimeLeft(target: string): TimeLeft {
-  const diff = new Date(target).getTime() - Date.now();
+export function calculateTimeLeft(target: string, now: number): TimeLeft {
+  const diff = new Date(target).getTime() - now;
   if (diff <= 0) {
     return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
   }
@@ -36,24 +37,21 @@ function calculateTimeLeft(target: string): TimeLeft {
 /**
  * Countdown timer component — Client component.
  * Displays remaining time until a target date.
+ *
+ * The time comes from the shared clock: none on the server render (a page
+ * cached by ISR would show the time it was rendered at, and hydrate with
+ * another), so the units show "--" until the browser takes over.
  */
 function CountdownTimer({ targetDate, className, label, onExpire }: CountdownTimerProps) {
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => calculateTimeLeft(targetDate));
+  const now = useSecondClock();
+  const timeLeft = now === null ? null : calculateTimeLeft(targetDate, now);
+  const expired = timeLeft?.expired ?? false;
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const newTime = calculateTimeLeft(targetDate);
-      setTimeLeft(newTime);
-      if (newTime.expired) {
-        clearInterval(timer);
-        onExpire?.();
-      }
-    }, 1000);
+    if (expired) onExpire?.();
+  }, [expired, onExpire]);
 
-    return () => clearInterval(timer);
-  }, [targetDate, onExpire]);
-
-  if (timeLeft.expired) {
+  if (expired) {
     return (
       <div className={cn("flex items-center gap-1.5 text-sm text-error font-medium", className)}>
         <Clock size={14} />
@@ -61,8 +59,6 @@ function CountdownTimer({ targetDate, className, label, onExpire }: CountdownTim
       </div>
     );
   }
-
-  const pad = (n: number) => String(n).padStart(2, "0");
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -73,22 +69,22 @@ function CountdownTimer({ targetDate, className, label, onExpire }: CountdownTim
         </span>
       )}
       <div className="flex items-center gap-1">
-        <TimeUnit value={timeLeft.days} label="j" />
+        <TimeUnit value={timeLeft?.days ?? null} label="j" />
         <span className="text-xs text-muted-foreground font-bold">:</span>
-        <TimeUnit value={timeLeft.hours} label="h" />
+        <TimeUnit value={timeLeft?.hours ?? null} label="h" />
         <span className="text-xs text-muted-foreground font-bold">:</span>
-        <TimeUnit value={timeLeft.minutes} label="m" />
+        <TimeUnit value={timeLeft?.minutes ?? null} label="m" />
         <span className="text-xs text-muted-foreground font-bold">:</span>
-        <TimeUnit value={timeLeft.seconds} label="s" />
+        <TimeUnit value={timeLeft?.seconds ?? null} label="s" />
       </div>
     </div>
   );
 }
 
-function TimeUnit({ value, label }: { value: number; label: string }) {
+function TimeUnit({ value, label }: { value: number | null; label: string }) {
   return (
     <span className="inline-flex items-center gap-0.5 rounded-md bg-error/10 px-1.5 py-0.5 text-xs font-bold text-error tabular-nums">
-      {String(value).padStart(2, "0")}
+      {value === null ? "--" : String(value).padStart(2, "0")}
       <span className="text-[10px] font-medium text-error/70">{label}</span>
     </span>
   );
