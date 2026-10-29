@@ -97,6 +97,12 @@ export function ChatRoom({
     ?? "Chat";
   const avatarUrl = store?.logo_url ?? null;
   const isOnline = store?.is_online ?? false;
+  // The server refuses a message in a closed or blocked conversation: say so.
+  const closedReason = conversation?.status === "blocked"
+    ? "Cette conversation est bloquée : vous ne pouvez plus y écrire."
+    : conversation?.status === "closed"
+      ? "Cette conversation est fermée : vous ne pouvez plus y écrire."
+      : null;
   // What this conversation does not pass on (numbers, e-mails, links).
   const contactNotice = contactPolicyNotice(conversationMaskedKinds(conversation));
 
@@ -270,7 +276,7 @@ export function ChatRoom({
           {contactNotice}
         </p>
       )}
-      <Composer conversationId={conversationId} />
+      <Composer conversationId={conversationId} disabledReason={closedReason} />
     </div>
   );
 }

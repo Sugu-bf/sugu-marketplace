@@ -2,7 +2,8 @@
 /**
  * The chat room marks a message read only when the buyer can see it: not
  * while the tab is in the background, but as soon as it is shown again. Its
- * header names the other side, never the buyer.
+ * header names the other side, never the buyer. A closed or blocked
+ * conversation offers nothing to send, and says why.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, act, waitFor, screen } from "@/test/render";
@@ -103,5 +104,24 @@ describe("ChatRoom — the other side", () => {
 
     expect(await screen.findByRole("heading", { name: "Issa Livreur" })).toBeInTheDocument();
     expect(screen.queryByText("Awa Ouédraogo")).toBeNull();
+  });
+});
+
+describe("ChatRoom — closed or blocked", () => {
+  it.each([
+    ["closed", "Cette conversation est fermée : vous ne pouvez plus y écrire."],
+    ["blocked", "Cette conversation est bloquée : vous ne pouvez plus y écrire."],
+  ] as const)("disables the composer of a %s conversation", async (status, reason) => {
+    vi.mocked(fetchConversation).mockResolvedValue(conversation({ status }));
+    renderWithProviders(<ChatRoom conversationId={CONV} />);
+
+    expect(await screen.findByText(reason)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Écrivez votre message...")).toBeDisabled();
+  });
+
+  it("lets the buyer write in an open conversation", async () => {
+    renderWithProviders(<ChatRoom conversationId={CONV} />);
+
+    expect(await screen.findByPlaceholderText("Écrivez votre message...")).toBeEnabled();
   });
 });

@@ -182,3 +182,50 @@ describe("Composer — one draft per conversation", () => {
     expect(otherIds[0]).not.toBe(ids[0]);
   });
 });
+
+describe("Composer — files left out, conversations closed", () => {
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => "blob:apercu");
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  const pick = (...files: File[]) =>
+    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files } });
+  const file = (name: string, type: string, size = 3) => new File([new Uint8Array(size)], name, { type });
+
+  it("says which files were not added, and why", () => {
+    serverAnswering();
+    renderWithProviders(<Composer conversationId={CONV} />);
+
+    pick(file("virus.exe", "application/x-msdownload"), file("photo.png", "image/png"));
+
+    expect(screen.getByRole("status")).toHaveTextContent("seuls les images, PDF et documents Word sont acceptés");
+    expect(screen.getByRole("button", { name: "Retirer photo.png" })).toBeInTheDocument();
+  });
+
+  it("says a file is too large, and that a message holds five files at most", () => {
+    serverAnswering();
+    renderWithProviders(<Composer conversationId={CONV} />);
+
+    pick(
+      ...[1, 2, 3, 4, 5, 6].map((n) => file(`p${n}.png`, "image/png")),
+      file("enorme.pdf", "application/pdf", 10 * 1024 * 1024 + 1),
+    );
+
+    const notice = screen.getByRole("status");
+    expect(notice).toHaveTextContent("10 Mo au plus par fichier");
+    expect(notice).toHaveTextContent("5 fichiers au plus par message");
+    expect(screen.queryByRole("button", { name: "Retirer p6.png" })).toBeNull();
+  });
+
+  it("offers nothing to send in a closed conversation, and says why", () => {
+    const ids = serverAnswering();
+    renderWithProviders(<Composer conversationId={CONV} disabledReason="Cette conversation est fermée : vous ne pouvez plus y écrire." />);
+
+    expect(textarea()).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Envoyer le message" })).toBeDisabled();
+    expect(screen.getByText("Cette conversation est fermée : vous ne pouvez plus y écrire.")).toBeInTheDocument();
+    fireEvent.keyDown(textarea(), { key: "Enter" });
+    expect(ids).toHaveLength(0);
+  });
+});
