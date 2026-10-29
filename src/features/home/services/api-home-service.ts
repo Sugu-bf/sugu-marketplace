@@ -45,10 +45,23 @@ import type {
 } from "../api/home.schemas";
 import { TRUST_BADGES } from "../content/trust-badges";
 
-/** Dead / legacy paths from banners → real marketplace routes */
-function resolveHomeHref(url?: string | null, fallback = "/search"): string {
-  if (!url || url === "#" || url === "/deals" || url === "/shop") return fallback;
-  return url;
+/**
+ * Link of a banner (`cta_url`, set in the admin) → an href the page can use.
+ *
+ * Only a site path ("/…", not "//…") or an http(s) URL; anything else
+ * (javascript:, data:, a protocol-relative URL) falls back. Dead / legacy
+ * paths map to real marketplace routes.
+ */
+export function resolveHomeHref(url?: string | null, fallback = "/search"): string {
+  const href = url?.trim();
+  if (!href || href === "#" || href === "/deals" || href === "/shop") return fallback;
+  if (href.startsWith("/")) return href.startsWith("//") || href.startsWith("/\\") ? fallback : href;
+  try {
+    const parsed = new URL(href);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.href : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 // ─── Transform Helpers ───────────────────────────────────────
