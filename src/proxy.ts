@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAllowedDuringComingSoon, isComingSoon } from "@/lib/coming-soon";
+import { COMING_SOON_ROUTE, isAllowedDuringComingSoon, isComingSoon } from "@/lib/coming-soon";
 import { isKnownAppRoute } from "@/lib/routing/known-app-routes";
 import { redirectTarget, resolveSeoRedirect } from "@/lib/routing/seo-redirects";
 
@@ -36,19 +36,29 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Coming-soon wall. The wall keeps the catalogue closed but lets the
-  // editorial and ecosystem pages through — they are the ones robots.txt and
-  // the sitemap advertise, and the ones the pre-launch footer links to.
-  if (isComingSoon() && !isAllowedDuringComingSoon(pathname)) {
+  // 2. The landing page is only ever served in place of "/".
+  if (pathname === COMING_SOON_ROUTE || pathname.startsWith(`${COMING_SOON_ROUTE}/`)) {
     return NextResponse.redirect(new URL("/", request.url), 307);
   }
 
-  // 3. App routes are destinations, never redirect sources.
+  // 3. Coming-soon wall. The wall keeps the catalogue closed but lets the
+  // editorial and ecosystem pages through — they are the ones robots.txt and
+  // the sitemap advertise, and the ones the pre-launch footer links to.
+  if (isComingSoon()) {
+    if (pathname === "/") {
+      return NextResponse.rewrite(new URL(COMING_SOON_ROUTE, request.url));
+    }
+    if (!isAllowedDuringComingSoon(pathname)) {
+      return NextResponse.redirect(new URL("/", request.url), 307);
+    }
+  }
+
+  // 4. App routes are destinations, never redirect sources.
   if (isKnownAppRoute(pathname)) {
     return NextResponse.next();
   }
 
-  // 4. Unknown path: ask the backend once, then serve from the cache.
+  // 5. Unknown path: ask the backend once, then serve from the cache.
   const redirect = await resolveSeoRedirect(pathname, { apiBaseUrl: API_BASE });
   if (redirect) {
     return NextResponse.redirect(redirectTarget(redirect, request.url), redirect.statusCode);

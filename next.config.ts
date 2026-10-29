@@ -27,6 +27,12 @@ const privateRoutePatterns = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+
+  // Fixed at build time so the proxy and the prerendered pages read the same
+  // value (see src/lib/coming-soon.ts).
+  env: {
+    COMING_SOON_ENABLED: process.env.COMING_SOON_ENABLED === "true" ? "true" : "false",
+  },
   reactCompiler: true,
 
   // ─── Cache-Control headers for Cloudflare edge caching ──────

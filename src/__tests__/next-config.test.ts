@@ -33,6 +33,12 @@ describe("next.config", () => {
     );
   });
 
+  it("fixes the coming-soon flag at build time, off unless explicitly on", () => {
+    expect(nextConfig.env?.COMING_SOON_ENABLED).toBe(
+      process.env.COMING_SOON_ENABLED === "true" ? "true" : "false",
+    );
+  });
+
   it("does not announce the framework", () => {
     expect(nextConfig.poweredByHeader).toBe(false);
   });

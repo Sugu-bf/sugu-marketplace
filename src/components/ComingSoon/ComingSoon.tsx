@@ -16,10 +16,11 @@ const PROGRESS_DURATION = 2200;
 /**
  * Coming Soon — Pre-launch landing page.
  *
- * Rendered instead of the real home page when COMING_SOON_ENABLED=true.
+ * Served by /coming-soon in place of "/" when COMING_SOON_ENABLED=true.
  * Uses CSS Modules for 100% style isolation from the main marketplace.
  *
- * On launch day: remove COMING_SOON_ENABLED from .env → redeploy → done.
+ * On launch day: COMING_SOON_ENABLED=false, rebuild, redeploy, purge the CDN
+ * (see @/lib/coming-soon).
  */
 export default function ComingSoon() {
   const [formData, setFormData] = useState({

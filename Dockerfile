@@ -16,6 +16,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ARG NEXT_PUBLIC_API_BASE_URL
+# Pre-launch wall, fixed at build time (src/lib/coming-soon.ts): switching it
+# means a rebuild, then a CDN purge.
+ARG COMING_SOON_ENABLED=false
 ARG NEXT_PUBLIC_APP_URL
 # Realtime (Reverb), inlined at build time. The key is the backend's public
 # REVERB_APP_KEY, never its secret; without it, chat stays without realtime.
@@ -26,6 +29,7 @@ ARG NEXT_PUBLIC_REVERB_HOST=ws.mysugu.com
 ARG NEXT_PUBLIC_REVERB_PORT=443
 ARG NEXT_PUBLIC_REVERB_SCHEME=https
 
+ENV COMING_SOON_ENABLED=$COMING_SOON_ENABLED
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_REVERB_APP_KEY=$NEXT_PUBLIC_REVERB_APP_KEY

@@ -1,6 +1,7 @@
 /**
  * The proxy end to end: a legacy URL is redirected, an App Router path never
- * reaches the backend, the coming-soon wall sends the catalogue home.
+ * reaches the backend, the coming-soon wall sends the catalogue home and
+ * serves the landing page in place of "/" (audit M2).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
@@ -41,6 +42,32 @@ describe("proxy", () => {
     vi.stubEnv("COMING_SOON_ENABLED", "true");
 
     const response = await proxy(new NextRequest("https://sugu.pro/product/x"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://sugu.pro/");
+  });
+
+  it("serves the landing page in place of the home while coming soon", async () => {
+    vi.stubEnv("COMING_SOON_ENABLED", "true");
+
+    const response = await proxy(new NextRequest("https://sugu.pro/"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe("https://sugu.pro/coming-soon");
+  });
+
+  it("serves the home itself once launched", async () => {
+    vi.stubEnv("COMING_SOON_ENABLED", "false");
+
+    const response = await proxy(new NextRequest("https://sugu.pro/"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it.each(["true", "false"])("never serves the landing page at its own address (%s)", async (flag) => {
+    vi.stubEnv("COMING_SOON_ENABLED", flag);
+
+    const response = await proxy(new NextRequest("https://sugu.pro/coming-soon"));
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("https://sugu.pro/");
