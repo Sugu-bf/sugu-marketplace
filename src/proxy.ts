@@ -51,6 +51,7 @@ const KNOWN_APP_ROUTE_PREFIXES = [
   "/cart",                       // (main)/cart
   "/checkout",                   // (main)/checkout
   "/track-order",                // (main)/track-order
+  "/payments",                   // (main)/payments (provider return pages)
   "/help",                       // (main)/help
   "/support-chat",               // (main)/support-chat
   "/banners",                    // (main)/banners

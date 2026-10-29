@@ -20,13 +20,11 @@ import {
   applyCoupon,
   removeCoupon,
   createCheckoutSession,
-  placeOrder,
   generateIdempotencyKey,
   getCartErrorMessage,
 } from "../api/cart.api";
 import type { CartUI } from "../api/cart.types";
 import { emitCartChanged } from "../events/cart-events";
-import { destroyCartAfterOrder } from "../events/destroy-cart";
 
 // ─── Types ───────────────────────────────────────────────────
 

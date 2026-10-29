@@ -155,36 +155,6 @@ export const ApiCheckoutSessionResponseSchema = z.object({
   }),
 });
 
-// ─── Place Order Response ────────────────────────────────────
-
-export const ApiPlaceOrderResponseSchema = z.object({
-  success: z.literal(true),
-  message: z.string().optional(),
-  data: z.object({
-    order: z.object({
-      id: z.union([z.string(), z.number()]),
-      number: z.string(),
-      status: z.string(),
-      payment_status: z.string().nullable().optional(),
-      total_amount: z.number(),
-      currency: z.string(),
-      items_count: z.number().optional(),
-      is_cod: z.boolean().optional(),
-      placed_at: z.string().nullable().optional(),
-      guest_order_token: z.string().nullable().optional(),
-    }),
-    payment_transaction: z.object({
-      id: z.union([z.string(), z.number()]),
-      provider: z.string(),
-      status: z.string(),
-      amount: z.number(),
-      currency: z.string(),
-    }).nullable().optional(),
-    payment_url: z.string().nullable().optional(),
-    next_step: z.string().optional(),
-  }),
-});
-
 // ─── Error Response ──────────────────────────────────────────
 
 export const ApiCartErrorSchema = z.object({
