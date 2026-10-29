@@ -239,6 +239,8 @@ async function executeRequest<T>(
     if (!response.ok) {
       const errorBody = await safeParseJson(response).catch(() => null);
       const errorData = errorBody as Record<string, unknown> | null;
+      const errorCode =
+        typeof errorData?.error_code === "string" ? errorData.error_code : undefined;
 
       throw new ApiError({
         status: response.status,
@@ -246,9 +248,15 @@ async function executeRequest<T>(
         message:
           (errorData?.message as string) ??
           `Erreur API ${response.status}: ${response.statusText}`,
-        details: errorData?.errors
-          ? { errors: errorData.errors as Record<string, string[]> }
-          : undefined,
+        details:
+          errorData?.errors || errorCode
+            ? {
+                ...(errorData?.errors
+                  ? { errors: errorData.errors as Record<string, string[]> }
+                  : {}),
+                ...(errorCode ? { error_code: errorCode } : {}),
+              }
+            : undefined,
         requestId,
       });
     }

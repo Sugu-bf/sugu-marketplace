@@ -286,6 +286,7 @@ Ouvrir [http://localhost:3000](http://localhost:3000) dans votre navigateur. �
 | `NEXT_PUBLIC_API_BASE_URL` | URL de l'API backend Laravel | `https://api.mysugu.com` |
 | `NEXT_PUBLIC_APP_URL` | URL du site frontend | `https://sugu.pro` |
 | `NEXT_PUBLIC_SITE_URL` | URL canonique du site | `https://sugu.pro` |
+| `NEXT_PUBLIC_PAYMENT_REDIRECT_HOSTS` | Hôtes des prestataires de paiement vers lesquels le navigateur peut être redirigé (séparés par des virgules, correspondance exacte, `https` uniquement) | `app.ligdicash.com,api.sugupay.net` |
 
 > ⚠️ **Sécurité** : l'application refuse tout `API_BASE_URL` pointant vers `localhost`, `127.0.0.1` ou toute adresse locale. Cette règle est appliquée à la fois dans `lib/api/config.ts` et via ESLint.
 

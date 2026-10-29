@@ -84,6 +84,20 @@ describe("api.get", () => {
     expect(caught!.status).toBe(404);
   });
 
+  it("should keep the envelope's error_code in the ApiError details", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(
+        { success: false, message: "Commande non payable", error_code: "ORDER_NOT_PAYABLE" },
+        409
+      )
+    );
+
+    const caught = await api.get(buildApiUrl("/v1/orders/1/payment")).catch((e: ApiError) => e);
+
+    expect(caught).toBeInstanceOf(ApiError);
+    expect((caught as ApiError).details).toEqual({ error_code: "ORDER_NOT_PAYABLE" });
+  });
+
   it("should throw ApiError on 500", async () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ message: "Server error" }, 500)

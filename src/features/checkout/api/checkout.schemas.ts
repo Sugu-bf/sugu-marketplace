@@ -246,7 +246,9 @@ export const PlaceOrderResponseSchema = z.object({
       })
       .nullable(),
     payment_url: z.string().nullable(),
-    next_step: z.enum(["order_confirmed", "redirect_to_payment"]),
+    // payment_init_failed: the order exists, unpaid, but the provider could
+    // not start the payment (payment_url is null); the buyer retries it.
+    next_step: z.enum(["order_confirmed", "redirect_to_payment", "payment_init_failed"]),
   }),
 });
 

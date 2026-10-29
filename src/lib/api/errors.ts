@@ -36,6 +36,8 @@ export type ApiErrorCode =
 export interface ApiErrorDetails {
   /** Laravel-style field validation errors */
   errors?: Record<string, string[]>;
+  /** Business error code from the Laravel envelope (e.g. ORDER_NOT_PAYABLE) */
+  error_code?: string;
   /** Any additional context (never secrets) */
   [key: string]: unknown;
 }

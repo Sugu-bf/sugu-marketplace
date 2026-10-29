@@ -8,6 +8,7 @@ import { ShippingMethodCard } from "./ShippingMethodCard";
 import { AddressPreview } from "./AddressPreview";
 import { AddressModal } from "./AddressModal";
 import { CheckoutOrderSummary } from "./CheckoutOrderSummary";
+import { PaymentInitFailedPanel } from "./PaymentInitFailedPanel";
 import { Package, MapPin, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import type {
@@ -41,6 +42,7 @@ import {
   DRAFT_ADDRESS_ID,
   type AddressDraft,
 } from "../utils/address";
+import { placeOrderNextStep, type UnpaidOnlineOrder } from "../utils/place-order-next-step";
 import { destroyCartAfterOrder } from "@/features/cart/events/destroy-cart";
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants";
 
@@ -156,6 +158,8 @@ function CheckoutOrchestrator({
   // Loading/error states
   const [placingOrder, setPlacingOrder] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  /** Commande en ligne créée mais dont le paiement n'a pas pu être lancé. */
+  const [unpaidOrder, setUnpaidOrder] = useState<UnpaidOnlineOrder | null>(null);
   /** Avertissement non bloquant (ex : carnet indisponible). */
   const [addressNotice, setAddressNotice] = useState<string | null>(null);
 
@@ -437,11 +441,13 @@ function CheckoutOrchestrator({
         // ✅ Order placed — destroy cart before navigating
         destroyCartAfterOrder();
 
-        if (result.next_step === "redirect_to_payment" && result.payment_url) {
-          window.location.href = result.payment_url;
+        const nextStep = placeOrderNextStep(result);
+        if (nextStep.type === "redirect") {
+          window.location.href = nextStep.url;
+        } else if (nextStep.type === "payment_init_failed") {
+          setUnpaidOrder(nextStep.order);
         } else {
-          const orderId = result.order.id;
-          router.push(`/track-order?order=${orderId}`);
+          router.push(`/track-order?order=${nextStep.orderId}`);
         }
       } catch (err) {
         if (isConflictError(err)) {
@@ -460,6 +466,10 @@ function CheckoutOrchestrator({
   );
 
   // ─── Render ──────────────────────────────────────────────
+  if (unpaidOrder) {
+    return <PaymentInitFailedPanel order={unpaidOrder} />;
+  }
+
   return (
     <>
       {/* Error banner */}

@@ -23,6 +23,7 @@ import {
   releaseMutex,
 } from "../utils/idempotency";
 import { checkoutErrorMessage } from "../api/checkout.api";
+import { placeOrderNextStep } from "../utils/place-order-next-step";
 import { ApiError } from "@/lib/api/errors";
 
 // ═══════════════════════════════════════════════════════════════
@@ -274,11 +275,8 @@ describe("Checkout Zod Schemas", () => {
     // order tracking via next_step. This is what makes the provider cutover (I3) a
     // pure backend flag flip with no simultaneous front deployment.
     test("redirection is provider-agnostic (ligdicash & sugupay identical, COD → track)", () => {
-      // Mirrors CheckoutOrchestrator's decision (keyed ONLY on next_step + payment_url).
-      const redirectDecision = (d: { next_step: string; payment_url: string | null }) =>
-        d.next_step === "redirect_to_payment" && d.payment_url
-          ? { type: "redirect" as const, url: d.payment_url }
-          : { type: "track" as const };
+      // CheckoutOrchestrator's decision (keyed ONLY on next_step + payment_url).
+      const redirectDecision = placeOrderNextStep;
 
       const onlineResponse = (provider: string, url: string) => ({
         success: true,
@@ -306,7 +304,7 @@ describe("Checkout Zod Schemas", () => {
         onlineResponse("ligdicash", "https://app.ligdicash.com/checkout/xxx")
       );
       const sugu = PlaceOrderResponseSchema.parse(
-        onlineResponse("sugupay", "https://pay.sugupay.test/checkout/yyy")
+        onlineResponse("sugupay", "https://api.sugupay.net/checkout/yyy")
       );
 
       // Both parse and both redirect — identical decision regardless of provider.
@@ -337,6 +335,68 @@ describe("Checkout Zod Schemas", () => {
         },
       });
       expect(redirectDecision(cod.data).type).toBe("track");
+    });
+
+    // P1-24 — an online order whose payment did not start is an unpaid order:
+    // never sent to tracking as if paid, never redirected to an untrusted URL.
+    describe("placeOrderNextStep — payment initiation failures", () => {
+      const online = (
+        next_step: "redirect_to_payment" | "payment_init_failed",
+        payment_url: string | null
+      ) =>
+        PlaceOrderResponseSchema.parse({
+          success: true,
+          message: "ok",
+          data: {
+            order: {
+              id: "01jkqz3m5baxnp9c7hd2fewyr4",
+              number: "SU-2026-000010",
+              status: "pending",
+              payment_status: "unpaid",
+              total_amount: 15000,
+              currency: "XOF",
+              items_count: 1,
+              is_cod: false,
+              placed_at: null,
+              guest_order_token: "gt_abc123",
+            },
+            payment_transaction: null,
+            payment_url,
+            next_step,
+          },
+        }).data;
+
+      const failed = {
+        type: "payment_init_failed",
+        order: {
+          id: "01jkqz3m5baxnp9c7hd2fewyr4",
+          number: "SU-2026-000010",
+          guestOrderToken: "gt_abc123",
+        },
+      };
+
+      test("accepts and routes next_step=payment_init_failed to the retry state", () => {
+        expect(placeOrderNextStep(online("payment_init_failed", null))).toEqual(failed);
+      });
+
+      test("redirect_to_payment without a payment URL is a failed initiation", () => {
+        expect(placeOrderNextStep(online("redirect_to_payment", null))).toEqual(failed);
+      });
+
+      test.each([
+        "https://app.ligdicash.com.evil.tld/checkout",
+        "http://app.ligdicash.com/checkout",
+        "javascript:alert(1)",
+        "//app.ligdicash.com/checkout",
+      ])("an untrusted payment URL (%s) is a failed initiation, not a redirect", (url) => {
+        expect(placeOrderNextStep(online("redirect_to_payment", url))).toEqual(failed);
+      });
+
+      test("a trusted payment URL is followed", () => {
+        expect(
+          placeOrderNextStep(online("redirect_to_payment", "https://app.ligdicash.com/checkout/x"))
+        ).toEqual({ type: "redirect", url: "https://app.ligdicash.com/checkout/x" });
+      });
     });
 
     // Backend contract: COD Legacy and COD Mixte share the same placeOrder
