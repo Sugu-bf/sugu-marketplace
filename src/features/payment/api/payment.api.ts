@@ -1,5 +1,6 @@
 /**
- * Payment API — online payment (re)initiation of an order.
+ * Payment API — online payment (re)initiation of an order, and the status of
+ * a payment the provider sent the buyer back from.
  *
  * Browser calls go through the api client, which routes them via the
  * same-origin BFF: a logged-in buyer is authenticated by its session, a guest
@@ -8,7 +9,12 @@
 
 import { api } from "@/lib/api/client";
 import { v1Url } from "@/lib/api/endpoints";
-import { RetryOrderPaymentResponseSchema, type RetryOrderPaymentResponse } from "./payment.schemas";
+import {
+  PaymentStatusResponseSchema,
+  RetryOrderPaymentResponseSchema,
+  type PaymentStatus,
+  type RetryOrderPaymentResponse,
+} from "./payment.schemas";
 
 const PAYMENT_TIMEOUT_MS = 15_000;
 
@@ -28,6 +34,25 @@ export async function retryOrderPayment(
     timeout: PAYMENT_TIMEOUT_MS,
     retries: 0,
     headers: guestOrderToken ? { "X-Guest-Order-Token": guestOrderToken } : undefined,
+  });
+
+  return data.data;
+}
+
+/**
+ * Status of the payment behind the opaque `ref` the provider appends to
+ * /payments/success and /payments/failed, passed through as received.
+ *
+ * Not retried here: the caller polls. Errors: 401 (the order belongs to a
+ * registered buyer who is not logged in), 404 (unknown ref or not the
+ * owner), 429.
+ */
+export async function getPaymentStatus(ref: string): Promise<PaymentStatus> {
+  const { data } = await api.get(v1Url("payments/status", { ref }), {
+    schema: PaymentStatusResponseSchema,
+    cache: "no-store",
+    timeout: PAYMENT_TIMEOUT_MS,
+    retries: 0,
   });
 
   return data.data;
