@@ -246,9 +246,18 @@ async function executeRequest<T>(
         message:
           (errorData?.message as string) ??
           `Erreur API ${response.status}: ${response.statusText}`,
-        details: errorData?.errors
-          ? { errors: errorData.errors as Record<string, string[]> }
-          : undefined,
+        details:
+          errorData?.errors || typeof errorData?.error_code === "string"
+            ? {
+                ...(errorData?.errors
+                  ? { errors: errorData.errors as Record<string, string[]> }
+                  : {}),
+                // A stable code the screens can branch on (e.g. PRICE_CHANGED).
+                ...(typeof errorData?.error_code === "string"
+                  ? { error_code: errorData.error_code }
+                  : {}),
+              }
+            : undefined,
         requestId,
       });
     }

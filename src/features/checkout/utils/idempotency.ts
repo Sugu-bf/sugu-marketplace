@@ -28,11 +28,12 @@ export function sessionIdempotencyKey(): string {
 }
 
 /**
- * Generate an idempotency key for placing an order.
- * Includes the session ID to tie the key to the specific checkout.
+ * The idempotency key of placing the order of a session: always the same
+ * for one session, so a retry after a timeout or a lost answer gets the
+ * order already placed instead of a second one.
  */
 export function orderIdempotencyKey(sessionId: string): string {
-  return generateIdempotencyKey(`po_${sessionId.slice(0, 8)}`);
+  return `po_${sessionId}`;
 }
 
 // ─── Mutex for anti-double-submit ────────────────────────────
