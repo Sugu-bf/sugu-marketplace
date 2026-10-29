@@ -4,7 +4,9 @@
  * socket down, channel refused) nothing would come: the list and the open
  * conversation are read again every 30 s while the tab is visible, and at
  * once when the socket is back. A new message is counted once: by the
- * server, in the list it sends again.
+ * server, in the list it sends again. One layout is mounted, never both:
+ * on a desktop, the hidden mobile chat room used to read and mark every
+ * message a second time.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -64,6 +66,16 @@ function conversation(overrides: Partial<Conversation> = {}): Conversation {
   };
 }
 
+/** The width of the screen, as `matchMedia` tells it. */
+function screenWidth(desktop: boolean) {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: desktop,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+}
+
 async function flush() {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(0);
@@ -77,6 +89,7 @@ beforeEach(() => {
     disconnect() {}
   });
   Element.prototype.scrollIntoView = vi.fn();
+  screenWidth(true);
   echoState.live = false;
   useMessagingStore.setState({ activeConversationId: null, mobileView: "list" });
   vi.mocked(fetchConversations).mockReset().mockResolvedValue({ data: [conversation()], meta: { has_more: false, next_cursor: null } });
@@ -181,5 +194,27 @@ describe("MessagingPage — unread messages", () => {
 
     expect(screen.getAllByText("1").length).toBeGreaterThan(0);
     expect(screen.queryByText("2")).toBeNull();
+  });
+});
+
+describe("MessagingPage — one layout", () => {
+  it.each([[true], [false]])("mounts a single chat room (desktop: %s), which marks the message read once", async (desktop) => {
+    screenWidth(desktop);
+    vi.mocked(fetchMessages).mockResolvedValue({
+      messages: [{
+        id: "01jkqz3m5baxnp9c7hd2fewys1", sender_id: "seller-1", sender_type: "seller", sender_name: "Vendeur",
+        body: "Bonjour", message_type: "text", metadata: null, is_own: false, attachments: [], is_flagged: false,
+        created_at: "2026-10-29T10:01:00Z",
+      }],
+      has_more: false,
+    });
+    useMessagingStore.setState({ activeConversationId: CONV, mobileView: "chat" });
+    renderWithProviders(<MessagingPage user={USER} />);
+    await flush();
+    await flush();
+
+    expect(screen.getAllByPlaceholderText("Écrivez votre message...")).toHaveLength(1);
+    expect(screen.queryAllByRole("button", { name: "Retour" })).toHaveLength(desktop ? 0 : 1);
+    expect(vi.mocked(markAsRead)).toHaveBeenCalledTimes(1);
   });
 });

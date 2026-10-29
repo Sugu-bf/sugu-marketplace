@@ -17,6 +17,7 @@ import {
 import { ConversationList } from "./ConversationList";
 import { ChatRoom } from "./ChatRoom";
 import { ContactPanel } from "./ContactPanel";
+import { useIsDesktop } from "../use-is-desktop";
 import { MessageSquare } from "lucide-react";
 
 interface MessagingPageProps {
@@ -121,6 +122,10 @@ export function MessagingPage({ user }: MessagingPageProps) {
     [setActiveConversation]
   );
 
+  // One layout is mounted, never both: two chat rooms (one of them hidden)
+  // read and marked every message twice.
+  const isDesktop = useIsDesktop();
+
   const handleBack = useCallback(() => {
     setActiveConversation(null);
     setMobileView("list");
@@ -128,66 +133,69 @@ export function MessagingPage({ user }: MessagingPageProps) {
 
   return (
     <div className="h-full flex overflow-hidden">
-      {/* ═══ Desktop Layout (lg+): 3 panels ═══ */}
-
-      {/* Panel 1 — Conversation List */}
-      <div className="hidden lg:flex lg:w-[320px] xl:w-[350px] flex-shrink-0 border-r border-border-light">
-        <div className="w-full">
-          <ConversationList
-            onSelectConversation={handleSelectConversation}
-            activeConversationId={activeConversationId}
-          />
-        </div>
-      </div>
-
-      {/* Panel 2 — Chat Room */}
-      <div className="hidden lg:flex flex-1 min-w-0">
-        {activeConversationId ? (
-          <div className="w-full">
-            <ChatRoom conversationId={activeConversationId} />
-          </div>
-        ) : (
-          <div className="w-full flex items-center justify-center bg-muted/20">
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center">
-                <MessageSquare size={28} className="text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Sélectionnez une conversation pour commencer
-              </p>
+      {isDesktop ? (
+        <>
+          {/* ═══ Desktop Layout (lg+): 3 panels ═══ */}
+          {/* Panel 1 — Conversation List */}
+          <div className="hidden lg:flex lg:w-[320px] xl:w-[350px] flex-shrink-0 border-r border-border-light">
+            <div className="w-full">
+              <ConversationList
+                onSelectConversation={handleSelectConversation}
+                activeConversationId={activeConversationId}
+              />
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Panel 3 — Contact Panel */}
-      {activeConversationId && (
-        <div className="hidden xl:flex xl:w-[280px] flex-shrink-0">
-          <div className="w-full">
-            <ContactPanel conversationId={activeConversationId} />
+          {/* Panel 2 — Chat Room */}
+          <div className="hidden lg:flex flex-1 min-w-0">
+            {activeConversationId ? (
+              <div className="w-full">
+                <ChatRoom conversationId={activeConversationId} />
+              </div>
+            ) : (
+              <div className="w-full flex items-center justify-center bg-muted/20">
+                <div className="text-center space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-muted mx-auto flex items-center justify-center">
+                    <MessageSquare size={28} className="text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Sélectionnez une conversation pour commencer
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Panel 3 — Contact Panel */}
+          {activeConversationId && (
+            <div className="hidden xl:flex xl:w-[280px] flex-shrink-0">
+              <div className="w-full">
+                <ContactPanel conversationId={activeConversationId} />
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        /* ═══ Mobile Layout (<lg): single panel ═══ */
+        <div className="flex lg:hidden w-full">
+          {mobileView === "list" || !activeConversationId ? (
+            <div className="w-full">
+              <ConversationList
+                onSelectConversation={handleSelectConversation}
+                activeConversationId={null}
+              />
+            </div>
+          ) : (
+            <div className="w-full">
+              <ChatRoom
+                conversationId={activeConversationId}
+                showBackButton
+                onBack={handleBack}
+              />
+            </div>
+          )}
         </div>
       )}
-
-      {/* ═══ Mobile Layout (<lg): single panel ═══ */}
-      <div className="flex lg:hidden w-full">
-        {mobileView === "list" || !activeConversationId ? (
-          <div className="w-full">
-            <ConversationList
-              onSelectConversation={handleSelectConversation}
-              activeConversationId={null}
-            />
-          </div>
-        ) : (
-          <div className="w-full">
-            <ChatRoom
-              conversationId={activeConversationId}
-              showBackButton
-              onBack={handleBack}
-            />
-          </div>
-        )}
-      </div>
     </div>
   );
 }
