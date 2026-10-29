@@ -101,6 +101,7 @@ export const useMessagingStore = create<MessagingStore>((set) => ({
 
 export function useConversations(filters?: {
   status?: string;
+  unread?: boolean;
   q?: string;
 }) {
   return useInfiniteQuery({

@@ -33,7 +33,7 @@ export function ConversationList({
 
   // Stable filter object for React Query key
   const queryFilters = useMemo(() => ({
-    ...(filter === "unread" ? { status: "unread" as const } : {}),
+    ...(filter === "unread" ? { unread: true } : {}),
     ...(debouncedQuery ? { q: debouncedQuery } : {}),
   }), [filter, debouncedQuery]);
 
@@ -51,11 +51,15 @@ export function ConversationList({
     [data]
   );
 
-  // Memoized counts
-  const { totalCount, unreadCount } = useMemo(() => ({
-    totalCount: conversations.length,
-    unreadCount: conversations.filter((c) => c.unread_count > 0).length,
-  }), [conversations]);
+  // The server's counts, whatever the tab; an older answer without them
+  // falls back to the rows loaded.
+  const serverCounts = data?.pages[0]?.meta.counts;
+  const { totalCount, unreadCount } = useMemo(() => serverCounts
+    ? { totalCount: serverCounts.all, unreadCount: serverCounts.unread }
+    : {
+        totalCount: conversations.length,
+        unreadCount: conversations.filter((c) => c.unread_count > 0).length,
+      }, [serverCounts, conversations]);
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement>(null);

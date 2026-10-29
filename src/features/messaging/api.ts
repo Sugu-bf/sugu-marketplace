@@ -18,6 +18,17 @@ interface CursorMeta {
   next_cursor: string | null;
 }
 
+/** How many conversations the buyer has, and how many hold an unread message. */
+export interface ConversationCounts {
+  all: number;
+  unread: number;
+}
+
+interface ConversationListMeta extends CursorMeta {
+  /** Absent from an older answer. */
+  counts?: ConversationCounts;
+}
+
 // ── Recommended Product ────────────────────────────────────
 
 export interface RecommendedProduct {
@@ -35,16 +46,19 @@ export interface RecommendedProduct {
 
 export async function fetchConversations(params?: {
   status?: string;
+  /** Only the conversations that hold a message the buyer has not read. */
+  unread?: boolean;
   q?: string;
   per_page?: number;
   cursor?: string;
-}): Promise<{ data: Conversation[]; meta: CursorMeta }> {
+}): Promise<{ data: Conversation[]; meta: ConversationListMeta }> {
   const { data } = await api.get<
-    ApiEnvelope<unknown> & { meta?: CursorMeta }
+    ApiEnvelope<unknown> & { meta?: ConversationListMeta }
   >(
     meUrl("conversations", {
       per_page: params?.per_page ?? 20,
       ...(params?.status ? { status: params.status } : {}),
+      ...(params?.unread ? { unread: 1 } : {}),
       ...(params?.q ? { q: params.q } : {}),
       ...(params?.cursor ? { cursor: params.cursor } : {}),
     })
@@ -57,9 +71,13 @@ export async function fetchConversations(params?: {
     ? ((rawData as { data: Conversation[] }).data)
     : [];
 
-  const meta: CursorMeta = {
+  const counts = data?.meta?.counts;
+  const meta: ConversationListMeta = {
     has_more: data?.meta?.has_more ?? ((rawData as { next_cursor?: string })?.next_cursor ? true : false),
     next_cursor: data?.meta?.next_cursor ?? (rawData as { next_cursor?: string })?.next_cursor ?? null,
+    ...(counts && typeof counts.all === "number" && typeof counts.unread === "number"
+      ? { counts: { all: counts.all, unread: counts.unread } }
+      : {}),
   };
 
   return { data: items, meta };
