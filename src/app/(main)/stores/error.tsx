@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { Container } from "@/components/ui";
 
 export default function StoresError({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -30,12 +30,12 @@ export default function StoresError({
           >
             Réessayer
           </button>
-          <a
+          <Link
             href="/"
             className="rounded-full border border-border px-6 py-2.5 text-sm font-medium text-foreground transition-colors duration-200 hover:border-primary/40 hover:bg-primary-50 hover:text-primary"
           >
             Accueil
-          </a>
+          </Link>
         </div>
       </div>
     </Container>

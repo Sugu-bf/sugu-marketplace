@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Search,
   ShoppingCart,
@@ -400,11 +401,11 @@ export default function Header() {
       >
         <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-4 py-2.5 lg:px-8">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2 group flex-shrink-0">
+          <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
             <div className="relative h-10 w-10 overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-110 bg-white/10 p-0.5">
               <Image src="https://cdn.sugu.pro/p/logo-sugu.avif" alt="Sugu" fill className="object-contain" unoptimized />
             </div>
-          </a>
+          </Link>
 
           {/* Hamburger + "Toutes les catégories" */}
           <div

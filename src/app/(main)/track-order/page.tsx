@@ -110,43 +110,9 @@ export default async function TrackOrderPage({
   }
 
   // ─ Fetch order data (SSR, no-store) ────────────────────────
+  let order: Awaited<ReturnType<typeof queryTrackedOrder>>;
   try {
-    const order = await queryTrackedOrder(orderId);
-
-    return (
-      <main className="pb-12">
-        {/* Breadcrumb */}
-        <Container className="pt-4 pb-2">
-          <Breadcrumb items={[{ label: "Suivi de commande" }]} />
-        </Container>
-
-        {/* Live tracking content */}
-        <Container className="pb-6">
-          <TrackingLiveWrapper orderId={orderId} initialData={order} />
-        </Container>
-
-        {/* Trust Badges */}
-        <Container className="pt-10 mt-8 border-t border-border-light">
-          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
-            <AssuranceBadge
-              icon={<Lock size={16} />}
-              label="Paiement sécurisé"
-              className="border-none bg-transparent"
-            />
-            <AssuranceBadge
-              icon={<Truck size={16} />}
-              label="Suivi en temps réel"
-              className="border-none bg-transparent"
-            />
-            <AssuranceBadge
-              icon={<ShieldCheck size={16} />}
-              label="Fraîcheur garantie"
-              className="border-none bg-transparent"
-            />
-          </div>
-        </Container>
-      </main>
-    );
+    order = await queryTrackedOrder(orderId);
   } catch (error) {
     // ─ Handle specific API errors ──────────────────────────────
     if (isApiError(error)) {
@@ -189,4 +155,39 @@ export default async function TrackOrderPage({
       />
     );
   }
+
+  return (
+    <main className="pb-12">
+      {/* Breadcrumb */}
+      <Container className="pt-4 pb-2">
+        <Breadcrumb items={[{ label: "Suivi de commande" }]} />
+      </Container>
+
+      {/* Live tracking content */}
+      <Container className="pb-6">
+        <TrackingLiveWrapper orderId={orderId} initialData={order} />
+      </Container>
+
+      {/* Trust Badges */}
+      <Container className="pt-10 mt-8 border-t border-border-light">
+        <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+          <AssuranceBadge
+            icon={<Lock size={16} />}
+            label="Paiement sécurisé"
+            className="border-none bg-transparent"
+          />
+          <AssuranceBadge
+            icon={<Truck size={16} />}
+            label="Suivi en temps réel"
+            className="border-none bg-transparent"
+          />
+          <AssuranceBadge
+            icon={<ShieldCheck size={16} />}
+            label="Fraîcheur garantie"
+            className="border-none bg-transparent"
+          />
+        </div>
+      </Container>
+    </main>
+  );
 }

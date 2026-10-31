@@ -43,7 +43,9 @@ export function useTypingIndicator(
   // ─── Sending (throttled) ──────────────────────────────────
   const lastSentRef = useRef<number>(0);
   const sendEndpointRef = useRef(sendEndpoint);
-  sendEndpointRef.current = sendEndpoint;
+  useEffect(() => {
+    sendEndpointRef.current = sendEndpoint;
+  }, [sendEndpoint]);
 
   const notifyTyping = useCallback(() => {
     if (!conversationId) return;

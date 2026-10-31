@@ -12,6 +12,7 @@ import {
   PackageSearch,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatPrice, DEFAULT_PRICE_RANGES } from "@/lib/constants";
 import { ProductCard, Pagination, Badge, CategoryTile } from "@/components/ui";
@@ -756,12 +757,12 @@ function EmptyCategoryState({ categoryName }: { categoryName: string }) {
         <span className="font-medium text-foreground">{categoryName}</span>
         &quot;. Essayez de modifier vos filtres.
       </p>
-      <a
+      <Link
         href="/"
         className="mt-6 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-primary-dark"
       >
         Retour à l&apos;accueil
-      </a>
+      </Link>
     </div>
   );
 }

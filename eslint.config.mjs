@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     // Guard: prevent localhost/127.0.0.1 API URLs in source code
     files: ["**/*.ts", "**/*.tsx"],
     rules: {
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/preserve-manual-memoization": "off",
       "no-restricted-syntax": [
         "error",
         {

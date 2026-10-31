@@ -86,8 +86,8 @@ export default function ComingSoon() {
 
       trackPixel("CompleteRegistration");
       setIsSellerSubmitted(true);
-    } catch (err: any) {
-      setSellerError(err.message);
+    } catch (err: unknown) {
+      setSellerError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
       setIsSellerLoading(false);
     }
@@ -146,8 +146,8 @@ export default function ComingSoon() {
       trackPixel("Lead");
 
       setIsSubmitted(true);
-    } catch (err: any) {
-      setFormError(err.message);
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
       setIsLoading(false);
     }
@@ -766,7 +766,7 @@ export default function ComingSoon() {
                 <select className={s.sInput} style={{ cursor: "pointer" }} value={sellerData.country} onChange={e => setSellerData({...sellerData, country: e.target.value})} required>
                   <option value="" disabled hidden>Pays</option>
                   <option value="BF">Burkina Faso 🇧🇫</option>
-                  <option value="CI">Côte d'Ivoire 🇨🇮</option>
+                  <option value="CI">Côte d&apos;Ivoire 🇨🇮</option>
                   <option value="SN">Sénégal 🇸🇳</option>
                   <option value="ML">Mali 🇲🇱</option>
                   <option value="TG">Togo 🇹🇬</option>

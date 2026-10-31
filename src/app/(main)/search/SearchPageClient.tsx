@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   SlidersHorizontal,
   X,
@@ -624,7 +625,7 @@ export default function SearchPageClient({
                   >
                     {viewMode === "grid" ? (
                       <ProductCard
-                        product={product as any}
+                        product={product as unknown as React.ComponentProps<typeof ProductCard>["product"]}
                         showSaleBadge
                         className="w-full"
                       />
@@ -795,12 +796,12 @@ function EmptySearchState({ query }: { query: string }) {
           <>Essayez d&apos;utiliser des termes de recherche ou de modifier vos filtres.</>
         )}
       </p>
-      <a
+      <Link
         href="/"
         className="mt-6 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors duration-200 hover:bg-primary-dark"
       >
         Retour à l&apos;accueil
-      </a>
+      </Link>
     </div>
   );
 }

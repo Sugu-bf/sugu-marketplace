@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,13 +21,13 @@ function Breadcrumb({ items, className }: BreadcrumbProps) {
     <nav aria-label="Fil d'Ariane" className={cn("flex items-center", className)}>
       <ol className="flex items-center gap-1.5 text-sm">
         <li>
-          <a
+          <Link
             href="/"
             className="flex items-center gap-1 text-muted-foreground transition-colors duration-200 hover:text-primary"
           >
             <Home size={14} />
             <span className="sr-only">Accueil</span>
-          </a>
+          </Link>
         </li>
         {items.map((item, idx) => (
           <li key={idx} className="flex items-center gap-1.5">
@@ -36,12 +37,12 @@ function Breadcrumb({ items, className }: BreadcrumbProps) {
               aria-hidden="true"
             />
             {item.href ? (
-              <a
+              <Link
                 href={item.href}
                 className="text-muted-foreground transition-colors duration-200 hover:text-primary"
               >
                 {item.label}
-              </a>
+              </Link>
             ) : (
               <span className="font-medium text-foreground">{item.label}</span>
             )}
