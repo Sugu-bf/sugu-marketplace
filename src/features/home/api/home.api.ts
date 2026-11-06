@@ -5,8 +5,8 @@
  * - GET /api/v1/banners/slots/{key}       → Banners (hero, top-banners, deals)
  * - GET /api/v1/categories/featured       → Category pills
  * - GET /api/v1/home/brands?limit=12      → Brand logos
- * - GET /api/v1/home/recommended          → Trending / recommended products (with tabs)
- * - GET /api/v1/home/hot-deals?limit=10   → Hot deals + countdown
+ * - GET /api/v1/home/recommended          → Trending / recommended products (with tabs), sliced by offset
+ * - GET /api/v1/home/hot-deals?limit=1    → Hot deal + countdown
  * - GET /api/v1/home/product-lists?limit=6 → 3 columns + deal of week
  * - GET /api/v1/home/daily-best-sells     → Daily best sells + promo banner
  * - POST /api/v1/cart/items               → Add to cart
@@ -114,13 +114,31 @@ export interface RecommendedResult {
   products: ApiRecommendedProduct[];
 }
 
+/**
+ * The home carousels read consecutive slices of the recommended list, so that
+ * none repeats another (they used to show the same first products three
+ * times). Keep in step with what each carousel displays.
+ */
+export const HOME_RECOMMENDED_SLICES = {
+  bestSeller: { offset: 0, limit: 6 },
+  trending: { offset: 6, limit: 6 },
+  orderNow: { offset: 12, limit: 4 },
+} as const;
+
+/**
+ * Recommended products. With category "all": the rest of the home draw of the
+ * rotation window, once the other home sections took their products (no
+ * product shows twice on the page). `offset` reads a slice of that list, one
+ * per carousel (see HOME_RECOMMENDED_SLICES).
+ */
 export async function fetchRecommended(
   category = "all",
-  limit = 12
+  limit = 12,
+  offset = 0
 ): Promise<RecommendedResult> {
   try {
     const { data } = await api.get(
-      v1Url("home/recommended", { category, limit }),
+      v1Url("home/recommended", offset > 0 ? { category, limit, offset } : { category, limit }),
       {
         schema: RecommendedResponseSchema,
         revalidate: RevalidatePresets.frequent,

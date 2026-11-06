@@ -7,7 +7,8 @@
  */
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("@/features/home/api/home.api", () => ({
+vi.mock("@/features/home/api/home.api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/home/api/home.api")>()),
   fetchBannerSlot: vi.fn(async () => []),
   fetchFeaturedCategories: vi.fn(async () => []),
   fetchAllCategories: vi.fn(async () => []),

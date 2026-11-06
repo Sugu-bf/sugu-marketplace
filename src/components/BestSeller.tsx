@@ -19,7 +19,7 @@ export default function BestSeller({ products }: BestSellerProps) {
     >
       {/* Section Header */}
       <SectionHeader
-        title="Meilleures Ventes"
+        title="Sélection du jour"
         action={
           <div className="flex items-center gap-3">
             <ViewAllButton label="Voir tout" count={40} href="/search" />

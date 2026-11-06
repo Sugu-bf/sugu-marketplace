@@ -26,6 +26,7 @@ import {
   queryMeilleuresVentes,
   queryEnPromotion,
   queryWeeklyDeal,
+  HOME_RECOMMENDED_SLICES,
 } from "@/features/home";
 import { queryFeaturedProducts } from "@/features/product";
 
@@ -45,6 +46,13 @@ import { queryFeaturedProducts } from "@/features/product";
  * - Products: frequent (2 min) + tag "products"
  * - Hot deals: short (1 min) + tag "products"
  * - Trust badges: infinite (static data)
+ *
+ * Products: the API draws them again at each rotation window (24 h by
+ * default, set in the back office) and gives each section its own, so the
+ * page changes from one day to the next and never shows a product twice.
+ * The carousels read consecutive slices of the recommended list
+ * (HOME_RECOMMENDED_SLICES). Every visitor gets the same page during a
+ * window: the ISR and CDN caches stay as they are.
  *
  * A section the API has nothing for is left out: no stand-in content.
  */
@@ -73,7 +81,7 @@ export default async function HomePage() {
     queryHeroBanner(),
     queryCategoryPills(),
     queryFreshCategories(),
-    queryFeaturedProducts(6),
+    queryFeaturedProducts(HOME_RECOMMENDED_SLICES.bestSeller.limit),
     queryPromotionalDeals(),
     queryTrendingTags(),
     queryTrendingProducts(),
@@ -104,7 +112,7 @@ export default async function HomePage() {
       {/* SECTION 4: Promo Cards Carousel */}
       {freshCategories.length > 0 && <FreshCategories categories={freshCategories} />}
 
-      {/* SECTION 5: Best Seller */}
+      {/* SECTION 5: Selection of the day (first slice of the recommended list) */}
       {bestSellerProducts.length > 0 && <BestSeller products={bestSellerProducts} />}
 
       {/* SECTION 5b: Promotional Deal Banners (with timer) */}

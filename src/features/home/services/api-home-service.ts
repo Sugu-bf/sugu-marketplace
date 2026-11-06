@@ -34,6 +34,7 @@ import {
   fetchHotDeals,
   fetchProductLists,
   fetchDailyBestSells,
+  HOME_RECOMMENDED_SLICES,
 } from "../api/home.api";
 import type {
   ApiBannerItem,
@@ -240,7 +241,9 @@ export class ApiHomeService implements HomeRepository {
   }
 
   async getPromotionalDeals(): Promise<PromotionalDeal[]> {
-    const result = await fetchHotDeals(2);
+    // One deal is shown, and the API keeps it apart from the other sections
+    // only at the size the page shows.
+    const result = await fetchHotDeals(1);
     if (result.items.length > 0 || result.banner) {
       // The end date, not a remaining time: computed at render time, it was
       // frozen in the ISR page and counted down from there in the browser.
@@ -298,16 +301,19 @@ export class ApiHomeService implements HomeRepository {
   }
 
   async getTrendingProducts(): Promise<ProductListItem[]> {
-    const result = await fetchRecommended("all", 6);
+    const { offset, limit } = HOME_RECOMMENDED_SLICES.trending;
+    const result = await fetchRecommended("all", limit, offset);
     return result.products.map(apiRecommendedToListItem);
   }
 
   async getOrderNowProducts(): Promise<ProductListItem[]> {
-    const result = await fetchRecommended("all", 4);
-    return result.products.slice(0, 4).map(apiRecommendedToListItem);
+    const { offset, limit } = HOME_RECOMMENDED_SLICES.orderNow;
+    const result = await fetchRecommended("all", limit, offset);
+    return result.products.slice(0, limit).map(apiRecommendedToListItem);
   }
 
   async getDailyDealCard(): Promise<DailyDealCard | null> {
+    // Same request as getPromotionalDeals (deduplicated by Next): only the banner is used.
     const result = await fetchHotDeals(1);
     if (result.banner) {
       return {

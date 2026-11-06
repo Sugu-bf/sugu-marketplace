@@ -185,6 +185,9 @@ export const RecommendedResponseSchema = z.object({
     limit: z.number(),
     count: z.number(),
     category: z.string(),
+    offset: z.number().optional(),
+    /** Rotation window of the draw these products come from. */
+    window: z.number().optional(),
   }),
 });
 

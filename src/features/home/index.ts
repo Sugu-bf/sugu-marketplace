@@ -41,5 +41,6 @@ export {
   addToCart,
   subscribeNewsletter,
   fetchRecommended,
+  HOME_RECOMMENDED_SLICES,
 } from "./api/home.api";
 export type { AddToCartParams, AddToCartResult } from "./api/home.api";

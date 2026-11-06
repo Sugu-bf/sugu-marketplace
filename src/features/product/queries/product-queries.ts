@@ -49,12 +49,13 @@ export async function queryRelatedProducts(slug: string, limit = 5): Promise<Pro
 // ─── Featured Products (REAL API — Home) ─────────────────────
 
 /**
- * Fetch featured / best-seller products from the real API.
- * Used by the "Best Seller" section on the home page.
+ * The first products of the recommended list (the home draw of the day).
+ * Used by the "Sélection du jour" carousel of the home page (first slice of
+ * HOME_RECOMMENDED_SLICES) and by the cart suggestions.
  */
 export async function queryFeaturedProducts(limit = 6): Promise<ProductListItem[]> {
   try {
-    const result = await fetchRecommended("all", limit);
+    const result = await fetchRecommended("all", limit, 0);
     if (result.products.length > 0) {
       return result.products.map((p) => ({
         id: String(p.id),
