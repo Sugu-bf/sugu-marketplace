@@ -36,6 +36,8 @@ export type BulkMergeResponse = z.infer<typeof BulkMergeResponseSchema>;
 export const WishlistPageItemSchema = z.object({
   product_id: z.string(), // ULID
   name: z.string(),
+  // Sent by the backend since the start; read so the card links to the product.
+  slug: z.string().nullable().optional(),
   image_url: z.string().nullable(),
   price: z.number().int(), // centimes (minor units)
 });
