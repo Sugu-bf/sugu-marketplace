@@ -112,6 +112,14 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
     redirect(`/track-order?order=${result.session.order.id}`);
   }
 
+  // A member's part of a group buy has no cart: when its session has expired,
+  // the group page opens a fresh one at the group price. Opening a session on
+  // the cart instead would quietly switch to other goods.
+  const groupBuyCode = result.session?.group_buy_code ?? null;
+  if (groupBuyCode && result.session?.is_active === false) {
+    redirect(`/groupe/${encodeURIComponent(groupBuyCode)}?expired=1`);
+  }
+
   // Expired, or opened before signing in: a new session is opened on the cart
   // and the page moves to it — once, never in a loop.
   if ((result.error || !result.session || result.session.is_active === false) && !params.renewed) {
@@ -140,7 +148,9 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
   const { currentStepId, completedStepIds } = getStepProgress(result.session);
 
   const breadcrumbItems = [
-    { label: "Panier", href: "/cart" },
+    groupBuyCode
+      ? { label: "Achat groupé", href: `/groupe/${encodeURIComponent(groupBuyCode)}` }
+      : { label: "Panier", href: "/cart" },
     { label: "Paiement" },
   ];
 

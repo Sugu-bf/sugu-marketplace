@@ -38,6 +38,7 @@ import { useModalDialog } from "@/lib/a11y/use-modal-dialog";
 import { hasAuthSession } from "@/features/auth/services/auth-service";
 import { useSearchSuggestions } from "../hooks/useSearchSuggestions";
 import { formatPrice } from "@/lib/constants";
+import { GroupBuyNavLink } from "@/features/group-buy/components/GroupBuyNavLink";
 
 // ─── Nav Links ───────────────────────────────────────────────
 
@@ -256,6 +257,7 @@ export default function MarketplaceHeaderClient({
             className="hidden lg:flex items-center gap-5 flex-shrink-0"
             aria-label="Navigation principale"
           >
+            <GroupBuyNavLink variant="header" />
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.label}
@@ -319,7 +321,7 @@ export default function MarketplaceHeaderClient({
                         { label: "Messages", href: "/messages", Icon: MessageSquare },
                         { label: "Mes adresses", href: "/account/addresses", Icon: MapPin },
                         { label: "Mes coupons", href: "/account/coupons", Icon: Ticket },
-                        { label: "Suivre ma commande", href: "/track-order", Icon: Truck },
+                        { label: "Suivre ma commande", href: "/account/orders", Icon: Truck },
                       ].map((item) => (
                         <Link
                           key={item.label}
@@ -360,7 +362,7 @@ export default function MarketplaceHeaderClient({
                         { label: "Messages", href: "/messages", Icon: MessageSquare },
                         { label: "Mes adresses", href: "/account/addresses", Icon: MapPin },
                         { label: "Mes coupons", href: "/account/coupons", Icon: Ticket },
-                        { label: "Suivre ma commande", href: "/track-order", Icon: Truck },
+                        { label: "Suivre ma commande", href: "/account/orders", Icon: Truck },
                       ].map((item) => (
                         <Link
                           key={item.label}
@@ -421,6 +423,7 @@ export default function MarketplaceHeaderClient({
         )}
       >
         <nav className="flex flex-col gap-1 pt-2" aria-label="Navigation mobile">
+          <GroupBuyNavLink variant="menu" onNavigate={() => setMobileMenuOpen(false)} />
           {NAV_LINKS.map((link) => (
             <Link
               key={link.label}

@@ -29,6 +29,8 @@ import {
   HOME_RECOMMENDED_SLICES,
 } from "@/features/home";
 import { queryFeaturedProducts } from "@/features/product";
+import { fetchGroupBuys } from "@/features/group-buy/api/group-buy.api";
+import { HomeGroupBuysStrip } from "@/features/group-buy/components/HomeGroupBuysStrip";
 
 /**
  * Home page content — Server Component with ISR + parallel data fetching.
@@ -76,6 +78,7 @@ export default async function HomePage() {
     meilleuresVentes,
     enPromotion,
     weeklyDeal,
+    openGroupBuys,
   ] = await Promise.all([
     queryBannerSlides(),
     queryHeroBanner(),
@@ -94,6 +97,8 @@ export default async function HomePage() {
     queryMeilleuresVentes(),
     queryEnPromotion(),
     queryWeeklyDeal(),
+    // Open group buys: a strip only when some are open (no stand-in content).
+    fetchGroupBuys({ sort: "trending", perPage: 8 }).catch(() => null),
   ]);
 
   return (
@@ -114,6 +119,9 @@ export default async function HomePage() {
 
       {/* SECTION 5: Selection of the day (first slice of the recommended list) */}
       {bestSellerProducts.length > 0 && <BestSeller products={bestSellerProducts} />}
+
+      {/* SECTION 5a: Open group buys — live counts, read again in the browser */}
+      {openGroupBuys && openGroupBuys.data.items.length > 0 && <HomeGroupBuysStrip initial={openGroupBuys} />}
 
       {/* SECTION 5b: Promotional Deal Banners (with timer) */}
       {promotionalDeals.length > 0 && <PromotionalDeals deals={promotionalDeals} />}

@@ -114,6 +114,8 @@ export const CheckoutSessionApiSchema = z.object({
   expires_at: z.string(),
   is_active: z.boolean().optional(),
   cart_items_count: z.number().optional(),
+  /** Set when the session pays a member's part of a group buy (no cart, no coupon). */
+  group_buy_code: z.string().nullable().optional(),
   // Sélections persistées côté serveur : elles permettent au front de se
   // réhydrater après un rechargement de page plutôt que de repartir de zéro.
   shipping_address: CheckoutAddressSchema.nullable().optional(),
