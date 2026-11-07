@@ -5,7 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui";
 import { AssuranceBadge } from "@/components/ui/assurance-badge";
-import { ArrowRight, Lock, ShieldCheck, Truck, Tag, X, Smartphone, Loader2, Banknote, Wallet } from "lucide-react";
+import { ArrowRight, Lock, ShieldCheck, Truck, Tag, X, Smartphone, Loader2, Banknote, Wallet, Users } from "lucide-react";
 import { formatPrice } from "@/lib/constants";
 import { Badge } from "@/components/ui";
 import type { OrderSummaryItem } from "@/features/checkout";
@@ -36,6 +36,11 @@ interface CheckoutOrderSummaryProps {
   onPlaceOrder?: (paymentMethod: "cod" | "ligdicash") => Promise<void>;
   /** Whether an order placement is in progress */
   isPlacingOrder?: boolean;
+  /**
+   * Set when this checkout pays a member's part of a group buy: the group
+   * price already applies and no promo code adds to it.
+   */
+  groupBuyCode?: string | null;
 }
 
 /**
@@ -61,6 +66,7 @@ function CheckoutOrderSummary({
   onRemoveCoupon,
   onPlaceOrder,
   isPlacingOrder = false,
+  groupBuyCode = null,
 }: CheckoutOrderSummaryProps) {
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -213,7 +219,15 @@ function CheckoutOrderSummary({
           </span>
         </div>
 
-        {/* Coupon code */}
+        {/* Coupon code — none on a group part: the group price already applies. */}
+        {groupBuyCode ? (
+          <div className="flex items-start gap-2 rounded-lg bg-primary-50 px-3 py-2 text-xs text-primary-700">
+            <Users size={14} className="mt-0.5 flex-shrink-0" />
+            <span>
+              Prix de groupe appliqué. Les codes promo ne s&apos;ajoutent pas à un achat groupé.
+            </span>
+          </div>
+        ) : (
         <div className="space-y-2">
           {appliedCoupon ? (
             <div className="flex items-center justify-between rounded-lg bg-green-50 px-3 py-2">
@@ -275,6 +289,7 @@ function CheckoutOrderSummary({
             </p>
           )}
         </div>
+        )}
 
         {/* ── Payment Method Selector (WARN-01 fix) ── */}
         <div className="space-y-2.5">

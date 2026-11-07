@@ -767,6 +767,7 @@ function CheckoutOrchestrator({
             }
             onApplyCoupon={handleApplyCoupon}
             onRemoveCoupon={handleRemoveCoupon}
+            groupBuyCode={session.group_buy_code ?? null}
             onPlaceOrder={handlePlaceOrder}
             isPlacingOrder={placingOrder}
           />

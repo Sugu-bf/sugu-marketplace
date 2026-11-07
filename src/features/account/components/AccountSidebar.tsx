@@ -15,6 +15,7 @@ import {
   HelpCircle,
   LogOut,
   CheckCircle2,
+  Users,
 } from "lucide-react";
 import { logout } from "@/lib/api/auth";
 import { resetClientSession } from "@/lib/session/reset-client-session";
@@ -33,6 +34,7 @@ interface NavItem {
 const MAIN_NAV: NavItem[] = [
   { label: "Détails du compte", href: "/account", icon: <User size={18} /> },
   { label: "Mes commandes", href: "/account/orders", icon: <Package size={18} /> },
+  { label: "Mes achats groupés", href: "/account/achats-groupes", icon: <Users size={18} /> },
   { label: "Mon panier", href: "/cart", icon: <ShoppingCart size={18} /> },
   { label: "Mes adresses", href: "/account/addresses", icon: <MapPin size={18} /> },
   { label: "Notifications", href: "/account/notifications", icon: <Bell size={18} /> },

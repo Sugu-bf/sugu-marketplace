@@ -6,6 +6,7 @@ import { Button, QuantitySelector } from "@/components/ui";
 import { AssuranceBadge } from "@/components/ui/assurance-badge";
 import { ShoppingCart, Zap, Truck, RotateCcw, ShieldCheck, Loader2, XCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { ContactSellerButton } from "@/features/messaging/components/ContactSellerButton";
+import { GroupBuyOfferPanel } from "@/features/group-buy/components/GroupBuyOfferPanel";
 import { formatPrice } from "@/lib/constants";
 import type { Product } from "@/features/product";
 import { addToCart, type ApiProductDetail } from "@/features/product";
@@ -513,6 +514,14 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
         </Button>
       </div>
 
+      {/* Group buying: shown only when the seller opened this product to it */}
+      {apiData?.id && (!requiresResolvedVariant || resolvedApiVariant) && (
+        <GroupBuyOfferPanel
+          productId={String(apiData.id)}
+          variantId={resolvedApiVariant ? String(resolvedApiVariant.id) : null}
+        />
+      )}
+
       {/* Contact seller button */}
       {apiData?.seller && (
         <ContactSellerButton
@@ -524,11 +533,13 @@ function ProductActions({ product, apiData }: ProductActionsProps) {
         />
       )}
 
-      {/* Assurance badges */}
+      {/* Assurance badges — only what the platform really does (P0-17):
+          the buyer checks the goods before paying, can ask for a return
+          within 48 h of delivery, and follows the delivery step by step. */}
       <div className="grid grid-cols-3 gap-3">
-        <AssuranceBadge icon={<Truck size={18} />} label="Livraison 24-48h" />
-        <AssuranceBadge icon={<RotateCcw size={18} />} label="Retours gratuits" />
-        <AssuranceBadge icon={<ShieldCheck size={18} />} label="Qualité garantie" />
+        <AssuranceBadge icon={<ShieldCheck size={18} />} label="Vérifiez avant de payer" />
+        <AssuranceBadge icon={<RotateCcw size={18} />} label="Retour sous 48 h" />
+        <AssuranceBadge icon={<Truck size={18} />} label="Livraison suivie" />
       </div>
 
       {/* Paiement à la livraison — modalités selon le montant */}

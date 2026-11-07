@@ -217,8 +217,8 @@ function OrderSummary({
         {/* Assurance badges */}
         <div className="grid grid-cols-3 gap-2 pt-1">
           <AssuranceBadge icon={<Lock size={16} />} label="Paiement sécurisé" />
-          <AssuranceBadge icon={<Truck size={16} />} label="Livraison rapide" />
-          <AssuranceBadge icon={<RotateCcw size={16} />} label="Retours gratuits" />
+          <AssuranceBadge icon={<Truck size={16} />} label="Livraison suivie" />
+          <AssuranceBadge icon={<RotateCcw size={16} />} label="Retour sous 48 h" />
         </div>
       </div>
     </div>

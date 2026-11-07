@@ -27,9 +27,9 @@ type WishlistPageItem =
 /**
  * Map a backend WishlistPageItem → ProductListItem shape for <ProductCard>.
  *
- * Decisions (pré-vol F — approved by user):
- *  - slug: ""     → ProductCard renders href="#" (no navigation to PDP from
- *                    wishlist in this MVP). Backlog when backend adds slug field.
+ * Decisions:
+ *  - slug: from the backend (`/mobile/wishlist` sends it), so the card opens
+ *          the product page. Empty only if the product has no slug.
  *  - thumbnail:   → image_url (same image, different field name).
  *  - rating, reviewCount, stock, sold, vendorName, categoryName → sensible
  *    defaults (0 / "") — not displayed when 0 by ProductCard conditionally.
@@ -38,7 +38,7 @@ type WishlistPageItem =
 function mapWishlistItemToProductCard(item: WishlistPageItem) {
   return {
     id: item.product_id,
-    slug: "",
+    slug: item.slug ?? "",
     name: item.name,
     price: item.price / 100,
     thumbnail: item.image_url ?? "",

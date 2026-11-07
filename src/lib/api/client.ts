@@ -317,6 +317,10 @@ async function executeRequest<T>(
       if (typeof errorData?.error_code === "string") {
         details.errorCode = errorData.error_code;
       }
+      // Safe extra context of a refusal (e.g. the code of an existing group).
+      if (errorData?.meta && typeof errorData.meta === "object") {
+        details.meta = errorData.meta as Record<string, unknown>;
+      }
       const retryAfter = Number(response.headers.get("Retry-After") ?? errorData?.retry_after);
       if (Number.isFinite(retryAfter) && retryAfter > 0) {
         details.retryAfter = retryAfter;
