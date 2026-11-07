@@ -89,9 +89,9 @@ describe("group buy actions", () => {
       }),
     );
 
-    await launchGroupBuy({ productId: "P1", variantId: "V1", qty: 1, deliveryMode: "grouped", visibility: "private", city: "  " });
+    await launchGroupBuy({ productId: "P1", variantId: "V1", qty: 1, visibility: "private", city: "  " });
 
-    expect(body).toEqual({ product_id: "P1", variant_id: "V1", qty: 1, delivery_mode: "grouped", visibility: "private" });
+    expect(body).toEqual({ product_id: "P1", variant_id: "V1", qty: 1, delivery_mode: "individual", visibility: "private" });
     expect(Object.keys(body).some((key) => key.includes("price"))).toBe(false);
   });
 
@@ -105,7 +105,7 @@ describe("group buy actions", () => {
       ),
     );
 
-    const error = await launchGroupBuy({ productId: "P1", qty: 1, deliveryMode: "individual", visibility: "public" }).catch((e) => e);
+    const error = await launchGroupBuy({ productId: "P1", qty: 1, visibility: "public" }).catch((e) => e);
 
     expect(isApiError(error)).toBe(true);
     const refusal = refusalOf(error);

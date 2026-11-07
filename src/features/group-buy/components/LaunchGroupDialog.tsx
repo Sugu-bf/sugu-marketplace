@@ -3,11 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Globe, Link2, Loader2, Package, Truck, Users } from "lucide-react";
+import { ArrowRight, Globe, Link2, Loader2, Users } from "lucide-react";
 import { Button, Modal, QuantitySelector } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { launchGroupBuy } from "../api/group-buy.api";
-import type { GroupBuyDeliveryMode, GroupBuyOffer } from "../api/group-buy.schemas";
+import type { GroupBuyOffer } from "../api/group-buy.schemas";
 import { formatCentimes, loginHref, refusalOf } from "../lib/group-buy-format";
 
 type GroupableOffer = Extract<GroupBuyOffer, { groupable: true }>;
@@ -21,8 +21,9 @@ interface LaunchGroupDialogProps {
 }
 
 /**
- * Launch a group in one screen: a quantity, how the goods travel, who sees
- * the group. Nothing is paid; the group page opens right after, ready to share.
+ * Launch a group in one screen: a quantity and who sees the group. Each member
+ * then orders and is delivered on their own. Nothing is paid; the group page
+ * opens right after, ready to share.
  */
 export function LaunchGroupDialog({ open, onClose, offer, productId, variantId }: LaunchGroupDialogProps) {
   const router = useRouter();
@@ -30,10 +31,8 @@ export function LaunchGroupDialog({ open, onClose, offer, productId, variantId }
   const topTier = tiers.at(-1)?.min_qty ?? 2;
   // Reaching the best price alone is not a group: the server refuses it too.
   const maxQty = Math.max(1, Math.min(offer.max_member_qty, topTier - 1));
-  const modes = offer.delivery_modes;
 
   const [qty, setQty] = useState(1);
-  const [mode, setMode] = useState<GroupBuyDeliveryMode>(modes.includes("individual") ? "individual" : (modes[0] ?? "individual"));
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [city, setCity] = useState("");
   const [busy, setBusy] = useState(false);
@@ -49,7 +48,7 @@ export function LaunchGroupDialog({ open, onClose, offer, productId, variantId }
     setError(null);
     setExistingCode(null);
     try {
-      const response = await launchGroupBuy({ productId, variantId, qty, deliveryMode: mode, visibility, city });
+      const response = await launchGroupBuy({ productId, variantId, qty, visibility, city });
       router.push(`/groupe/${response.data.code}?new=1`);
     } catch (err) {
       const refusal = refusalOf(err);
@@ -90,34 +89,6 @@ export function LaunchGroupDialog({ open, onClose, offer, productId, variantId }
                 <span className="font-bold">{formatCentimes(offer.best_unit_price)}</span>.
               </>
             )}
-          </p>
-        )}
-
-        {modes.length > 1 && (
-          <fieldset>
-            <legend className="mb-2 text-sm font-semibold text-foreground">Livraison</legend>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Choice
-                selected={mode === "individual"}
-                onSelect={() => setMode("individual")}
-                icon={<Truck size={18} />}
-                title="Chacun reçoit sa part"
-                text="Chaque membre commande et se fait livrer chez lui."
-              />
-              <Choice
-                selected={mode === "grouped"}
-                onSelect={() => setMode("grouped")}
-                icon={<Package size={18} />}
-                title="Un seul colis"
-                text="Vous commandez pour tous et remettez sa part à chacun."
-              />
-            </div>
-          </fieldset>
-        )}
-        {modes.length === 1 && modes[0] === "grouped" && (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
-            Produit vendu en gros : un seul colis pour le groupe. Vous commandez pour tous à la clôture et chaque membre vous
-            règle sa part directement.
           </p>
         )}
 

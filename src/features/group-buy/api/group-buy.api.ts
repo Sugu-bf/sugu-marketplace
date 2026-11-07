@@ -14,7 +14,6 @@ import {
   GroupBuyStatsResponseSchema,
   MyGroupBuyStatsResponseSchema,
   MyGroupBuysResponseSchema,
-  type GroupBuyDeliveryMode,
   type GroupBuyDetailResponse,
   type GroupBuyListResponse,
   type GroupBuyOffer,
@@ -97,7 +96,6 @@ export interface LaunchGroupBuyInput {
   productId: string;
   variantId?: string | null;
   qty: number;
-  deliveryMode: GroupBuyDeliveryMode;
   visibility: "public" | "private";
   city?: string | null;
 }
@@ -109,7 +107,8 @@ export async function launchGroupBuy(input: LaunchGroupBuyInput): Promise<GroupB
       product_id: input.productId,
       variant_id: input.variantId ?? undefined,
       qty: input.qty,
-      delivery_mode: input.deliveryMode,
+      // Every member orders their own part: one parcel for all is no longer offered.
+      delivery_mode: "individual",
       visibility: input.visibility,
       city: input.city?.trim() || undefined,
     },
