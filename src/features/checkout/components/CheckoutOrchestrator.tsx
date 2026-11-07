@@ -175,9 +175,12 @@ function CheckoutOrchestrator({
   const [addressNotice, setAddressNotice] = useState<string | null>(null);
 
   // Payment method state (WARN-01 fix)
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cod" | "ligdicash">(
+  const [chosenPaymentMethod, setSelectedPaymentMethod] = useState<"cod" | "ligdicash">(
     initialPaymentMethod ?? "cod"
   );
+  /** A group part that confirms the price: mobile money only, never cash on delivery. */
+  const onlinePaymentRequired = session.online_payment_required === true;
+  const selectedPaymentMethod: "cod" | "ligdicash" = onlinePaymentRequired ? "ligdicash" : chosenPaymentMethod;
 
   // Modal states
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
@@ -518,7 +521,8 @@ function CheckoutOrchestrator({
 
         const result = await placeOrder({
           checkout_session_id: sessionId,
-          payment_method: paymentMethod,
+          // Never cash on delivery when the session requires online payment.
+          payment_method: onlinePaymentRequired ? "ligdicash" : paymentMethod,
         });
         // The server took the ordered lines out of the cart with the order:
         // the header only reads the cart again. Nothing is cleared here, so a
@@ -554,7 +558,7 @@ function CheckoutOrchestrator({
         setPlacingOrder(false);
       }
     },
-    [hasAddress, selectedAgencyId, selectedMethodId, displayAddress, sessionId, router, refreshSession]
+    [hasAddress, selectedAgencyId, selectedMethodId, displayAddress, sessionId, router, refreshSession, onlinePaymentRequired]
   );
 
   // ─── Render ──────────────────────────────────────────────
@@ -768,6 +772,7 @@ function CheckoutOrchestrator({
             onApplyCoupon={handleApplyCoupon}
             onRemoveCoupon={handleRemoveCoupon}
             groupBuyCode={session.group_buy_code ?? null}
+            onlinePaymentRequired={onlinePaymentRequired}
             onPlaceOrder={handlePlaceOrder}
             isPlacingOrder={placingOrder}
           />

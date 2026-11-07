@@ -41,6 +41,11 @@ interface CheckoutOrderSummaryProps {
    * price already applies and no promo code adds to it.
    */
   groupBuyCode?: string | null;
+  /**
+   * The order must be paid online (a group part that confirms the price):
+   * cash on delivery is shown disabled, with the reason.
+   */
+  onlinePaymentRequired?: boolean;
 }
 
 /**
@@ -67,6 +72,7 @@ function CheckoutOrderSummary({
   onPlaceOrder,
   isPlacingOrder = false,
   groupBuyCode = null,
+  onlinePaymentRequired = false,
 }: CheckoutOrderSummaryProps) {
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -76,7 +82,9 @@ function CheckoutOrderSummary({
   const couponNotApplied = appliedCoupon && couponStatus && !couponStatus.applied
     ? couponStatus.reason ?? "Ce coupon ne s'applique pas à cette commande."
     : null;
-  const payable = total + (paymentMethod === "cod" ? codFee : 0);
+  // Online only: whatever was asked before, the method is mobile money.
+  const method: "cod" | "ligdicash" = onlinePaymentRequired ? "ligdicash" : paymentMethod;
+  const payable = total + (method === "cod" ? codFee : 0);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -119,11 +127,14 @@ function CheckoutOrderSummary({
     }
   };
 
-  const setPaymentMethod = onPaymentMethodChange;
+  const setPaymentMethod = (next: "cod" | "ligdicash") => {
+    if (onlinePaymentRequired && next === "cod") return;
+    onPaymentMethodChange(next);
+  };
 
   const handlePlaceOrder = async () => {
     if (onPlaceOrder && !isPlacingOrder) {
-      await onPlaceOrder(paymentMethod);
+      await onPlaceOrder(method);
     }
   };
 
@@ -203,7 +214,7 @@ function CheckoutOrderSummary({
               valueClassName="text-success"
             />
           )}
-          {paymentMethod === "cod" && codFee > 0 && (
+          {method === "cod" && codFee > 0 && (
             <SummaryRow label="Frais de paiement à la livraison" value={formatPrice(codFee)} />
           )}
         </div>
@@ -295,34 +306,42 @@ function CheckoutOrderSummary({
         <div className="space-y-2.5">
           <p className="text-sm font-bold text-foreground">Moyen de paiement</p>
           <div className="space-y-2" role="radiogroup" aria-label="Moyen de paiement">
-            {/* COD option */}
+            {/* COD option — refused while a group price is being confirmed */}
             <button
               type="button"
               role="radio"
-              aria-checked={paymentMethod === "cod"}
+              aria-checked={method === "cod"}
+              aria-disabled={onlinePaymentRequired || undefined}
+              disabled={onlinePaymentRequired}
               onClick={() => setPaymentMethod("cod")}
               className={cn(
                 "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all",
-                paymentMethod === "cod"
-                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                  : "border-border hover:border-primary/40 bg-background"
+                onlinePaymentRequired
+                  ? "cursor-not-allowed border-border bg-muted/40 opacity-70"
+                  : method === "cod"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                    : "border-border hover:border-primary/40 bg-background"
               )}
             >
               <div className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-lg",
-                paymentMethod === "cod" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                method === "cod" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               )}>
                 <Banknote size={18} />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-foreground">Paiement à la livraison</p>
-                <p className="text-xs text-muted-foreground">Payez en espèces lors de la réception</p>
+                <p className="text-xs text-muted-foreground">
+                  {onlinePaymentRequired
+                    ? "Indisponible : pour confirmer le prix du groupe, votre part se paie en ligne."
+                    : "Payez en espèces lors de la réception"}
+                </p>
               </div>
               <div className={cn(
                 "h-4 w-4 rounded-full border-2 transition-colors",
-                paymentMethod === "cod" ? "border-primary bg-primary" : "border-border"
+                method === "cod" ? "border-primary bg-primary" : "border-border"
               )}>
-                {paymentMethod === "cod" && (
+                {method === "cod" && (
                   <div className="h-full w-full rounded-full bg-white scale-[0.4]" />
                 )}
               </div>
@@ -332,18 +351,18 @@ function CheckoutOrderSummary({
             <button
               type="button"
               role="radio"
-              aria-checked={paymentMethod === "ligdicash"}
+              aria-checked={method === "ligdicash"}
               onClick={() => setPaymentMethod("ligdicash")}
               className={cn(
                 "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all",
-                paymentMethod === "ligdicash"
+                method === "ligdicash"
                   ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                   : "border-border hover:border-primary/40 bg-background"
               )}
             >
               <div className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-lg",
-                paymentMethod === "ligdicash" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                method === "ligdicash" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               )}>
                 <Wallet size={18} />
               </div>
@@ -353,9 +372,9 @@ function CheckoutOrderSummary({
               </div>
               <div className={cn(
                 "h-4 w-4 rounded-full border-2 transition-colors",
-                paymentMethod === "ligdicash" ? "border-primary bg-primary" : "border-border"
+                method === "ligdicash" ? "border-primary bg-primary" : "border-border"
               )}>
-                {paymentMethod === "ligdicash" && (
+                {method === "ligdicash" && (
                   <div className="h-full w-full rounded-full bg-white scale-[0.4]" />
                 )}
               </div>

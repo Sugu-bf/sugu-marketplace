@@ -12,11 +12,13 @@ import {
   GroupBuyListResponseSchema,
   GroupBuyOfferResponseSchema,
   GroupBuyStatsResponseSchema,
+  MyGroupBuyStandingResponseSchema,
   MyGroupBuyStatsResponseSchema,
   MyGroupBuysResponseSchema,
   type GroupBuyDetailResponse,
   type GroupBuyListResponse,
   type GroupBuyOffer,
+  type MyGroupBuyStanding,
   type MyGroupBuyStats,
   type MyGroupBuysResponse,
 } from "./group-buy.schemas";
@@ -29,6 +31,7 @@ import {
   groupBuyUrl,
   groupBuysUrl,
   joinGroupBuyUrl,
+  myGroupBuyStandingUrl,
   myGroupBuyStatsUrl,
   myGroupBuysUrl,
   relaunchGroupBuyUrl,
@@ -166,6 +169,20 @@ export async function fetchMyGroupBuyStats(): Promise<MyGroupBuyStats> {
   const { data } = await api.get(myGroupBuyStatsUrl(), {
     schema: MyGroupBuyStatsResponseSchema,
     cache: "no-store",
+  });
+  return data.data;
+}
+
+/**
+ * The customer's standing: level, ceiling, strikes and the rules behind
+ * them. 401 for a guest (callers that only want hints ignore errors).
+ */
+export async function fetchMyGroupBuyStanding(init?: { signal?: AbortSignal }): Promise<MyGroupBuyStanding> {
+  const { data } = await api.get(myGroupBuyStandingUrl(), {
+    schema: MyGroupBuyStandingResponseSchema,
+    cache: "no-store",
+    retries: 0,
+    signal: init?.signal,
   });
   return data.data;
 }

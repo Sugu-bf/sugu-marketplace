@@ -4,20 +4,33 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Loader2, PiggyBank, Rocket, ShoppingBag, UserPlus, Users } from "lucide-react";
+import { ArrowRight, Clock, Loader2, PiggyBank, Rocket, ShoppingBag, UserPlus, Users, Wallet } from "lucide-react";
 import { Badge, Button, Skeleton } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/features/toast/toast-store";
 import { fetchMyGroupBuys, openGroupBuyCheckout } from "../api/group-buy.api";
-import type { MyGroupBuy, MyGroupBuyStats, MyGroupBuysResponse } from "../api/group-buy.schemas";
+import type { MyGroupBuy, MyGroupBuyStanding, MyGroupBuyStats, MyGroupBuysResponse } from "../api/group-buy.schemas";
 import { STATUS_LABELS, clockOffsetFrom, formatCentimes, refusalOf } from "../lib/group-buy-format";
 import { GroupBuyThumb } from "./GroupBuyCard";
 import { GroupBuyCountdown } from "./GroupBuyCountdown";
+import { GroupBuyDeadline } from "./GroupBuyDeadline";
+import { GroupBuyStandingCard } from "./GroupBuyStandingCard";
 
 interface MyGroupBuysClientProps {
   stats: MyGroupBuyStats | null;
   initialActive: MyGroupBuysResponse | null;
+  /** Level, ceiling and strikes; null when it could not be read. */
+  standing?: MyGroupBuyStanding | null;
 }
+
+const STATUS_BADGE: Record<MyGroupBuy["status"], "success" | "secondary" | "warning" | "muted"> = {
+  open: "secondary",
+  confirming: "warning",
+  locked: "success",
+  failed: "muted",
+  finished: "muted",
+  cancelled: "muted",
+};
 
 type Scope = "active" | "past";
 
@@ -42,7 +55,7 @@ function memberLabel(group: Pick<MyGroupBuy, "status" | "my_membership">): strin
 }
 
 /** The customer's groups: what they saved, and what each group waits for. */
-export function MyGroupBuysClient({ stats, initialActive }: MyGroupBuysClientProps) {
+export function MyGroupBuysClient({ stats, initialActive, standing = null }: MyGroupBuysClientProps) {
   const [scope, setScope] = useState<Scope>("active");
   const router = useRouter();
   const toast = useToast();
@@ -86,6 +99,8 @@ export function MyGroupBuysClient({ stats, initialActive }: MyGroupBuysClientPro
           <StatCard icon={<UserPlus size={18} />} label="Personnes invitées" value={String(stats.people_invited)} />
         </div>
       )}
+
+      {standing && <GroupBuyStandingCard standing={standing} />}
 
       <div className="flex gap-2" role="tablist" aria-label="Mes groupes">
         {(["active", "past"] as const).map((value) => (
@@ -169,6 +184,10 @@ function MyGroupRow({
 }) {
   const mine = group.my_membership;
   const name = group.product?.name ?? "Produit";
+  const confirming = group.status === "confirming";
+  // Pays first, online, before the others: the row says so and how long is left.
+  const payFirst = confirming && mine.status === "reserved" && mine.must_confirm === true && mine.can_order;
+  const waiting = confirming && mine.status === "reserved" && !mine.must_confirm;
 
   return (
     <li className="rounded-2xl border border-border-light bg-white p-4 shadow-sm">
@@ -176,7 +195,7 @@ function MyGroupRow({
         <GroupBuyThumb src={group.product?.image_url ?? null} alt={name} className="h-16 w-16 sm:h-20 sm:w-20" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <Badge variant={group.status === "locked" ? "success" : group.status === "open" ? "secondary" : "muted"} size="xs" pill>
+            <Badge variant={STATUS_BADGE[group.status]} size="xs" pill>
               {STATUS_LABELS[group.status]}
             </Badge>
             <Badge variant="outline" size="xs" pill>
@@ -200,7 +219,7 @@ function MyGroupRow({
           )}
           {group.status === "locked" && mine.can_order && (
             <GroupBuyCountdown
-              target={group.order_deadline_at}
+              target={mine.order_deadline_at ?? group.order_deadline_at}
               offset={offset}
               prefix="Encore"
               suffix="pour commander"
@@ -208,14 +227,53 @@ function MyGroupRow({
               className="mt-1 text-xs"
             />
           )}
+          {payFirst && (
+            <GroupBuyCountdown
+              target={mine.order_deadline_at ?? group.confirm_deadline_at ?? null}
+              offset={offset}
+              prefix="Encore"
+              suffix="pour payer"
+              expiredLabel="Délai de paiement passé"
+              className="mt-1 text-xs"
+            />
+          )}
         </div>
       </div>
+
+      {payFirst && (
+        <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <Wallet size={14} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+          <span>
+            Payez votre part en ligne avant <GroupBuyDeadline at={mine.order_deadline_at ?? group.confirm_deadline_at} offset={offset} />{" "}
+            pour confirmer le prix. Sans paiement, votre place est libérée et cela compte comme un abandon.
+          </span>
+        </p>
+      )}
+      {waiting && (
+        <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+          <Clock size={14} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+          <span>
+            Les grosses réservations confirment le prix jusqu’à{" "}
+            <GroupBuyDeadline at={group.confirm_deadline_at} offset={offset} /> ; vous pourrez commander juste après.
+          </span>
+        </p>
+      )}
 
       <div className="mt-3 flex flex-wrap gap-2">
         {mine.can_order && (
           <Button variant="primary" size="sm" pill onClick={onOrder} disabled={disabled}>
-            {ordering ? <Loader2 size={14} className="animate-spin" /> : <ShoppingBag size={14} aria-hidden="true" />}
-            {group.delivery_mode === "grouped" ? "Commander pour le groupe" : "Commander ma part"}
+            {ordering ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : payFirst ? (
+              <Wallet size={14} aria-hidden="true" />
+            ) : (
+              <ShoppingBag size={14} aria-hidden="true" />
+            )}
+            {payFirst
+              ? `Payer ma part en ligne · ${formatCentimes(mine.my_share_amount)}`
+              : group.delivery_mode === "grouped"
+                ? "Commander pour le groupe"
+                : "Commander ma part"}
           </Button>
         )}
         {mine.order && (

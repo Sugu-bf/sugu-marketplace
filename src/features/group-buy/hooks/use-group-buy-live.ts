@@ -14,7 +14,7 @@ import { clockOffsetFrom } from "../lib/group-buy-format";
 const POLL_OPEN_MS = 20_000;
 const POLL_LOCKED_MS = 60_000;
 const POLL_WITH_REALTIME_MS = 60_000;
-/** Right after the closing time, while the server closes the group. */
+/** Right after a deadline (close, end of confirmation), while the server moves the group on. */
 const POLL_CLOSING_MS = 5_000;
 const CLOSING_WINDOW_MS = 3 * 60_000;
 /** A realtime nudge triggers one full refresh, grouped over this delay. */
@@ -81,11 +81,18 @@ export function useGroupBuyLive(initial: GroupBuyDetailResponse): LiveGroupBuy {
       if (current.status === "failed" || current.status === "finished" || current.status === "cancelled") {
         return null;
       }
-      if (current.status === "open" && current.closes_at) {
-        const sinceClose = Date.now() + offsetRef.current - Date.parse(current.closes_at);
-        if (sinceClose >= 0 && sinceClose < CLOSING_WINDOW_MS) return POLL_CLOSING_MS;
+      // Right after a deadline the server moves the group on: open → confirming
+      // or locked at `closes_at`, confirming → locked or failed at `confirm_deadline_at`.
+      const deadline =
+        current.status === "open" ? current.closes_at
+          : current.status === "confirming" ? current.confirm_deadline_at ?? null
+            : null;
+      if (deadline) {
+        const sinceDeadline = Date.now() + offsetRef.current - Date.parse(deadline);
+        if (sinceDeadline >= 0 && sinceDeadline < CLOSING_WINDOW_MS) return POLL_CLOSING_MS;
       }
       if (realtime) return POLL_WITH_REALTIME_MS;
+      // While the price is confirmed, payments land at any time: polled like an open group.
       return current.status === "locked" ? POLL_LOCKED_MS : POLL_OPEN_MS;
     };
 

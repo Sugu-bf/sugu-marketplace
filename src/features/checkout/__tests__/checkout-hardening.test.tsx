@@ -79,6 +79,16 @@ describe("session calls carry the guest cart token", () => {
     expect(headersOf(fetchMock.mock.calls[0]).get("X-Cart-Token")).toBe("guest-token-123");
   });
 
+  test("a group part paid online only says so", async () => {
+    const payload = sessionPayload();
+    Object.assign(payload.data.session, { group_buy_code: "K7M2Q9XA", online_payment_required: true });
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    const session = await getCheckoutSession(SESSION_ID);
+
+    expect(session.online_payment_required).toBe(true);
+  });
+
   test("placing the order sends X-Cart-Token and the session's stable key", async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ success: false, message: "Session non trouvée." }), { status: 422, headers: { "Content-Type": "application/json" } }));
 
@@ -164,6 +174,30 @@ describe("order summary shows the server's truth", () => {
 
     expect(screen.getByRole("radio", { name: /Paiement mobile/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.queryByText("Frais de paiement à la livraison")).not.toBeInTheDocument();
+  });
+
+  test("a group part that confirms the price offers mobile money only", () => {
+    const onChange = vi.fn();
+    render(
+      <CheckoutOrderSummary
+        {...base}
+        onPaymentMethodChange={onChange}
+        codFee={500}
+        couponCode={null}
+        paymentMethod="cod"
+        groupBuyCode="K7M2Q9XA"
+        onlinePaymentRequired
+      />
+    );
+
+    const cod = screen.getByRole("radio", { name: /Paiement à la livraison/ });
+    expect(cod).toBeDisabled();
+    expect(cod).toHaveAttribute("aria-checked", "false");
+    expect(cod).toHaveTextContent(/votre part se paie en ligne/);
+    expect(screen.getByRole("radio", { name: /Paiement mobile/ })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByText("Frais de paiement à la livraison")).not.toBeInTheDocument();
+    cod.click();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   test("a coupon the server did not apply says why", () => {
