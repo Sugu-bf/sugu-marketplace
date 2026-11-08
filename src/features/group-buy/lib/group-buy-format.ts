@@ -4,7 +4,12 @@
  */
 import { formatPrice } from "@/lib/constants";
 import { isApiError } from "@/lib/api";
-import type { GroupBuyStatus, GroupBuySummary } from "../api/group-buy.schemas";
+import type {
+  GroupBuyConfirmRules,
+  GroupBuyStatus,
+  GroupBuySummary,
+  GroupBuyTier,
+} from "../api/group-buy.schemas";
 
 export function formatCentimes(amount: number): string {
   return formatPrice(Math.round(amount / 100));
@@ -37,6 +42,7 @@ export function clockOffsetFrom(serverNow: string | null | undefined, receivedAt
 
 export const STATUS_LABELS: Record<GroupBuyStatus, string> = {
   open: "Ouvert",
+  confirming: "Confirmation du prix",
   locked: "Prix bloqué",
   failed: "Non atteint",
   finished: "Terminé",
@@ -58,6 +64,8 @@ export function productHref(group: Pick<GroupBuySummary, "product">): string | n
 
 /** "plus que 2 pour 5 400 FCFA", or what the group has reached. */
 export function nextStepLabel(group: Pick<GroupBuySummary, "status" | "next_tier" | "current_tier_min_qty" | "current_unit_price">): string {
+  if (group.status === "confirming") return `Prix provisoire : ${formatCentimes(group.current_unit_price)} l’unité`;
+  if (group.status === "failed") return "Prix de groupe non atteint";
   if (group.status !== "open") return `Prix final : ${formatCentimes(group.current_unit_price)} l’unité`;
   if (group.next_tier) {
     const missing = group.next_tier.missing_qty;
@@ -79,6 +87,65 @@ export function refusalOf(error: unknown): { code: string | null; message: strin
     return { code, message, meta, status: error.status };
   }
   return { code: null, message: "Une erreur est survenue. Réessayez dans un instant.", meta: null, status: 0 };
+}
+
+/**
+ * A deadline as a customer reads it: "14:30", "demain à 14:30", or
+ * "12/11 à 14:30". In the device's time zone, unless one is given (the
+ * server render uses Ouagadougou's, then the browser redraws it).
+ */
+export function formatDeadline(iso: string | null | undefined, options: { now?: number; timeZone?: string } = {}): string | null {
+  if (!iso) return null;
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at)) return null;
+  const { now = Date.now(), timeZone } = options;
+  const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone }).format(at);
+  const day = (value: number) => new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", timeZone }).format(value);
+  if (day(at) === day(now)) return time;
+  if (day(at) === day(now + 86_400_000)) return `demain à ${time}`;
+  return `${day(at)} à ${time}`;
+}
+
+/** A calendar day: "12/11/2026". */
+export function formatDay(iso: string | null | undefined, timeZone?: string): string | null {
+  if (!iso) return null;
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at)) return null;
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone }).format(at);
+}
+
+/** The tier a quantity reaches, if any (tiers in any order). */
+export function tierReachedAt(tiers: Pick<GroupBuyTier, "min_qty" | "unit_price">[], qty: number): Pick<GroupBuyTier, "min_qty" | "unit_price"> | null {
+  let reached: Pick<GroupBuyTier, "min_qty" | "unit_price"> | null = null;
+  for (const tier of tiers) {
+    if (qty >= tier.min_qty && (!reached || tier.min_qty > reached.min_qty)) reached = tier;
+  }
+  return reached;
+}
+
+/**
+ * Would this quantity pay first at the close? Same rule as the server
+ * (GroupBuyStanding::isBulk): a large amount at the tier's price, or enough
+ * units to weigh on the tier everyone gets.
+ */
+export function isBulkReservation(qty: number, tier: Pick<GroupBuyTier, "min_qty" | "unit_price"> | null, rules: GroupBuyConfirmRules | null | undefined): boolean {
+  if (!rules || !tier || qty < 1) return false;
+  if (qty * tier.unit_price >= rules.amount) return true;
+  return qty >= rules.min_qty && tier.min_qty > 0 && qty * 100 >= rules.share_percent * tier.min_qty;
+}
+
+/**
+ * The tier the group would close on with `groupQty` reserved: the one
+ * reached, or the first one (below it the group fails and nobody pays).
+ */
+export function closingTierAt(tiers: Pick<GroupBuyTier, "min_qty" | "unit_price">[], groupQty: number): Pick<GroupBuyTier, "min_qty" | "unit_price"> | null {
+  const sorted = [...tiers].sort((a, b) => a.min_qty - b.min_qty);
+  return tierReachedAt(sorted, groupQty) ?? sorted[0] ?? null;
+}
+
+/** The singular or plural form of a word, French style (0 and 1 are singular). */
+export function plural(count: number, one: string, many: string): string {
+  return count > 1 ? many : one;
 }
 
 export function loginHref(path: string): string {

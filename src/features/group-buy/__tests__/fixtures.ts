@@ -2,7 +2,12 @@
  * A group as the API presents it (GroupBuyPresenter::detail in the API repo):
  * amounts in centimes, public names only.
  */
-import type { GroupBuyDetail, GroupBuyDetailResponse } from "../api/group-buy.schemas";
+import type {
+  GroupBuyDetail,
+  GroupBuyDetailResponse,
+  GroupBuyMembership,
+  GroupBuyViewerStanding,
+} from "../api/group-buy.schemas";
 
 export const SERVER_NOW = "2026-11-06T12:00:00+00:00";
 
@@ -53,3 +58,46 @@ export function groupDetail(overrides: Partial<GroupBuyDetail> = {}): GroupBuyDe
 export function groupResponse(overrides: Partial<GroupBuyDetail> = {}): GroupBuyDetailResponse {
   return { success: true, data: groupDetail(overrides), server_now: SERVER_NOW };
 }
+
+/** The viewer's place in a group (GroupBuyPresenter::membership). */
+export function membership(overrides: Partial<GroupBuyMembership> = {}): GroupBuyMembership {
+  return {
+    qty: 1,
+    status: "reserved",
+    is_initiator: false,
+    can_leave: false,
+    can_change_qty: false,
+    can_order: false,
+    order_qty: 1,
+    my_share_amount: 650_000,
+    order: null,
+    joined_at: "2026-11-05T13:00:00+00:00",
+    must_confirm: false,
+    confirm_reason: null,
+    confirmed: false,
+    online_payment_only: false,
+    order_deadline_at: null,
+    ...overrides,
+  };
+}
+
+/** A signed-in viewer's standing on a group: level "Nouveau", room for 4 units. */
+export function viewerStanding(overrides: Partial<GroupBuyViewerStanding> = {}): GroupBuyViewerStanding {
+  return {
+    level: "new",
+    level_label: "Nouveau",
+    delivered_orders: 0,
+    max_amount: 3_000_000,
+    reserved_amount: 400_000,
+    available_amount: 2_600_000,
+    active_strikes: 0,
+    suspended_until: null,
+    prepay_required: false,
+    banned: false,
+    max_qty_here: 4,
+    block: null,
+    ...overrides,
+  };
+}
+
+export const CONFIRM_RULES = { min_qty: 5, share_percent: 50, amount: 10_000_000, window_hours: 12 };

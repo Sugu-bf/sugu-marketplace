@@ -1,6 +1,10 @@
 import { Breadcrumb } from "@/components/ui";
 import { createMetadata } from "@/lib/metadata";
-import { fetchMyGroupBuyStats, fetchMyGroupBuys } from "@/features/group-buy/api/group-buy.api";
+import {
+  fetchMyGroupBuyStanding,
+  fetchMyGroupBuyStats,
+  fetchMyGroupBuys,
+} from "@/features/group-buy/api/group-buy.api";
 import { MyGroupBuysClient } from "@/features/group-buy/components/MyGroupBuysClient";
 
 export const metadata = createMetadata({
@@ -12,9 +16,10 @@ export const metadata = createMetadata({
 
 /** The account layout already checked the session. */
 export default async function MyGroupBuysPage() {
-  const [stats, active] = await Promise.all([
+  const [stats, active, standing] = await Promise.all([
     fetchMyGroupBuyStats().catch(() => null),
     fetchMyGroupBuys("active").catch(() => null),
+    fetchMyGroupBuyStanding().catch(() => null),
   ]);
 
   return (
@@ -26,7 +31,7 @@ export default async function MyGroupBuysPage() {
           Suivez vos groupes et commandez votre part dès que le prix est bloqué.
         </p>
       </div>
-      <MyGroupBuysClient stats={stats} initialActive={active} />
+      <MyGroupBuysClient stats={stats} initialActive={active} standing={standing} />
     </div>
   );
 }

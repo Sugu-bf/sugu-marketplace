@@ -7,7 +7,11 @@
  */
 import { z } from "zod";
 
-export const GroupBuyStatusSchema = z.enum(["open", "locked", "failed", "finished", "cancelled"]);
+/**
+ * `confirming`: the group closed on a tier, and the large reservations pay
+ * their part online first; the others order once the price is confirmed.
+ */
+export const GroupBuyStatusSchema = z.enum(["open", "confirming", "locked", "failed", "finished", "cancelled"]);
 export type GroupBuyStatus = z.infer<typeof GroupBuyStatusSchema>;
 
 export const GroupBuyMemberStatusSchema = z.enum(["reserved", "ordered", "left", "expired", "removed"]);
@@ -44,6 +48,8 @@ export const GroupBuyProgressSchema = z.object({
   next_tier: GroupBuyNextTierSchema.nullable(),
   closes_at: z.string().nullable(),
   order_deadline_at: z.string().nullable(),
+  /** Until when the large reservations may pay first (status `confirming` only). */
+  confirm_deadline_at: z.string().nullable().optional(),
   server_now: z.string(),
 });
 export type GroupBuyProgress = z.infer<typeof GroupBuyProgressSchema>;
@@ -72,6 +78,46 @@ export const GroupBuySummarySchema = GroupBuyProgressSchema.extend({
 });
 export type GroupBuySummary = z.infer<typeof GroupBuySummarySchema>;
 
+/**
+ * When a reservation pays first at the close: `min_qty` units AND
+ * `share_percent` % of the tier reached, or `amount` centimes at the price.
+ */
+export const GroupBuyConfirmRulesSchema = z.object({
+  min_qty: z.number().int(),
+  share_percent: z.number(),
+  amount: z.number().int(),
+  window_hours: z.number(),
+});
+export type GroupBuyConfirmRules = z.infer<typeof GroupBuyConfirmRulesSchema>;
+
+export const GroupBuyTrustLevelSchema = z.enum(["new", "trusted", "loyal", "pro"]);
+export type GroupBuyTrustLevel = z.infer<typeof GroupBuyTrustLevelSchema>;
+
+/** Where the signed-in customer stands: their level, ceiling and sanctions. */
+export const GroupBuyStandingSchema = z.object({
+  /** A level unknown to this version of the site is read as a plain string. */
+  level: z.union([GroupBuyTrustLevelSchema, z.string()]),
+  level_label: z.string(),
+  delivered_orders: z.number().int(),
+  /** Largest amount held reserved at once (centimes, normal price); null = no ceiling. */
+  max_amount: z.number().int().nullable(),
+  reserved_amount: z.number().int(),
+  /** What may still be reserved; null = no ceiling. */
+  available_amount: z.number().int().nullable(),
+  active_strikes: z.number().int(),
+  suspended_until: z.string().nullable(),
+  prepay_required: z.boolean(),
+  banned: z.boolean(),
+});
+export type GroupBuyStanding = z.infer<typeof GroupBuyStandingSchema>;
+
+/** The standing on one group: also how much the viewer may hold there. */
+export const GroupBuyViewerStandingSchema = GroupBuyStandingSchema.extend({
+  max_qty_here: z.number().int().nullable().optional(),
+  block: z.enum(["banned", "suspended", "ceiling"]).nullable().optional(),
+});
+export type GroupBuyViewerStanding = z.infer<typeof GroupBuyViewerStandingSchema>;
+
 export const GroupBuyMembershipSchema = z.object({
   qty: z.number().int(),
   status: GroupBuyMemberStatusSchema,
@@ -83,9 +129,23 @@ export const GroupBuyMembershipSchema = z.object({
   order_qty: z.number().int(),
   my_share_amount: z.number().int(),
   order: z
-    .object({ id: z.string(), number: z.string().nullable(), status: z.string().nullable() })
+    .object({
+      id: z.string(),
+      number: z.string().nullable(),
+      status: z.string().nullable(),
+      payment_status: z.string().nullable().optional(),
+    })
     .nullable(),
   joined_at: z.string().nullable(),
+  /** Pays first at the close (online only), before the others may order. */
+  must_confirm: z.boolean().optional(),
+  confirm_reason: z.enum(["bulk", "prepay"]).nullable().optional(),
+  /** Their payment arrived: the price rests on it. */
+  confirmed: z.boolean().optional(),
+  /** Cash on delivery is refused for this part (confirmation in progress). */
+  online_payment_only: z.boolean().optional(),
+  /** The deadline that applies to this member: the confirmation's or the group's. */
+  order_deadline_at: z.string().nullable().optional(),
 });
 export type GroupBuyMembership = z.infer<typeof GroupBuyMembershipSchema>;
 
@@ -102,7 +162,12 @@ export const GroupBuyDetailSchema = GroupBuySummarySchema.extend({
   max_member_qty: z.number().int(),
   remaining_qty: z.number().int(),
   can_join: z.boolean(),
+  /** "7 sur 9 ont déjà commandé". */
+  ordered_count: z.number().int().optional(),
+  confirm_rules: GroupBuyConfirmRulesSchema.nullable().optional(),
   my_membership: GroupBuyMembershipSchema.nullable(),
+  /** The viewer's own standing; null for a guest. */
+  my_standing: GroupBuyViewerStandingSchema.nullable().optional(),
   /** The viewer's own invitation code, added to the links they share. */
   share_ref: z.string().nullable().optional(),
 });
@@ -152,6 +217,7 @@ export const GroupBuyOfferSchema = z.discriminatedUnion("groupable", [
     delivery_modes: z.array(GroupBuyDeliveryModeSchema),
     open_hours: z.number().int(),
     max_member_qty: z.number().int(),
+    confirm_rules: GroupBuyConfirmRulesSchema.nullable().optional(),
     open_groups: z.array(GroupBuySummarySchema),
   }),
   z.object({
@@ -207,4 +273,42 @@ export type MyGroupBuyStats = z.infer<typeof MyGroupBuyStatsSchema>;
 export const MyGroupBuyStatsResponseSchema = z.object({
   success: z.literal(true),
   data: MyGroupBuyStatsSchema,
+});
+
+// ─── Standing (GET /me/group-buys/standing) ──────────────────
+
+export const GroupBuyStrikeSchema = z.object({
+  id: z.string(),
+  reason: z.string(),
+  label: z.string(),
+  group_code: z.string().nullable().optional(),
+  at: z.string().nullable(),
+  /** Null once voided. */
+  counts_until: z.string().nullable().optional(),
+  voided: z.boolean(),
+});
+export type GroupBuyStrike = z.infer<typeof GroupBuyStrikeSchema>;
+
+export const GroupBuyStandingRulesSchema = z.object({
+  strike_window_days: z.number().int(),
+  suspend_after_strikes: z.number().int(),
+  suspension_days: z.number().int(),
+  prepay_after_strikes: z.number().int(),
+  long_suspension_days: z.number().int(),
+  min_qty: z.number().int(),
+  share_percent: z.number(),
+  amount: z.number().int(),
+  window_hours: z.number(),
+});
+export type GroupBuyStandingRules = z.infer<typeof GroupBuyStandingRulesSchema>;
+
+export const MyGroupBuyStandingSchema = GroupBuyStandingSchema.extend({
+  strikes: z.array(GroupBuyStrikeSchema).default([]),
+  rules: GroupBuyStandingRulesSchema.nullable().optional(),
+});
+export type MyGroupBuyStanding = z.infer<typeof MyGroupBuyStandingSchema>;
+
+export const MyGroupBuyStandingResponseSchema = z.object({
+  success: z.literal(true),
+  data: MyGroupBuyStandingSchema,
 });

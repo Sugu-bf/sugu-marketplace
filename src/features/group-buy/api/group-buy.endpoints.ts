@@ -25,3 +25,4 @@ export const groupBuyCheckoutUrl = (code: string): string => v1Url(`${BASE}/${co
 export const relaunchGroupBuyUrl = (code: string): string => v1Url(`${BASE}/${code}/relaunch`);
 export const myGroupBuysUrl = (params?: QueryParams): string => v1Url("/me/group-buys", params);
 export const myGroupBuyStatsUrl = (): string => v1Url("/me/group-buys/stats");
+export const myGroupBuyStandingUrl = (): string => v1Url("/me/group-buys/standing");

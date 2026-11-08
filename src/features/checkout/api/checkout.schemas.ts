@@ -116,6 +116,11 @@ export const CheckoutSessionApiSchema = z.object({
   cart_items_count: z.number().optional(),
   /** Set when the session pays a member's part of a group buy (no cart, no coupon). */
   group_buy_code: z.string().nullable().optional(),
+  /**
+   * A group part that confirms the group price is paid online only: cash on
+   * delivery is refused for it (PAY_ONLINE).
+   */
+  online_payment_required: z.boolean().optional(),
   // Sélections persistées côté serveur : elles permettent au front de se
   // réhydrater après un rechargement de page plutôt que de repartir de zéro.
   shipping_address: CheckoutAddressSchema.nullable().optional(),

@@ -7,17 +7,23 @@ import {
   AlertTriangle,
   ArrowRight,
   BadgeCheck,
+  Ban,
   CheckCircle2,
+  Clock,
+  Gauge,
   Info,
   Loader2,
   LogIn,
+  LogOut,
   PartyPopper,
   RefreshCw,
+  ShieldAlert,
   ShoppingBag,
   Store,
   TrendingDown,
   Truck,
   Users,
+  Wallet,
 } from "lucide-react";
 import { Badge, Button, Modal, QuantitySelector } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -33,14 +39,19 @@ import {
 import { useGroupBuyLive } from "../hooks/use-group-buy-live";
 import {
   STATUS_LABELS,
+  closingTierAt,
   formatCentimes,
+  formatDay,
   initialsOf,
+  isBulkReservation,
   loginHref,
   nextStepLabel,
+  plural,
   productHref,
   refusalOf,
 } from "../lib/group-buy-format";
 import { GroupBuyCountdown } from "./GroupBuyCountdown";
+import { GroupBuyDeadline } from "./GroupBuyDeadline";
 import { GroupBuyProgress } from "./GroupBuyProgress";
 import { GroupBuyThumb } from "./GroupBuyCard";
 import { ShareGroupBuy } from "./ShareGroupBuy";
@@ -56,8 +67,12 @@ interface GroupBuyPageClientProps {
 
 type Busy = "join" | "update" | "leave" | "order" | "relaunch" | null;
 
+/** Refusals about the person (ceiling, suspension, ban): the page reads the group again. */
+const STANDING_REFUSALS = new Set(["TRUST_CAP", "GB_SUSPENDED", "GB_BANNED"]);
+
 const STATUS_BADGE: Record<GroupBuyDetail["status"], "success" | "secondary" | "warning" | "muted" | "danger"> = {
   open: "secondary",
+  confirming: "warning",
   locked: "success",
   failed: "warning",
   finished: "muted",
@@ -69,7 +84,7 @@ const STATUS_BADGE: Record<GroupBuyDetail["status"], "success" | "secondary" | "
  * and a share button that is never more than a thumb away.
  */
 export function GroupBuyPageClient({ initial, isSignedIn, refCode, justLaunched, sessionExpired }: GroupBuyPageClientProps) {
-  const { group, offset, apply } = useGroupBuyLive(initial);
+  const { group, offset, apply, refresh } = useGroupBuyLive(initial);
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState<Busy>(null);
@@ -99,6 +114,8 @@ export function GroupBuyPageClient({ initial, isSignedIn, refCode, justLaunched,
       }
       setError(refusal.message);
       toast.error(refusal.message);
+      // A refusal about the viewer's standing changes what they may do here.
+      if (refusal.code && STANDING_REFUSALS.has(refusal.code)) void refresh();
     } finally {
       setBusy(null);
     }
@@ -196,10 +213,23 @@ export function GroupBuyPageClient({ initial, isSignedIn, refCode, justLaunched,
         <div className="rounded-2xl border border-primary/20 bg-white p-4 shadow-md shadow-primary/5 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-foreground/60">
-              {group.status === "open" ? "Prix du groupe maintenant" : "Prix du groupe"}
+              {group.status === "open"
+                ? "Prix du groupe maintenant"
+                : group.status === "confirming"
+                  ? "Prix provisoire du groupe"
+                  : "Prix du groupe"}
             </p>
             {group.status === "open" && (
               <GroupBuyCountdown target={group.closes_at} offset={offset} prefix="Ferme dans" className="text-sm" />
+            )}
+            {group.status === "confirming" && (
+              <GroupBuyCountdown
+                target={group.confirm_deadline_at ?? null}
+                offset={offset}
+                prefix="Prix confirmé dans"
+                expiredLabel="Confirmation en cours"
+                className="text-sm"
+              />
             )}
             {group.status === "locked" && (
               <GroupBuyCountdown
@@ -238,8 +268,20 @@ export function GroupBuyPageClient({ initial, isSignedIn, refCode, justLaunched,
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             <Stat label="membres" value={group.members_count} />
             <Stat label="réservés" value={group.reserved_qty} />
-            <Stat label="unités encore possibles" value={group.status === "open" ? group.remaining_qty : 0} />
+            {group.status === "open" ? (
+              <Stat label="unités encore possibles" value={group.remaining_qty} />
+            ) : (
+              <Stat label="ont commandé" value={group.ordered_count ?? 0} />
+            )}
           </div>
+
+          {group.status === "locked" && (group.ordered_count ?? 0) > 0 && group.members_count > 0 && (
+            <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-green-700">
+              <CheckCircle2 size={16} aria-hidden="true" />
+              {group.ordered_count} {plural(group.ordered_count ?? 0, "membre", "membres")} sur {group.members_count}{" "}
+              {plural(group.ordered_count ?? 0, "a", "ont")} déjà commandé
+            </p>
+          )}
 
           <div className="mt-4 border-t border-border-light pt-4">
             <ActionPanel
@@ -294,7 +336,8 @@ export function GroupBuyPageClient({ initial, isSignedIn, refCode, justLaunched,
             <div>
               <p className="font-semibold text-foreground">Rien à payer pour rejoindre</p>
               <p className="text-xs text-foreground/70">
-                Vous payez votre part seulement après la clôture, au prix atteint, à la livraison ou par mobile money.
+                Vous payez votre part seulement après la clôture, au prix atteint, à la livraison ou par mobile money. Les
+                grosses réservations paient en ligne en premier.
               </p>
             </div>
           </div>
@@ -392,7 +435,7 @@ interface ActionPanelProps {
   onRelaunch: () => void;
 }
 
-function ActionPanel({ group, isSignedIn, busy, onLogin, onJoin, onUpdateQty, onAskLeave, onOrder, onRelaunch }: ActionPanelProps) {
+function ActionPanel({ group, isSignedIn, busy, offset, onLogin, onJoin, onUpdateQty, onAskLeave, onOrder, onRelaunch }: ActionPanelProps) {
   const mine = group.my_membership;
 
   // ── Open: join, or manage the place ──
@@ -414,6 +457,9 @@ function ActionPanel({ group, isSignedIn, busy, onLogin, onJoin, onUpdateQty, on
     if (group.can_join) {
       return <JoinPanel group={group} busy={busy} onJoin={onJoin} />;
     }
+    if (group.my_standing?.block && mine?.status !== "removed") {
+      return <BlockNotice group={group} />;
+    }
     return (
       <Notice tone="muted" icon={<Info size={16} />}>
         {mine?.status === "removed"
@@ -422,6 +468,49 @@ function ActionPanel({ group, isSignedIn, busy, onLogin, onJoin, onUpdateQty, on
             ? "Le groupe est complet. Lancez-en un autre depuis la fiche produit."
             : "Ce groupe n’accepte pas votre adhésion."}
       </Notice>
+    );
+  }
+
+  // ── Confirming: the large reservations pay first, the others wait ──
+  if (group.status === "confirming") {
+    const deadline = group.confirm_deadline_at ?? mine?.order_deadline_at ?? null;
+    if (mine?.status === "ordered") return <ConfirmOrderedNotice group={group} offset={offset} />;
+    if (mine?.status === "reserved" && mine.must_confirm && mine.can_order) {
+      return <PayFirstPanel group={group} busy={busy} offset={offset} onOrder={onOrder} />;
+    }
+    if (mine?.status === "reserved" && mine.must_confirm) {
+      return (
+        <Notice tone="warning" icon={<Clock size={16} />}>
+          {group.delivery_mode === "grouped" && !mine.is_initiator
+            ? "L’initiateur paie pour tout le groupe en ligne. Votre part reste à lui régler directement."
+            : "Le délai pour payer votre part est passé. Le groupe termine la confirmation du prix."}
+        </Notice>
+      );
+    }
+    if (mine?.status === "reserved") {
+      return (
+        <div className="space-y-2">
+          <Notice tone="info" icon={<Clock size={16} />}>
+            Les grosses réservations confirment le prix jusqu’à <GroupBuyDeadline at={deadline} offset={offset} /> ; vous pourrez
+            commander juste après.
+          </Notice>
+          <p className="text-xs text-foreground/60">
+            Prix provisoire : {formatCentimes(group.current_unit_price)} l’unité. Il peut encore changer si une grosse réservation
+            n’est pas payée. Vous recevrez un message dès que vous pourrez commander.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <ClosedCta
+        group={group}
+        text={
+          <>
+            Le groupe est fermé aux nouveaux membres. Les grosses réservations confirment le prix jusqu’à{" "}
+            <GroupBuyDeadline at={deadline} offset={offset} />.
+          </>
+        }
+      />
     );
   }
 
@@ -446,6 +535,10 @@ function ActionPanel({ group, isSignedIn, busy, onLogin, onJoin, onUpdateQty, on
           <p className="text-center text-xs text-foreground/60">
             Paiement à la livraison ou par mobile money, comme une commande normale. Livraison en plus.
           </p>
+          <p className="flex items-start gap-1.5 text-xs text-amber-800">
+            <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <span>Le prix a été obtenu avec votre place : sans commande avant la fin du délai, cela compte comme un abandon.</span>
+          </p>
         </div>
       );
     }
@@ -457,14 +550,24 @@ function ActionPanel({ group, isSignedIn, busy, onLogin, onJoin, onUpdateQty, on
         </Notice>
       );
     }
-    return <ClosedCta group={group} text="Le groupe est fermé aux nouveaux membres." />;
+    return (
+      <div className="space-y-3">
+        {mine?.status === "expired" && mine.must_confirm && <UnconfirmedNotice />}
+        <ClosedCta group={group} text="Le groupe est fermé aux nouveaux membres." />
+      </div>
+    );
   }
 
   // ── Over ──
   const canRelaunch = isSignedIn && (mine?.status === "reserved" || mine?.status === "ordered" || mine?.status === "expired");
+  const unconfirmed = mine?.status === "expired" && mine.must_confirm === true && group.status !== "cancelled";
   const text =
     group.status === "failed"
-      ? "Le groupe n’a pas atteint le premier palier à temps. Personne n’a rien payé."
+      ? mine?.status === "ordered"
+        ? "Le palier n’a pas été atteint avec les autres membres. Votre commande reste valable au prix que vous avez payé."
+        : (group.ordered_count ?? 0) > 0
+          ? "Le groupe n’a pas atteint le palier à temps. Vous n’avez rien payé."
+          : "Le groupe n’a pas atteint le premier palier à temps. Personne n’a rien payé."
       : group.status === "cancelled"
         ? "Ce groupe a été annulé. Aucune commande déjà passée n’est touchée."
         : "Ce groupe est terminé.";
@@ -472,9 +575,10 @@ function ActionPanel({ group, isSignedIn, busy, onLogin, onJoin, onUpdateQty, on
   return (
     <div className="space-y-3">
       {mine?.status === "ordered" && <OrderedNotice group={group} />}
+      {unconfirmed && <UnconfirmedNotice />}
       {/* On a failed or cancelled group the server also closes the places:
           only a finished one means the member let the window pass. */}
-      {mine?.status === "expired" && group.status === "finished" && (
+      {mine?.status === "expired" && group.status === "finished" && !unconfirmed && (
         <Notice tone="warning" icon={<AlertTriangle size={16} />}>
           Vous n’avez pas commandé votre part à temps.
         </Notice>
@@ -492,8 +596,51 @@ function ActionPanel({ group, isSignedIn, busy, onLogin, onJoin, onUpdateQty, on
   );
 }
 
+/**
+ * The largest quantity the viewer may hold here: the group's own limits,
+ * and their trust ceiling when the server gives it (`max_qty_here`).
+ */
+function maxQtyFor(group: GroupBuyDetail, current = 0): number {
+  const groupMax = Math.min(group.max_member_qty, current + group.remaining_qty);
+  const cap = group.my_standing?.max_qty_here;
+  return typeof cap === "number" ? Math.min(groupMax, cap) : groupMax;
+}
+
+/** Would `qty` (the viewer's whole place) pay first if the group closed on its tier? */
+function paysFirstWith(group: GroupBuyDetail, qty: number, current = 0): boolean {
+  if (group.my_standing?.prepay_required) return true;
+  const tier = closingTierAt(group.tiers, group.reserved_qty - current + qty);
+  return isBulkReservation(qty, tier, group.confirm_rules);
+}
+
+function TrustHint({ group, max }: { group: GroupBuyDetail; max: number }) {
+  const standing = group.my_standing;
+  if (!standing || standing.max_amount === null) return null;
+  return (
+    <p className="flex items-start gap-1.5 text-xs text-foreground/70">
+      <Gauge size={14} className="mt-0.5 flex-shrink-0 text-primary" aria-hidden="true" />
+      <span>
+        Votre niveau {standing.level_label} : jusqu’à {max} {plural(max, "unité", "unités")} ici. Chaque commande livrée augmente
+        ce plafond.
+      </span>
+    </p>
+  );
+}
+
+function PaysFirstHint({ group }: { group: GroupBuyDetail }) {
+  const hours = group.confirm_rules?.window_hours;
+  return (
+    <Notice tone="warning" icon={<Wallet size={16} />}>
+      {group.my_standing?.prepay_required
+        ? "Votre compte paie d’avance : à la clôture, vous paierez votre part en ligne en premier."
+        : "Avec cette quantité, vous paierez votre part en ligne en premier à la clôture."}
+      {hours ? ` Vous aurez ${hours} h pour payer, sinon la place est libérée.` : ""}
+    </Notice>
+  );
+}
+
 function JoinPanel({ group, busy, onJoin }: { group: GroupBuyDetail; busy: Busy; onJoin: (qty: number) => void }) {
-  const max = Math.max(1, Math.min(group.max_member_qty, group.remaining_qty));
+  const max = Math.max(1, maxQtyFor(group));
   const [qty, setQty] = useState(1);
   const safeQty = Math.min(qty, max);
   // What the group would pay with this quantity added.
@@ -505,6 +652,7 @@ function JoinPanel({ group, busy, onJoin }: { group: GroupBuyDetail; busy: Busy;
         <span className="text-sm font-semibold text-foreground">Votre quantité</span>
         <QuantitySelector value={safeQty} onChange={setQty} min={1} max={max} size="md" />
       </div>
+      <TrustHint group={group} max={max} />
       <p className="rounded-lg bg-primary-50 px-3 py-2 text-sm text-primary-900">
         Votre part estimée : <span className="font-bold">{formatCentimes(unitAfter * safeQty)}</span>
         <span className="block text-xs text-primary-700">
@@ -513,6 +661,7 @@ function JoinPanel({ group, busy, onJoin }: { group: GroupBuyDetail; busy: Busy;
             : "Le prix baisse encore si le groupe grandit."}
         </span>
       </p>
+      {paysFirstWith(group, safeQty) && <PaysFirstHint group={group} />}
       <Button
         variant="primary"
         size="lg"
@@ -525,7 +674,9 @@ function JoinPanel({ group, busy, onJoin }: { group: GroupBuyDetail; busy: Busy;
         {busy === "join" ? <Loader2 size={18} className="animate-spin" /> : <Users size={18} aria-hidden="true" />}
         Rejoindre le groupe
       </Button>
-      <p className="text-center text-xs text-foreground/60">Rien à payer maintenant. Vous pourrez partir tant que le groupe est ouvert.</p>
+      <p className="text-center text-xs text-foreground/60">
+        Rien à payer maintenant. Si le prix est obtenu et que vous ne commandez pas, cela compte comme un abandon.
+      </p>
     </div>
   );
 }
@@ -542,7 +693,7 @@ function MemberOpenPanel({
   onAskLeave: () => void;
 }) {
   const mine = group.my_membership!;
-  const max = Math.max(mine.qty, Math.min(group.max_member_qty, mine.qty + group.remaining_qty));
+  const max = Math.max(mine.qty, maxQtyFor(group, mine.qty));
   const [qty, setQty] = useState(mine.qty);
   const changed = qty !== mine.qty;
 
@@ -564,20 +715,163 @@ function MemberOpenPanel({
           </div>
         </div>
       )}
+      {mine.can_change_qty && <TrustHint group={group} max={max} />}
+      {paysFirstWith(group, qty, mine.qty) && <PaysFirstHint group={group} />}
       <p className="text-xs text-foreground/60">
-        À la clôture, le prix atteint est bloqué et vous recevez un message pour commander votre part.
+        À la clôture, le prix atteint est bloqué et vous recevez un message pour commander votre part. Sans commande, cela
+        compte comme un abandon.
       </p>
       {mine.can_leave && (
-        <button
-          type="button"
-          onClick={onAskLeave}
-          disabled={busy !== null}
-          className="text-xs font-semibold text-foreground/60 underline-offset-4 hover:text-error hover:underline disabled:opacity-50"
-        >
-          Quitter le groupe
-        </button>
+        <div className="rounded-xl border border-border bg-muted/40 p-3">
+          <p className="text-xs text-foreground/70">
+            Vous ne pouvez plus venir ? Quittez le groupe plutôt que de laisser votre place sans commande.
+          </p>
+          <Button variant="outline" size="sm" fullWidth onClick={onAskLeave} disabled={busy !== null} className="mt-2">
+            <LogOut size={14} aria-hidden="true" />
+            Quitter le groupe
+          </Button>
+        </div>
       )}
     </div>
+  );
+}
+
+/** A member who pays first: one button, the deadline, and what missing it costs. */
+function PayFirstPanel({ group, busy, offset, onOrder }: { group: GroupBuyDetail; busy: Busy; offset: number; onOrder: () => void }) {
+  const mine = group.my_membership!;
+  const deadline = mine.order_deadline_at ?? group.confirm_deadline_at ?? null;
+
+  return (
+    <div className="space-y-3">
+      <Notice tone="info" icon={<Wallet size={16} />}>
+        {mine.confirm_reason === "prepay"
+          ? "Votre compte paie d’avance : payez votre part en ligne pour garder votre place."
+          : "Votre réservation pèse sur le prix de tout le groupe : payez votre part en ligne pour le confirmer."}{" "}
+        Prix : {formatCentimes(group.current_unit_price)} l’unité.
+      </Notice>
+      <div className="flex justify-center">
+        <GroupBuyCountdown
+          target={deadline}
+          offset={offset}
+          prefix="Encore"
+          suffix="pour payer"
+          expiredLabel="Délai de paiement passé"
+          className="text-sm"
+        />
+      </div>
+      <Button
+        variant="primary"
+        size="lg"
+        fullWidth
+        pill
+        onClick={onOrder}
+        disabled={busy !== null}
+        className="shadow-lg shadow-primary/20"
+      >
+        {busy === "order" ? <Loader2 size={18} className="animate-spin" /> : <Wallet size={18} aria-hidden="true" />}
+        Payer ma part en ligne · {formatCentimes(mine.my_share_amount)}
+      </Button>
+      <Notice tone="warning" icon={<AlertTriangle size={16} />}>
+        Sans paiement avant <GroupBuyDeadline at={deadline} offset={offset} />, votre place est libérée et cela compte comme un
+        abandon.
+      </Notice>
+      <p className="text-center text-xs text-foreground/60">
+        Mobile money uniquement (Orange Money, Moov Money, Wave). Livraison en plus. Les autres membres commandent après vous.
+      </p>
+    </div>
+  );
+}
+
+/** Ordered while the price is being confirmed: paid, or payment still to finish. */
+function ConfirmOrderedNotice({ group, offset }: { group: GroupBuyDetail; offset: number }) {
+  const mine = group.my_membership!;
+  const order = mine.order;
+  const deadline = mine.order_deadline_at ?? group.confirm_deadline_at ?? null;
+  const paid = mine.confirmed === true || order?.payment_status === "paid";
+
+  if (paid || !mine.must_confirm) {
+    return (
+      <div className="space-y-2">
+        <Notice tone="success" icon={<CheckCircle2 size={16} />}>
+          {paid ? "Paiement reçu : votre part est confirmée." : "Votre commande est passée."} Les autres membres pourront
+          commander après <GroupBuyDeadline at={group.confirm_deadline_at} offset={offset} />.
+        </Notice>
+        {order && <TrackOrderLink orderId={order.id} />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Notice tone="warning" icon={<AlertTriangle size={16} />}>
+        Commande créée, paiement pas encore reçu. Terminez le paiement avant <GroupBuyDeadline at={deadline} offset={offset} />,
+        sinon votre place est libérée et cela compte comme un abandon.
+      </Notice>
+      {order && (
+        <Link
+          href={`/track-order?order=${encodeURIComponent(order.id)}`}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+        >
+          <Wallet size={16} aria-hidden="true" /> Terminer le paiement
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function UnconfirmedNotice() {
+  return (
+    <Notice tone="warning" icon={<AlertTriangle size={16} />}>
+      Votre place a été libérée : votre part n’a pas été payée avant la fin de la confirmation du prix.
+    </Notice>
+  );
+}
+
+/** Why a signed-in visitor may not join, said plainly, with the way out. */
+function BlockNotice({ group }: { group: GroupBuyDetail }) {
+  const standing = group.my_standing!;
+  if (standing.block === "banned") {
+    return (
+      <Notice tone="danger" icon={<Ban size={16} />}>
+        Votre compte ne peut plus participer aux achats groupés. Contactez le service client pour en parler.
+      </Notice>
+    );
+  }
+  if (standing.block === "suspended") {
+    const until = formatDay(standing.suspended_until, "Africa/Ouagadougou");
+    return (
+      <div className="space-y-2">
+        <Notice tone="warning" icon={<ShieldAlert size={16} />}>
+          Après des places laissées sans commande, vous ne pouvez plus rejoindre ni lancer de groupe
+          {until ? ` jusqu’au ${until}` : " pour le moment"}.
+        </Notice>
+        <Link href="/account/achats-groupes" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+          Voir ma fiabilité <ArrowRight size={14} aria-hidden="true" />
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <Notice tone="warning" icon={<Gauge size={16} />}>
+        Votre plafond de réservation (niveau {standing.level_label}) est atteint. Commandez ou libérez une place dans un autre
+        groupe pour rejoindre celui-ci.
+      </Notice>
+      <Link href="/account/achats-groupes" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+        Mes achats groupés <ArrowRight size={14} aria-hidden="true" />
+      </Link>
+    </div>
+  );
+}
+
+function TrackOrderLink({ orderId }: { orderId: string }) {
+  return (
+    <Link
+      href={`/track-order?order=${encodeURIComponent(orderId)}`}
+      className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-border bg-white py-2.5 text-sm font-semibold text-foreground hover:border-primary/40 hover:text-primary"
+    >
+      <Truck size={16} aria-hidden="true" /> Suivre ma commande
+    </Link>
   );
 }
 
@@ -588,19 +882,12 @@ function OrderedNotice({ group }: { group: GroupBuyDetail }) {
       <Notice tone="success" icon={<CheckCircle2 size={16} />}>
         Votre commande est passée au prix du groupe{order?.number ? ` (n° ${order.number})` : ""}.
       </Notice>
-      {order && (
-        <Link
-          href={`/track-order?order=${encodeURIComponent(order.id)}`}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-border bg-white py-2.5 text-sm font-semibold text-foreground hover:border-primary/40 hover:text-primary"
-        >
-          <Truck size={16} aria-hidden="true" /> Suivre ma commande
-        </Link>
-      )}
+      {order && <TrackOrderLink orderId={order.id} />}
     </div>
   );
 }
 
-function ClosedCta({ group, text }: { group: GroupBuyDetail; text?: string }) {
+function ClosedCta({ group, text }: { group: GroupBuyDetail; text?: React.ReactNode }) {
   const productLink = productHref(group);
   return (
     <div className="space-y-2">
@@ -667,6 +954,7 @@ function HowStep({ icon, title, children }: { icon: React.ReactNode; title: stri
 
 const NOTICE_TONES = {
   success: "border-green-200 bg-green-50 text-green-800",
+  danger: "border-red-200 bg-red-50 text-red-800",
   info: "border-blue-200 bg-blue-50 text-blue-800",
   warning: "border-amber-200 bg-amber-50 text-amber-800",
   muted: "border-border bg-muted/60 text-foreground/80",
